@@ -6,6 +6,7 @@ const { validateVoucherFields } = require('../shared/voucher');
 
 const registry = createMinerRegistry(config.miners);
 const ledger = createVoucherLedger();
+const MAX_BODY_SIZE_BYTES = 1e6;
 
 const readJsonBody = (req) =>
   new Promise((resolve, reject) => {
@@ -17,7 +18,7 @@ const readJsonBody = (req) =>
       }
 
       body += chunk;
-      if (body.length > 1e6) {
+      if (body.length > MAX_BODY_SIZE_BYTES) {
         aborted = true;
         req.destroy();
         reject(new Error('payload exceeds 1MB limit'));
@@ -69,11 +70,12 @@ const resolveRequest = (body) => {
   ledger.recordVoucher(voucher);
 
   const query = body.query ?? {};
-  const capability = query.needsGateway
-    ? 'gateway'
-    : query.needsCache
-      ? 'cache'
-      : null;
+  let capability = null;
+  if (query.needsGateway) {
+    capability = 'gateway';
+  } else if (query.needsCache) {
+    capability = 'cache';
+  }
   const region = query.clientRegion || config.defaultRegion;
 
   const miner = registry.selectMiner({

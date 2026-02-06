@@ -1,5 +1,6 @@
 const DEFAULT_ERROR_RATE_LIMIT = 0.2;
 const DEFAULT_LATENCY_MS = 150;
+const MAX_TOP_CANDIDATES = 5;
 
 const normalizeMiner = (miner) => ({
   successRate: 0.9,
@@ -68,7 +69,7 @@ const createMinerRegistry = (seedMiners = [], options = {}) => {
 
     const topCandidates = candidates
       .sort((a, b) => b.score - a.score)
-      .slice(0, 5);
+      .slice(0, MAX_TOP_CANDIDATES);
 
     return pickWeighted(topCandidates, randomFn);
   };

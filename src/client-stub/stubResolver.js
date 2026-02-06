@@ -3,8 +3,10 @@ const https = require('https');
 const crypto = require('crypto');
 const { createWallet } = require('./wallet');
 
+const BUCKET_SIZE_MS = 60000;
+
 const createQueryCommitment = (name, type, now = Date.now()) => {
-  const bucket = Math.floor(now / 60000);
+  const bucket = Math.floor(now / BUCKET_SIZE_MS);
   return crypto
     .createHash('sha256')
     .update(`${name}:${type}:${bucket}`)

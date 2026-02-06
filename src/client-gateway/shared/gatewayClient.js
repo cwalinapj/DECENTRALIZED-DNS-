@@ -4,13 +4,13 @@ const createGatewayClient = ({ resolverUrl, clientRegion } = {}) => {
   const stub = createStubResolver({ resolverUrl });
 
   const resolve = ({
-    queryName,
+    name,
     type = 'A',
     needsGateway = false,
     needsCache = false,
   }) =>
     stub.resolve({
-      name: queryName,
+      name,
       type,
       clientRegion,
       needsGateway,
