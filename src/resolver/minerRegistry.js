@@ -1,3 +1,5 @@
+const DEFAULT_ERROR_RATE_LIMIT = 0.2;
+
 const normalizeMiner = (miner) => ({
   successRate: 0.9,
   capacityScore: 0.5,
@@ -7,7 +9,8 @@ const normalizeMiner = (miner) => ({
 });
 
 const scoreMiner = (miner) => {
-  const latencyScore = 1 / Math.max(1, miner.latencyMs ?? 1);
+  const latencyValue = Number.isFinite(miner.latencyMs) ? miner.latencyMs : 1;
+  const latencyScore = 1 / Math.max(1, latencyValue);
   const reliabilityScore = Math.max(0, Math.min(1, miner.successRate ?? 0.9));
   const capacityScore = Math.max(0, Math.min(1, miner.capacityScore ?? 0.5));
   return latencyScore * 100 + reliabilityScore * 50 + capacityScore * 30;
@@ -32,6 +35,9 @@ const pickWeighted = (candidates, randomFn) => {
 
 const createMinerRegistry = (seedMiners = [], options = {}) => {
   const randomFn = options.randomFn || Math.random;
+  const errorRateLimit = Number.isFinite(options.errorRateLimit)
+    ? options.errorRateLimit
+    : DEFAULT_ERROR_RATE_LIMIT;
   const miners = new Map();
 
   const registerMiner = (miner) => {
@@ -48,7 +54,7 @@ const createMinerRegistry = (seedMiners = [], options = {}) => {
       .filter((miner) => miner.status === 'active')
       .filter((miner) => !capability || miner.capabilities.includes(capability))
       .filter((miner) => !region || miner.region === region)
-      .filter((miner) => miner.errorRate <= 0.2)
+      .filter((miner) => miner.errorRate <= errorRateLimit)
       .filter((miner) => !excludedProviders.includes(miner.provider))
       .map((miner) => ({ miner, score: scoreMiner(miner) }));
 

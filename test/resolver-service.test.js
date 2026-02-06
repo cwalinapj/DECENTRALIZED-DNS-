@@ -6,14 +6,14 @@ const { validateVoucherFields } = require('../src/shared/voucher');
 const { createVoucherLedger } = require('../src/resolver/voucherLedger');
 const { createMinerRegistry } = require('../src/resolver/minerRegistry');
 
-const VOUCHER_EXPIRY_MS = 60000;
+const VOUCHER_TTL_MS = 60000;
 
 test('validates voucher signatures and sequence numbers', () => {
   const wallet = createWallet();
   const voucher = wallet.createVoucher({
     resolverId: 'resolver-local',
     amount: 0.5,
-    expiry: Date.now() + VOUCHER_EXPIRY_MS,
+    expiry: Date.now() + VOUCHER_TTL_MS,
     queryCommitment: 'commitment',
   });
 

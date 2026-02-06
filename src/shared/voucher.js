@@ -62,7 +62,7 @@ const validateVoucherFields = (voucher, now = Date.now()) => {
     return { ok: false, reason: 'invalid expiry value' };
   }
 
-  if (voucher.expiry <= now) {
+  if (voucher.expiry < now) {
     return { ok: false, reason: 'voucher expired' };
   }
 

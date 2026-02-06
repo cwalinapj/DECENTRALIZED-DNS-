@@ -3,9 +3,14 @@ const { createStubResolver } = require('../../client-stub/stubResolver');
 const createGatewayClient = ({ resolverUrl, clientRegion } = {}) => {
   const stub = createStubResolver({ resolverUrl });
 
-  const resolve = ({ name, type = 'A', needsGateway = false, needsCache = false }) =>
+  const resolve = ({
+    queryName,
+    type = 'A',
+    needsGateway = false,
+    needsCache = false,
+  }) =>
     stub.resolve({
-      name,
+      name: queryName,
       type,
       clientRegion,
       needsGateway,
