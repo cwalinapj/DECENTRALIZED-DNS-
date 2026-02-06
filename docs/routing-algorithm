@@ -76,6 +76,7 @@ If a miner fails:
 To avoid one provider/operator dominating:
 - enforce diversity constraints at selection time
 - apply per-epoch caps on traffic share per ASN/operator
+- Routing must enforce diversity constraints (ASN/operator caps) and prefer resilient ingress providers; see `docs/resilience-tokenomics.md`.
 
 ## Output Accounting (for Rewards)
 
