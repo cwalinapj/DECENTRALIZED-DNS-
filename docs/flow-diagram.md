@@ -72,5 +72,22 @@ flowchart TB
   R1 -->|Batch settlement\n(vouchers + payouts)| L2
   R2 -->|Batch settlement\n(vouchers + payouts)| L2
   L2 -->|Payouts| E1
+
+**What it shows:**  
+- Users hit an **Anycast VIP** that routes to **many edge-ingress miners**.  
+- A **scrubbing backend** sits “in front” during attacks.  
+- Edge nodes perform “toll booth” admission before forwarding to core resolvers.  
+- L2 pays edges/scrubbers/resolvers via batch settlement.
+
+---
+
+## 2) Add discoverability link in your `README.md` (recommended)
+
+Add a small section near the end:
+
+```md
+## Resilience (Anycast, Multi-Provider, Scrubbing)
+
+See [`docs/resilience-tokenomics.md`](docs/resilience-tokenomics.md) and [`docs/flow-diagram.md`](docs/flow-diagram.md) for how TollDNS incentivizes anycast ingress, regional diversity, and DDoS scrubbing as first-class network capabilities.
   L2 -->|Payouts| E2
   L2 -->|Payouts| SB
