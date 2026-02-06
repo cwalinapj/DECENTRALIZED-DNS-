@@ -52,6 +52,10 @@ const respondJson = (res, status, payload) => {
 
 const resolveRequest = (body) => {
   const voucher = body.voucher;
+  if (!voucher) {
+    return { status: 400, payload: { ok: false, reason: 'missing voucher' } };
+  }
+
   const validation = validateVoucherFields(voucher);
   if (!validation.ok) {
     return { status: 402, payload: { ok: false, reason: validation.reason } };
@@ -64,7 +68,7 @@ const resolveRequest = (body) => {
 
   ledger.recordVoucher(voucher);
 
-  const query = body.query || {};
+  const query = body.query ?? {};
   const capability = query.needsGateway
     ? 'gateway'
     : query.needsCache
