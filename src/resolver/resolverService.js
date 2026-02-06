@@ -138,6 +138,7 @@ const server = http.createServer(async (req, res) => {
 
     respondJson(res, 404, { ok: false, reason: 'not found' });
   } catch (error) {
+    console.error('Resolver error', error);
     respondJson(res, 500, { ok: false, reason: 'internal server error' });
   }
 });
