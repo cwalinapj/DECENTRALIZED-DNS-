@@ -58,7 +58,11 @@ const validateVoucherFields = (voucher, now = Date.now()) => {
     return { ok: false, reason: 'invalid seq' };
   }
 
-  if (!Number.isFinite(voucher.expiry) || voucher.expiry <= now) {
+  if (!Number.isFinite(voucher.expiry) || voucher.expiry <= 0) {
+    return { ok: false, reason: 'invalid expiry value' };
+  }
+
+  if (voucher.expiry <= now) {
     return { ok: false, reason: 'voucher expired' };
   }
 

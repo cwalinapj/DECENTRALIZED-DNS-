@@ -34,7 +34,8 @@ const requestJson = (url, path, payload) => {
       });
       res.on('end', () => {
         try {
-          resolve({ status: res.statusCode, data: JSON.parse(body || '{}') });
+          const data = body ? JSON.parse(body) : null;
+          resolve({ status: res.statusCode, data });
         } catch (error) {
           reject(error);
         }

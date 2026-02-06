@@ -13,7 +13,7 @@ const readJsonBody = (req) =>
     req.on('data', (chunk) => {
       body += chunk;
       if (body.length > 1e6) {
-        reject(new Error('payload too large'));
+        reject(new Error('payload exceeds 1MB limit'));
         req.destroy();
       }
     });

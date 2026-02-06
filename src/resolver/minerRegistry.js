@@ -7,7 +7,7 @@ const normalizeMiner = (miner) => ({
 });
 
 const scoreMiner = (miner) => {
-  const latencyScore = 1 / Math.max(1, miner.latencyMs || 1);
+  const latencyScore = 1 / Math.max(1, miner.latencyMs ?? 1);
   const reliabilityScore = Math.max(0, Math.min(1, miner.successRate ?? 0.9));
   const capacityScore = Math.max(0, Math.min(1, miner.capacityScore ?? 0.5));
   return latencyScore * 100 + reliabilityScore * 50 + capacityScore * 30;
