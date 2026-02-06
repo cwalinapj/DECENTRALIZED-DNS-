@@ -76,7 +76,7 @@ This avoids “first come, first served.”
 ## Diversity Controls (Strongly Recommended)
 
 Regional quotas alone don’t stop a single hosting provider from dominating.
-
+See `docs/resilience-tokenomics.md` for protocol-level incentives for anycast ingress, multi-provider diversity, and scrubbing capacity.
 Add one or more:
 
 ### Provider/ASN Caps
