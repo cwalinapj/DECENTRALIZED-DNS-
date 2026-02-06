@@ -30,7 +30,15 @@ npm run start:resolver
 ### Quick start (stub resolver)
 
 ```bash
-node -e "const { createStubResolver } = require('./src/client-stub'); (async () => { const client = createStubResolver({ resolverUrl: 'http://localhost:8787' }); console.log(await client.resolve({ name: 'example.com', needsGateway: true })); })();"
+node <<'NODE'
+const { createStubResolver } = require('./src/client-stub');
+
+(async () => {
+  const client = createStubResolver({ resolverUrl: 'http://localhost:8787' });
+  const response = await client.resolve({ name: 'example.com', needsGateway: true });
+  console.log(response);
+})();
+NODE
 ```
 
 ---

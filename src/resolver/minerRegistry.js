@@ -1,4 +1,5 @@
 const DEFAULT_ERROR_RATE_LIMIT = 0.2;
+const DEFAULT_LATENCY_MS = 150;
 
 const normalizeMiner = (miner) => ({
   successRate: 0.9,
@@ -9,7 +10,10 @@ const normalizeMiner = (miner) => ({
 });
 
 const scoreMiner = (miner) => {
-  const latencyValue = Number.isFinite(miner.latencyMs) ? miner.latencyMs : 1;
+  const latencyValue =
+    Number.isFinite(miner.latencyMs) && miner.latencyMs > 0
+      ? miner.latencyMs
+      : DEFAULT_LATENCY_MS;
   const latencyScore = 1 / Math.max(1, latencyValue);
   const reliabilityScore = Math.max(0, Math.min(1, miner.successRate ?? 0.9));
   const capacityScore = Math.max(0, Math.min(1, miner.capacityScore ?? 0.5));
