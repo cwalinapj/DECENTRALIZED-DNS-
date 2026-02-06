@@ -1,7 +1,7 @@
 {
-  "name": "decentralized-dns-",
+  "name": "decentralized-dns",
   "version": "1.0.0",
-  "description": "> **Status:** Early concept / design notes   > **Goal:** Build a recursive DNS resolver that charges a tiny “toll” per query in a native token, using those tolls to subsidize a decentralized network of Web3/IPFS gateway capacity operated by miners.",
+  "description": "A recursive DNS resolver with token-based tolls for subsidizing decentralized Web3/IPFS gateway capacity.",
   "main": "index.js",
   "scripts": {
     "test": "node -e \"console.log('No tests specified')\""
