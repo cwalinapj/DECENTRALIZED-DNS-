@@ -7,6 +7,7 @@ const normalizeMiner = (miner) => ({
   capacityScore: 0.5,
   errorRate: 0,
   status: 'active',
+  capabilities: [],
   ...miner,
 });
 

@@ -6,7 +6,7 @@ const createGatewayClient = ({ resolverUrl, clientRegion } = {}) => {
   const resolve = ({
     name,
     type = 'A',
-    needsGateway = false,
+    needsGateway = true,
     needsCache = false,
   }) =>
     stub.resolve({

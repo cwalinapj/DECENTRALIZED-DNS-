@@ -71,9 +71,12 @@ const resolveRequest = (body) => {
 
   const query = body.query ?? {};
   let capability = null;
-  if (query.needsGateway) {
+  const wantsGateway = Boolean(query.needsGateway);
+  const wantsCache = Boolean(query.needsCache);
+  if (wantsGateway) {
+    // Gateway takes precedence when both gateway and cache are requested.
     capability = 'gateway';
-  } else if (query.needsCache) {
+  } else if (wantsCache) {
     capability = 'cache';
   }
   const region = query.clientRegion || config.defaultRegion;
