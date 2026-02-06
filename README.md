@@ -13,6 +13,28 @@ A custom **L2 blockchain** provides the accounting/control plane for escrow, rew
 
 ---
 
+## Prototype Implementation (Work in Progress)
+
+The repository now includes a minimal, working baseline for:
+
+- **Resolver service** (`src/resolver/resolverService.js`) — verifies vouchers, tracks sequences, and selects miners.
+- **Client gateways** (`src/client-gateway/`) — shared gateway client plus platform stubs (iOS, Android, Windows, Linux, macOS).
+- **Client stub resolver** (`src/client-stub/`) — creates vouchers and calls the resolver API.
+
+### Quick start (resolver)
+
+```bash
+npm run start:resolver
+```
+
+### Quick start (stub resolver)
+
+```bash
+node -e "const { createStubResolver } = require('./src/client-stub'); (async () => { const client = createStubResolver({ resolverUrl: 'http://localhost:8787' }); console.log(await client.resolve({ name: 'example.com', needsGateway: true })); })();"
+```
+
+---
+
 ## Motivation
 
 DNS is a high-value target for abuse:
