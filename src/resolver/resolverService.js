@@ -10,14 +10,24 @@ const ledger = createVoucherLedger();
 const readJsonBody = (req) =>
   new Promise((resolve, reject) => {
     let body = '';
+    let aborted = false;
     req.on('data', (chunk) => {
+      if (aborted) {
+        return;
+      }
+
       body += chunk;
       if (body.length > 1e6) {
-        reject(new Error('payload exceeds 1MB limit'));
+        aborted = true;
         req.destroy();
+        reject(new Error('payload exceeds 1MB limit'));
       }
     });
     req.on('end', () => {
+      if (aborted) {
+        return;
+      }
+
       if (!body) {
         resolve({});
         return;
@@ -138,7 +148,7 @@ const server = http.createServer(async (req, res) => {
 
     respondJson(res, 404, { ok: false, reason: 'not found' });
   } catch (error) {
-    console.error('Resolver error', error);
+    console.error('Resolver error', req.method, req.url, error);
     respondJson(res, 500, { ok: false, reason: 'internal server error' });
   }
 });
