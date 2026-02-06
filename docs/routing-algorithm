@@ -78,6 +78,19 @@ To avoid one provider/operator dominating:
 - apply per-epoch caps on traffic share per ASN/operator
 - Routing must enforce diversity constraints (ASN/operator caps) and prefer resilient ingress providers; see `docs/resilience-tokenomics.md`.
 
+## Preventing Routing Capture
+
+To avoid a single provider/operator dominating traffic (and to reduce correlated failure), resolvers must enforce diversity constraints during miner selection:
+
+- **ASN/provider caps:** limit selection share per ASN per region per time window
+- **Operator caps:** limit selection share per operator per region per time window
+- **Optional /24 caps:** prevent over-concentration within a single IP block
+- **Weighted selection:** prefer top performers, but avoid deterministic winner-take-all routing
+
+In addition to routing-time constraints, apply **reward caps** at settlement-time so payouts cannot be monopolized even if routing temporarily misbehaves.
+
+For resilience-first routing (anycast ingress, diversity constraints, scrubbing partnerships), see `docs/resilience-tokenomics.md`.
+
 ## Output Accounting (for Rewards)
 
 When a miner serves a request:
