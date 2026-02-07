@@ -71,6 +71,10 @@ export type CompatState = {
   paymentAsset: string;
   paymentAmount: string;
   minerProofSecret: string;
+  tollSiteToken: string;
+  tollRpcUrl: string;
+  tollEscrowContract: string;
+  tollOperatorKey: string;
 };
 
 export type RouteContext = {
