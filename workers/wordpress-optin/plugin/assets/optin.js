@@ -2,6 +2,15 @@
   function $(sel, root) { return (root || document).querySelector(sel); }
   function $all(sel, root) { return Array.from((root || document).querySelectorAll(sel)); }
 
+  function randomNonce() {
+    if (window.crypto && window.crypto.getRandomValues) {
+      const bytes = new Uint8Array(8);
+      window.crypto.getRandomValues(bytes);
+      return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+    }
+    return Math.random().toString(16).slice(2);
+  }
+
   async function postJSON(url, body) {
     const r = await fetch(url, {
       method: "POST",
@@ -29,7 +38,7 @@
 
     const wrap = document.createElement("div");
     wrap.className = "ddns-optin-cats";
-    wrap.innerHTML = `<div class="ddns-optin-cats-title">Allowed Categories</div>`;
+    wrap.innerHTML = `<div class="ddns-optin-cats-title">Select Categories</div>`;
     categories.forEach((c) => {
       const id = "ddns-cat-" + c.toLowerCase().replace(/[^a-z0-9]+/g, "-");
       const label = document.createElement("label");
@@ -81,7 +90,7 @@
         email,
         categories: selected.length ? selected : categories,
         ts: Math.floor(Date.now() / 1000),
-        nonce: Math.random().toString(16).slice(2) + "-" + Date.now(),
+        nonce: randomNonce() + "-" + Date.now(),
         page_url: location.href
       };
 

@@ -34,7 +34,7 @@ function ddns_optin_enqueue_assets(): void
     );
 
     $categories_raw = get_option('ddns_optin_categories', '');
-    $categories = array_filter(array_map('trim', preg_split('/[\r\n,]+/', (string) $categories_raw)));
+    $categories = array_filter(array_map('trim', preg_split('/[\r\n,]/', (string) $categories_raw)));
     $config = array(
         'endpoint' => get_option('ddns_optin_endpoint', ''),
         'site_id' => get_option('ddns_optin_site_id', ''),
