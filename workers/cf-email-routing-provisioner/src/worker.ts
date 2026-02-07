@@ -51,7 +51,7 @@ function guidance(): string[] {
     "Publish the MX records that point to the routing gateway.",
     "Publish the TXT verification record and wait for validation.",
     "Create forwarding rules for exact recipients or catch-all (forwarding-only).",
-    "Finalize setup with optional upgrades: Custom domain (Paid), Google outbound email (Paid - Workspace)."
+    "Finalize setup. Optional upgrades: Custom domain (Paid), Google outbound email (Paid - Workspace)."
   ];
 }
 
