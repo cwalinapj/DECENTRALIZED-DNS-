@@ -1,23 +1,35 @@
-# Resolver (Paid Recursive DNS + Router + Settlement Coordinator)
+# Resolver (Name Gateway MVP)
 
-Repo home: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
+This is the MVP name gateway service.
 
-Resolvers are the core paid recursive DNS services (DoH/DoT) that:
+## Endpoints
+- `GET /resolve?name=<domain>`
+- `GET /healthz`
 
-- validate vouchers (cheap)
-- perform recursion (native and/or upstream quorum)
-- route to gateways/caches/operators
-- record proof-of-serving receipts
-- batch-settle Index Unit spends and distribute native token rewards
+Response format:
+```json
+{
+  "name": "example.com",
+  "network": "icann",
+  "records": [{ "type": "A", "value": "203.0.113.10", "ttl": 60 }],
+  "metadata": { "source": "doh", "cache": "miss" }
+}
+```
 
-Resolvers must obey:
+## Run
+```bash
+cd /Users/root1/dev/web3-repos/DECENTRALIZED-DNS-/resolver
+npm install
+npm run build
+PORT=8054 npm start
+```
 
-- routing policy states from the policy registry (HEALTHY/DEGRADED/DISABLED/RECOVERING)
-- diversity caps (ASN/operator caps)
-- incident mode flags (Attack Mode, cache-first)
+## Tests
+```bash
+npm test
+```
 
-Related:
-
-- Routing engine: `docs/07-routing-engine.md`
-- Policy: `docs/03-watchdogs-and-fallback.md`
-- Receipt format: `specs/receipt-format.md`
+## Env
+- `UPSTREAM_DOH_URL` (default: Cloudflare DoH)
+- `REQUEST_TIMEOUT_MS` (default: 2000)
+- `PORT` (default: 8054)

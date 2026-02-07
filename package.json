@@ -4,7 +4,7 @@
   "description": "A recursive DNS resolver with token-based tolls for subsidizing decentralized Web3/IPFS gateway capacity.",
   "main": "index.js",
   "scripts": {
-    "test": "node -e \"console.log('No tests specified')\""
+    "test": "bash tests/run_all.sh"
   },
   "repository": {
     "type": "git",
