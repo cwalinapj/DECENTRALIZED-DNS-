@@ -36,7 +36,9 @@ function ddns_optin_enqueue_assets(): void
     $endpoint = get_option('ddns_optin_worker_endpoint', '');
     $site_id = get_option('ddns_optin_site_id', '');
     $cats = get_option('ddns_optin_categories', array('SITE_AVAILABILITY'));
-    if (!is_array($cats)) $cats = array('SITE_AVAILABILITY');
+    if (!is_array($cats)) {
+        $cats = array('SITE_AVAILABILITY');
+    }
 
     wp_localize_script('ddns-optin', 'DDNS_OPTIN_CFG', array(
         'endpoint' => $endpoint,
