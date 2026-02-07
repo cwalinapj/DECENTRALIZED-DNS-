@@ -46,48 +46,21 @@ This is the canonical anchor payload; transport wrappers (IPFS CID, multicodec, 
 
 4. Canonical Binary Encoding
 
-All integers are little-endian. No padding.
+| Field         | Size | Type  | Description               |
+|--------------|-----:|-------|---------------------------|
+| magic        | 4    | bytes | ASCII `ANCH`              |
+| version      | 1    | u8    | `0x01`                    |
+| ns_id        | 4    | u32   | namespace id              |
+| name_id      | 32   | bytes | derived identifier        |
+| seq          | 8    | u64   | sequence number           |
+| exp          | 8    | u64   | expiry unix seconds       |
+| routeset_hash| 32   | bytes | hash of the RouteSet      |
+| owner_pub    | 32   | bytes | Ed25519 public key        |
+| sig          | 64   | bytes | signature                 |
 
-Field
-Size
-Type
-Description
-magic
-4
-bytes
-ASCII ANCH
-version
-1
-u8
-0x01
-ns_id
-4
-u32
-namespace id
-name_id
-32
-bytes
-derived identifier
-seq
-8
-u64
-sequence number
-exp
-8
-u64
-expiry unix seconds
-routeset_hash
-32
-bytes
-hash of the RouteSet
-owner_pub
-32
-bytes
-Ed25519 public key
-sig
-64
-bytes
-signature
+
+
+
 
 
 
