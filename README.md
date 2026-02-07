@@ -28,6 +28,7 @@ TollDNS aims to reduce reliance on any single provider by funding **distributed,
 - **Regional quotas + diversity constraints** to avoid centralizing into one region/provider
 - **Watchdogs + automatic fallback** to centralized services (e.g., Cloudflare/Google) when a backend is unhealthy
 - **Composable backends**: integrate existing networks instead of reinventing them
+- - **Index Unit** is the usage/toll currency; **native token** is staked for business/dev/miner roles and used for incentives, governance, reserves, grants, and burns
 
 ---
 
