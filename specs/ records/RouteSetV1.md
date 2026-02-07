@@ -60,6 +60,81 @@ This is the canonical anchor payload; transport wrappers (IPFS CID, multicodec, 
 
 
 
+5. Signature Rules
+
+5.1 Signing payload
+
+The signature covers the bytes from magic through owner_pub inclusive, excluding sig.
+
+payload = encode_anchor_without_sig(anchor)
+sig = ed25519_sign(owner_priv, payload)
+
+5.2 Verification
+
+Verification succeeds if:
+	•	magic == "ANCH"
+	•	version == 1
+	•	ed25519_verify(owner_pub, payload, sig) == true
+
+⸻
+
+6. Validity Rules (Client/Watchdog)
+
+An AnchorV1 is considered valid only if:
+	•	exp is in the future (allow small skew, e.g. ±120s)
+	•	seq is >= last accepted seq for this name_id (policy-defined; typically strictly increasing)
+	•	name_id matches the requested/observed name (derived from normalization rules)
+
+⸻
+
+7. Matching Anchor to RouteSet
+
+Given:
+	•	AnchorV1 with routeset_hash = H
+	•	A fetched RouteSetV1
+
+Compute:
+
+H' = BLAKE3_256( canonical_routeset_bytes_including_sig )
+
+Match succeeds if H' == H.
+
+If mismatch:
+	•	treat served RouteSet as untrusted
+	•	refetch from multiple peers and/or require chain commitment confirmation
+	•	watchdogs should emit an incident report
+
+⸻
+
+8. Relationship to Chain Commitments
+
+Recommended minimal on-chain commitment (see specs/chain/commitments.md):
+	•	name_id -> (seq, exp, anchor_hash) where:
+	•	anchor_hash = BLAKE3_256(anchor_bytes_including_sig) OR
+	•	anchor_hash = routeset_hash (even smaller), if your chain stores the RouteSet commitment directly
+
+If the chain stores anchor_hash, clients can validate that the IPFS-fetched AnchorV1 matches chain.
+
+⸻
+
+9. Anti-Equivocation Guidance
+
+Watchdogs SHOULD detect and report:
+	•	same (name_id, seq) with different routeset_hash
+	•	same (name_id, seq) with different owner_pub
+	•	chain commitment mismatch (chain says hash X, network serves Y)
+
+A “conflict proof” format can be introduced later.
+
+⸻
+
+10. Storage Policy
+
+Default policy: store only AnchorV1 on IPFS.
+
+Storing full RouteSets on IPFS is permitted only in explicit “bootstrap mode” and MUST NOT be required for correctness.
+
+⸻
 
 
 
