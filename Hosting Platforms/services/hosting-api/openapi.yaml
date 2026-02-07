@@ -1,0 +1,141 @@
+openapi: 3.0.3
+info:
+  title: Hosting API (Token Exchange)
+  version: 0.1.0
+servers:
+  - url: http://localhost:8800
+paths:
+  /v1/payments/intent:
+    post:
+      summary: Create a payment intent for hosting credits
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              : '#/components/schemas/PaymentIntentRequest'
+      responses:
+        '200':
+          description: Payment intent created
+          content:
+            application/json:
+              schema:
+                : '#/components/schemas/PaymentIntentResponse'
+  /v1/payments/confirm:
+    post:
+      summary: Confirm a payment intent (on-chain proof)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              : '#/components/schemas/PaymentConfirmRequest'
+      responses:
+        '200':
+          description: Payment confirmed
+          content:
+            application/json:
+              schema:
+                : '#/components/schemas/PaymentConfirmResponse'
+  /v1/credits/balance:
+    get:
+      summary: Get hosting credit balance
+      parameters:
+        - in: header
+          name: x-ddns-wallet
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Balance
+          content:
+            application/json:
+              schema:
+                : '#/components/schemas/CreditBalance'
+  /v1/credits/consume:
+    post:
+      summary: Consume hosting credits for provisioning
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              : '#/components/schemas/CreditConsumeRequest'
+      responses:
+        '200':
+          description: Credits consumed
+          content:
+            application/json:
+              schema:
+                : '#/components/schemas/CreditConsumeResponse'
+components:
+  schemas:
+    PaymentIntentRequest:
+      type: object
+      required: [wallet, amount, asset]
+      properties:
+        wallet:
+          type: string
+        amount:
+          type: string
+        asset:
+          type: string
+          description: native|usdc|other
+        chain:
+          type: string
+          description: base|solana
+        memo:
+          type: string
+    PaymentIntentResponse:
+      type: object
+      properties:
+        intent_id:
+          type: string
+        pay_address:
+          type: string
+        pay_amount:
+          type: string
+        asset:
+          type: string
+        chain:
+          type: string
+    PaymentConfirmRequest:
+      type: object
+      required: [intent_id, tx_hash]
+      properties:
+        intent_id:
+          type: string
+        tx_hash:
+          type: string
+    PaymentConfirmResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        credits_issued:
+          type: integer
+    CreditBalance:
+      type: object
+      properties:
+        wallet:
+          type: string
+        credits:
+          type: integer
+    CreditConsumeRequest:
+      type: object
+      required: [wallet, credits, reason]
+      properties:
+        wallet:
+          type: string
+        credits:
+          type: integer
+        reason:
+          type: string
+    CreditConsumeResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        remaining:
+          type: integer
