@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package ddns.vault;
+
+service VaultService {
+  rpc StoreEntry (VaultEntryRequest) returns (VaultEntryResponse);
+  rpc RotateEntry (VaultEntryRequest) returns (VaultEntryResponse);
+  rpc GetEntry (VaultEntryLookup) returns (VaultEntryResponse);
+  rpc Health (HealthRequest) returns (HealthResponse);
+}
+
+message VaultEntryRequest {
+  string wallet_id = 1;
+  string entry_id = 2;
+  string type = 3;
+  string ciphertext = 4;
+  string key_id = 5;
+  string metadata_json = 6;
+}
+
+message VaultEntryLookup {
+  string wallet_id = 1;
+  string entry_id = 2;
+}
+
+message VaultEntryResponse {
+  bool ok = 1;
+  string error = 2;
+  string wallet_id = 3;
+  string entry_id = 4;
+  string ciphertext = 5;
+  string key_id = 6;
+  string metadata_json = 7;
+}
+
+message HealthRequest {}
+
+message HealthResponse {
+  bool ok = 1;
+}

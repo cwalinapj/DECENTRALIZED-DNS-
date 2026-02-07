@@ -35,7 +35,7 @@ export function createMinerProofRoutes(state: CompatState): Route[] {
         const signatureBuf = Buffer.from(signature, 'hex');
         const expectedBuf = Buffer.from(expected, 'hex');
         if (signatureBuf.length !== expectedBuf.length ||
-          !timingSafeEqual(signatureBuf, expectedBuf)) {
+          !timingSafeEqual(new Uint8Array(signatureBuf), new Uint8Array(expectedBuf))) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: 'Invalid proof token' }));
           return;

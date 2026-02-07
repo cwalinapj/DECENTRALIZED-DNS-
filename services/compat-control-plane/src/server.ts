@@ -63,7 +63,7 @@ async function readBody(req: IncomingMessage) {
     }
     chunks.push(chunk);
   }
-  const raw = Buffer.concat(chunks).toString('utf8');
+  const raw = Buffer.concat(chunks as Uint8Array[]).toString('utf8');
   if (!raw) return null;
   try {
     return JSON.parse(raw);

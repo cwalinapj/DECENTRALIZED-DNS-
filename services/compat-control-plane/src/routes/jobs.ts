@@ -46,7 +46,12 @@ export function createJobsRoutes(state: CompatState): Route[] {
           return;
         }
         const jobId = params?.[1];
-        const job = jobId ? state.jobs.get(jobId) : undefined;
+        if (!jobId) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Missing job ID' }));
+          return;
+        }
+        const job = state.jobs.get(jobId);
         if (!job) {
           res.writeHead(404, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: 'Job not found' }));
@@ -64,7 +69,12 @@ export function createJobsRoutes(state: CompatState): Route[] {
           return;
         }
         const jobId = params?.[1];
-        const job = jobId ? state.jobs.get(jobId) : undefined;
+        if (!jobId) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Missing job ID' }));
+          return;
+        }
+        const job = state.jobs.get(jobId);
         if (!job) {
           res.writeHead(404, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: 'Job not found' }));
@@ -89,7 +99,12 @@ export function createJobsRoutes(state: CompatState): Route[] {
           return;
         }
         const jobId = params?.[1];
-        const job = jobId ? state.jobs.get(jobId) : undefined;
+        if (!jobId) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Missing job ID' }));
+          return;
+        }
+        const job = state.jobs.get(jobId);
         if (!job || !job.report?.report_html) {
           res.writeHead(404, { 'Content-Type': 'text/plain' });
           res.end('Report not found');
@@ -107,7 +122,12 @@ export function createJobsRoutes(state: CompatState): Route[] {
           return;
         }
         const jobId = params?.[1];
-        const job = jobId ? state.jobs.get(jobId) : undefined;
+        if (!jobId) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Missing job ID' }));
+          return;
+        }
+        const job = state.jobs.get(jobId);
         if (!job) {
           res.writeHead(404, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: 'Job not found' }));

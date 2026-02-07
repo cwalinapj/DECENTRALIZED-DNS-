@@ -14,10 +14,22 @@ type TollPayload = {
   signature?: string;
 };
 
+const RELAYER_TIMEOUT_MS = 5000;
+
 const ESCROW_ABI = [
   'function refund(bytes32 intentId) payable',
   'function forfeit(bytes32 intentId)',
 ];
+
+
+function withTimeout<T>(promise: Promise<T>, ms: number, code: string): Promise<T> {
+  let timer: NodeJS.Timeout;
+  return new Promise((resolve, reject) => {
+    timer = setTimeout(() => reject(new Error(code)), ms);
+    promise.then((value) => { clearTimeout(timer); resolve(value); })
+      .catch((err) => { clearTimeout(timer); reject(err); });
+  });
+}
 
 function buildSignature(action: string, payload: TollPayload, token: string): string {
   const parts = [
@@ -44,7 +56,7 @@ function verifySignature(action: string, payload: TollPayload, token: string): b
   if (sigBuffer.length !== expBuffer.length) {
     return false;
   }
-  return timingSafeEqual(sigBuffer, expBuffer);
+  return timingSafeEqual(new Uint8Array(sigBuffer), new Uint8Array(expBuffer));
 }
 
 function requireSiteToken(req: IncomingMessage, res: ServerResponse, state: CompatState): boolean {
@@ -74,7 +86,7 @@ async function sendRefund(state: CompatState, intentId: string, bonusAmount: str
   const contract = new ethers.Contract(state.tollEscrowContract, ESCROW_ABI, signer);
   const intentHash = ethers.id(intentId);
   const value = bonusAmount ? BigInt(bonusAmount) : 0n;
-  const tx = await contract.refund(intentHash, { value });
+  const tx = await withTimeout(contract.refund(intentHash, { value }), RELAYER_TIMEOUT_MS, "relayer_timeout");
   return tx.hash as string;
 }
 
@@ -89,19 +101,20 @@ async function sendForfeit(state: CompatState, intentId: string): Promise<string
   const signer = new ethers.Wallet(state.tollOperatorKey, provider);
   const contract = new ethers.Contract(state.tollEscrowContract, ESCROW_ABI, signer);
   const intentHash = ethers.id(intentId);
-  const tx = await contract.forfeit(intentHash);
+  const tx = await withTimeout(contract.forfeit(intentHash), RELAYER_TIMEOUT_MS, "relayer_timeout");
   return tx.hash as string;
 }
 
 function validatePayload(body: TollPayload | null): string | null {
-  const required = ['comment_id', 'intent_id', 'wallet', 'amount', 'chain_id', 'tx_hash'];
-  for (const key of required) {
-    if (!body?.[key]) {
-      return `Missing ${key}`;
-    }
-  }
-  if (!ethers.isAddress(body.wallet ?? '')) {
-    return 'Invalid wallet address';
+  if (!body) return "Missing payload";
+  if (!body.comment_id) return "Missing comment_id";
+  if (!body.intent_id) return "Missing intent_id";
+  if (!body.wallet) return "Missing wallet";
+  if (!body.amount) return "Missing amount";
+  if (!body.chain_id) return "Missing chain_id";
+  if (!body.tx_hash) return "Missing tx_hash";
+  if (!ethers.isAddress(body.wallet ?? "")) {
+    return "Invalid wallet address";
   }
   return null;
 }

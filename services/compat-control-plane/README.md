@@ -3,6 +3,14 @@
 Minimal HTTP control plane that accepts WordPress compatibility bundles,
 creates jobs, and exposes reports for the wp-admin plugin.
 
+## Run
+```bash
+cd /Users/root1/scripts/DECENTRALIZED-DNS-/services/compat-control-plane
+npm install
+npm run build
+PORT=8790 DATA_DIR=./data ADMIN_API_KEY=change-me npm start
+```
+
 ## Endpoints
 - `POST /v1/sites/connect` (API key)
 - `POST /v1/sites/:siteId/bundles` (API key)

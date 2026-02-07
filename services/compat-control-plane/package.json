@@ -1,5 +1,5 @@
 {
-  "name": "ddns-control-plane",
+  "name": "ddns-compat-control-plane",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -7,6 +7,11 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "test": "vitest run"
+  },
+  "dependencies": {
+    "ethers": "^6.13.2",
+    "express": "^4.19.2",
+    "multer": "^1.4.5-lts.1"
   },
   "devDependencies": {
     "typescript": "^5.6.3",
