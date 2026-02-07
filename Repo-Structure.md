@@ -1,3 +1,5 @@
+# Repo Structure
+
 README.md
 PROSPECTUS.md
 /docs
@@ -12,11 +14,17 @@ PROSPECTUS.md
   08-threat-model.md
   09-roadmap.md
   diagrams.md
+  architecture/
+  bootstrap/
+  ops/
+  plugins/
 /specs
   backend-interface.md
   health-report-format.md
   receipt-format.md
   policy-state-machine.md
+  records/
+  protocol/
 /contracts
   README.md
   escrow/
@@ -50,17 +58,48 @@ PROSPECTUS.md
 /miner
   README.md
   raspi/ (Raspberry Pi reference stack: NVMe + Docker, integrity checks, GUI worker)
+/services
+  compat-control-plane/
+  control-plane/
+/workers
+  cf-optin-edge/
+  cf-site-accelerator/
+  compat-runner/
+  dns-jobs/
+  optin-server/
+  repair-runner/
+  wordpress-optin/
+/plugins
+  wp-compat-orchestrator/
+  wp-optin/
+  wp-ai-admin/
+/packages
+  shared-types/
+  crypto-ed25519/
+  ddns-wire/
+  job-protocol/
+  util/
+/infra
+  cloudflare/{d1,r2,routes}
+  docker/images
+  terraform
+/scripts
+  validate
+  dev
+  deploy
 
   Why this layout
  • /docs = narrative “prospectus” (what + why)
  • /specs = exact formats + state machines (how)
  • /adaptors = “we integrate existing networks” in a clean plug-in way
- • /watchdogs = the off-chain measurement layer that feeds your immutable on-chain policy
+ • /watchdogs = the off-chain measurement layer that feeds your immutable
+   on-chain policy
  • /contracts = your L2 logic (escrow, registry, policy, settlement, proofs)
 
 ## Implementation file checklist (proposed)
 
-The following files/modules are needed to implement the behavior described in each README.
+The following files/modules are needed to implement the behavior described in
+each README.
 
 ### /docs
 
