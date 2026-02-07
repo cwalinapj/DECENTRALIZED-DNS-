@@ -37,6 +37,9 @@ function ddns_optin_register_settings(): void
         )
     );
 
+    register_setting(
+        'ddns_optin',
+        'ddns_optin_endpoint',
     // ----- Worker destination (admin controlled) -----
     register_setting(
         'ddns_optin',
@@ -58,19 +61,16 @@ function ddns_optin_register_settings(): void
         )
     );
 
-    // Optional: categories shown as checkboxes on the public form
-    // Stored as an array; sanitize via custom callback
     register_setting(
         'ddns_optin',
         'ddns_optin_categories',
         array(
-            'type' => 'array',
-            'sanitize_callback' => 'ddns_optin_sanitize_categories',
-            'default' => array('SITE_AVAILABILITY'),
+            'type' => 'string',
+            'sanitize_callback' => 'sanitize_textarea_field',
+            'default' => '',
         )
     );
 
-    // ----- Settings UI -----
     add_settings_section(
         'ddns_optin_main',
         'Opt-in Form',
@@ -102,19 +102,12 @@ function ddns_optin_register_settings(): void
         'ddns_optin_main'
     );
 
-    add_settings_section(
-        'ddns_optin_worker',
-        'Worker Destination',
-        '__return_false',
-        'ddns-optin'
-    );
-
     add_settings_field(
-        'ddns_optin_worker_endpoint',
+        'ddns_optin_endpoint',
         'Worker Endpoint URL',
-        'ddns_optin_render_worker_endpoint_field',
+        'ddns_optin_render_endpoint_field',
         'ddns-optin',
-        'ddns_optin_worker'
+        'ddns_optin_main'
     );
 
     add_settings_field(
@@ -122,22 +115,15 @@ function ddns_optin_register_settings(): void
         'Site ID',
         'ddns_optin_render_site_id_field',
         'ddns-optin',
-        'ddns_optin_worker'
-    );
-
-    add_settings_section(
-        'ddns_optin_policy',
-        'Policy (Optional)',
-        '__return_false',
-        'ddns-optin'
+        'ddns_optin_main'
     );
 
     add_settings_field(
         'ddns_optin_categories',
-        'Categories shown',
+        'Allowed Categories',
         'ddns_optin_render_categories_field',
         'ddns-optin',
-        'ddns_optin_policy'
+        'ddns_optin_main'
     );
 }
 add_action('admin_init', 'ddns_optin_register_settings');
@@ -206,6 +192,14 @@ function ddns_optin_render_button_field(): void
     echo '<input class="regular-text" type="text" name="ddns_optin_button" value="' . $value . '">';
 }
 
+function ddns_optin_render_endpoint_field(): void
+{
+    $value = get_option('ddns_optin_endpoint', '');
+    printf(
+        '<input class="regular-text" type="url" name="ddns_optin_endpoint" value="%s" placeholder="%s">',
+        esc_attr($value),
+        esc_attr('https://example.com/v1/optin/submit')
+    );
 function ddns_optin_render_worker_endpoint_field(): void
 {
     $value = esc_attr(get_option('ddns_optin_worker_endpoint', ''));
@@ -215,6 +209,11 @@ function ddns_optin_render_worker_endpoint_field(): void
 
 function ddns_optin_render_site_id_field(): void
 {
+    $value = get_option('ddns_optin_site_id', '');
+    printf(
+        '<input class="regular-text" type="text" name="ddns_optin_site_id" value="%s">',
+        esc_attr($value)
+    );
     $value = esc_attr(get_option('ddns_optin_site_id', ''));
     echo '<input class="regular-text" type="text" name="ddns_optin_site_id" value="' . $value . '" placeholder="site_123">';
     echo '<p class="description">Identifier assigned on your DDNS server. Used to map submissions to the correct site.</p>';
