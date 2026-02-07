@@ -1,6 +1,6 @@
 client/
   raspi-agent/
   openwrt-plugin/
-  macos progrma/
+  macos program/
   windows program/
   linux program/
