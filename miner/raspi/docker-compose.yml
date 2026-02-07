@@ -88,3 +88,22 @@ services:
       - "${DDNS_GUI_PORT:-8080}:8080/tcp"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+
+  integrity-daemon:
+    build:
+      context: ./integrity
+      dockerfile: Dockerfile
+    container_name: ddns-integrity-daemon
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - EVM_RPC_URL=${EVM_RPC_URL}
+      - BUILD_REGISTRY_CONTRACT=${BUILD_REGISTRY_CONTRACT}
+      - DDNS_INTEGRITY_INTERVAL_SEC=60
+      - DDNS_FIX_COOLDOWN_SEC=180
+      - DDNS_STATE_DIR=/state
+      # Optional webhook (Discord/Slack/etc)
+      - DDNS_ALERT_WEBHOOK=${DDNS_ALERT_WEBHOOK}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /mnt/nvme/ddns/state:/state      
