@@ -1,0 +1,40 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  docs:
+    name: Docs formatting (markdownlint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install markdownlint
+        run: npm install -g markdownlint-cli
+
+      - name: Lint Markdown
+        run: |
+          markdownlint "**/*.md" \
+            --ignore node_modules \
+            --ignore .git \
+            --config .markdownlint.json
+
+  tests:
+    name: Future tests placeholder
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test placeholder
+        run: |
+          echo "Add language-specific tests here (Go/TS/etc.)"
+          echo "For Go: go test ./..."
+          echo "For TS: npm test"
