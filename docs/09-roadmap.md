@@ -8,6 +8,26 @@ The roadmap is intentionally modular so the project can ship useful capability e
 
 ---
 
+## Partnership & Ecosystem Strategy (We’re Looking for Partners)
+
+TollDNS is actively seeking partners across infrastructure, security, Web3 naming/storage, and hardware.
+
+Our view is that a decentralized, policy-driven DNS + gateway + edge network can **outcompete centralized edge providers** over time by offering:
+- **Web3-native resolution and login primitives** (identity + naming + content addressing),
+- **more composable services** than a single provider can ship alone (via adapters and third-party gateways),
+- **consumer-facing features** that users have not seen yet (privacy, portable identity, decentralized routing choices, incentive-aligned infrastructure),
+- and **resilience through multi-operator diversity** rather than reliance on a single organization.
+
+If you operate:
+- edge infrastructure / POP capacity,
+- DDoS scrubbing / security tooling,
+- Web3 naming/storage protocols,
+- hardware manufacturing / router platforms,
+- or developer platforms that want first-class integration,
+we want to talk.
+
+---
+
 ## Guiding Principles
 
 - **Ship a wedge early:** paid DoH/DoT recursion + stable Index Unit tolls.
@@ -33,15 +53,16 @@ The roadmap is intentionally modular so the project can ship useful capability e
   - Resilience: `docs/06-resilience-tokenomics.md`
   - Routing: `docs/07-routing-engine.md`
   - Threat model: `docs/08-threat-model.md`
-- Define formats:
-  - voucher format
-  - service receipt format
-  - health report format
-  - policy state machine format
-- Minimal runnable prototype plan (even if incomplete):
+  - Roadmap: `docs/09-roadmap.md`
+- Specs defined:
+  - backend interface: `specs/backend-interface.md`
+  - health reports: `specs/health-report-format.md`
+  - receipts: `specs/receipt-format.md`
+  - policy state machine: `specs/policy-state-machine.md`
+- Minimal runnable prototype plan:
   - DoH/DoT resolver scaffold
   - voucher verification scaffold
-  - batch settlement stub
+  - policy read + routing stub
 
 **Exit criteria**
 - clear MVP scope and interfaces
@@ -51,7 +72,7 @@ The roadmap is intentionally modular so the project can ship useful capability e
 
 ## Phase 1 — MVP: Paid Recursive DNS with Index Unit Tolls (1 → 2)
 
-**Goal:** a working paid resolver that users can actually point devices at.
+**Goal:** a working paid resolver that users can point devices at.
 
 **Deliverables**
 - DoH/DoT recursive resolver with:
@@ -64,12 +85,12 @@ The roadmap is intentionally modular so the project can ship useful capability e
   - spend rules (limits, emergency stop)
 - Index Unit spend escrow logic (minimal):
   - deposit/withdraw
-  - per-query toll decrement using vouchers
+  - per-query toll decrement via vouchers (off-chain)
 - Batch settlement MVP:
   - resolver aggregates vouchers
   - periodic settlement transaction to L2 mock or test chain
-- Basic upstream forwarding:
-  - use established upstream recursors for reliability initially
+- Bootstrapping recursion mode:
+  - upstream-forwarded resolution for reliability initially (optionally quorum-based)
 
 **Exit criteria**
 - end-user can resolve normal domains through TollDNS reliably
@@ -100,20 +121,22 @@ The roadmap is intentionally modular so the project can ship useful capability e
 
 ---
 
-## Phase 3 — Miner Network: Caches + Gateways (3 → 4)
+## Phase 3 — Miner Network (Beta): Docker Stack + Initial Gateways (3 → 4)
 
-**Goal:** start distributing workload to independent operators.
+**Goal:** start distributing workload to independent operators using the fastest-to-ship onboarding path.
 
 **Deliverables**
-- Miner roles MVP:
-  - EDGE-INGRESS (admission + caching)
-  - CACHE (hot RRsets, validated routes)
-  - GATEWAY (web3 pointer resolution + retrieval)
+- **Miner Docker stack (first miner release)**:
+  - edge ingress + admission gating (“toll booth”)
+  - caching (RRsets + validated routes)
+  - optional gateway components (content retrieval)
+  - operator agent (registration, keys, receipt signing)
+  - telemetry exporter (bucketed, privacy-preserving)
 - Proof-of-serving receipts:
-  - signed or verifiable serving receipts for payouts
+  - signed receipts (batch receipts preferred)
 - Native token reward system (minimal):
   - payout based on delivered service
-  - regional scarcity multipliers
+  - baseline performance weighting
 - Developer adapter tooling:
   - adapter interface + test harness
   - developer documentation
@@ -125,12 +148,35 @@ The roadmap is intentionally modular so the project can ship useful capability e
   - IPFS/Filecoin/Arweave: https://github.com/ipfs / https://github.com/filecoin-project / https://github.com/arweaveteam
 
 **Exit criteria**
-- operators can join, be routed traffic, and be paid for it
-- gateway resolution works for at least one web3 namespace and one content network
+- operators can join via Docker, be routed traffic, and be paid for it
+- at least one web3 namespace + one content network works end-to-end
 
 ---
 
-## Phase 4 — Diversity Enforcement + Anti-Centralization (4 → 5)
+## Phase 4 — Reference Miner Firmware (Raspberry Pi + NVMe) (4 → 5)
+
+**Goal:** move from beta Docker miners to consumer-friendly “plug-and-play” miners.
+
+**Deliverables**
+- Reference miner firmware image targeting:
+  - Raspberry Pi 5 (8GB)
+  - NVMe HAT + active cooling
+  - 512GB NVMe starter config
+- Optional kit path:
+  - Pi + case + NVMe HAT + fan/heatsink + NVMe
+- Onboarding UX:
+  - flash → boot → register → serve
+- Role constraints:
+  - ingress + cache baseline
+  - gateway features as performance allows
+
+**Exit criteria**
+- non-expert operators can reliably deploy and stay online
+- measurable geographic/ASN diversity improvement vs VPS-only
+
+---
+
+## Phase 5 — Diversity Enforcement + Anti-Centralization (5 → 6)
 
 **Goal:** prevent “cheap VPS proxy mining” from turning into de-facto centralization.
 
@@ -154,7 +200,7 @@ The roadmap is intentionally modular so the project can ship useful capability e
 
 ---
 
-## Phase 5 — Resilience Upgrades: Anycast + Scrubbing + Attack Mode (5 → 6)
+## Phase 6 — Resilience Upgrades: Anycast + Scrubbing + Attack Mode (6 → 7)
 
 **Goal:** evolve into “lifeboat-grade” resilience.
 
@@ -179,7 +225,23 @@ The roadmap is intentionally modular so the project can ship useful capability e
 
 ---
 
-## Phase 6 — Nameserver Mode + “Cloudflare-Like” Features (6 → 7)
+## Phase 7 — Router Firmware (Open-Source Router Platforms) (7 → 8)
+
+**Goal:** enable “always-on” neighborhood edge participation without extra hardware.
+
+**Deliverables**
+- firmware/packages for routers that already run open-source routing software (OpenWrt-class)
+- ingress + caching roles by default
+- policy enforcement and receipt signing (where applicable)
+- constrained-hardware role profiles (avoid overpromising)
+
+**Exit criteria**
+- meaningful participation from home/small-office networks
+- improved distribution and survivability during incidents
+
+---
+
+## Phase 8 — Nameserver Mode + “Cloudflare-Like” Features (8 → 9)
 
 **Goal:** expand from recursive resolver into more edge features while keeping Index Unit usage pricing.
 
@@ -199,7 +261,23 @@ The roadmap is intentionally modular so the project can ship useful capability e
 
 ---
 
-## Phase 7 — Optional Expansion: DePIN ISP / Fiber Network (7+)
+## Phase 9 — Purpose-Built “ASIC Router” Miner Appliances (9+)
+
+**Goal:** support miners as purpose-built edge/router devices optimized for TollDNS workloads.
+
+**Deliverables**
+- hardware partner program and reference design targets
+- secure provisioning flow (keys, firmware attestation, updates)
+- high-throughput ingress + routing + caching profiles
+- attack-mode survivability targets
+
+**Exit criteria**
+- predictable edge performance at scale
+- broad distribution without sacrificing diversity constraints
+
+---
+
+## Phase 10 — Optional Expansion: DePIN ISP / Fiber Network (10+)
 
 **Goal:** if pursued, build physical last-mile resilience.
 
@@ -223,6 +301,7 @@ These run across all phases:
 - improved conformance proofs (Tier 1 → Tier 2/3 over time)
 - governance process improvements and safety rails
 - documentation and developer tooling
+- partnership development (protocols, POPs, scrubbing, hardware, developer ecosystems)
 
 ---
 
@@ -234,12 +313,6 @@ These run across all phases:
 - cache hit ratio and upstream dependency reduction
 - attack mode performance under stress tests
 - gateway adoption and developer ecosystem growth
+- number of partners and integrated services/adapters
 
 ---
-
-## Next Docs
-
-- Tokenomics: `docs/05-tokenomics.md`
-- Resilience tokenomics: `docs/06-resilience-tokenomics.md`
-- Routing engine: `docs/07-routing-engine.md`
-- Threat model: `docs/08-threat-model.md`
