@@ -71,7 +71,7 @@ The following files/modules are needed to implement the behavior described in ea
 - `receipt-format.md` (proof-of-serving format)
 - `policy-state-machine.md` (state transition rules)
 
-### /adaptors/<adaptor-name>/
+### /adaptors/<adaptor-name>/ (e.g., dns-icann, dns-upstream-quorum)
 - `README.md` (scope/capabilities, already present)
 - `implementation/` (namespace resolution + mapping logic)
 - `conformance/` (profile definitions + challenge sets)
@@ -99,7 +99,7 @@ The following files/modules are needed to implement the behavior described in ea
 - `tests/` (routing + settlement invariants)
 
 ### /miner
-- `docker/compose` (phase-1 operator stack)
+- `docker-compose.yml` (phase-1 operator stack)
 - `src/ingress/proxy` (edge admission + caching)
 - `src/cache/rrsets` (validated response caching)
 - `src/gateway/<backend>` (IPFS/Filecoin/Arweave handlers)
@@ -111,7 +111,8 @@ The following files/modules are needed to implement the behavior described in ea
 ### /contracts
 - `tokens/NativeToken.sol`, `tokens/IndexUnit.sol`
 - `escrow/SpendEscrow.sol`, `escrow/VoucherVerifier.sol`
-- `staking/StakePool.sol`, `staking/RoleRegistry.sol`, `staking/{Business,Developer,Operator}Access.sol`
+- `staking/StakePool.sol`, `staking/RoleRegistry.sol`
+- `staking/BusinessAccess.sol`, `staking/DeveloperAccess.sol`, `staking/OperatorAccess.sol`
 - `registry/{Adaptor,Backend,Operator,FallbackSet}Registry.sol`
 - `watchdog/{VerifierSetRegistry,HealthReportIngestor,PolicyStateMachine,RoutingPolicyRegistry}.sol`
 - `settlement/{SettlementCoordinator,ReceiptIngestor,RewardDistributor}.sol`
