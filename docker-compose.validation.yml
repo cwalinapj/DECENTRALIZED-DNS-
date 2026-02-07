@@ -1,0 +1,60 @@
+services:
+  db:
+    image: mariadb:10.11
+    environment:
+      MARIADB_DATABASE: wordpress
+      MARIADB_USER: wordpress
+      MARIADB_PASSWORD: wordpress
+      MARIADB_ROOT_PASSWORD: root
+    volumes:
+      - db-data:/var/lib/mysql
+
+  wordpress:
+    image: wordpress:6.4-php8.2-apache
+    depends_on:
+      - db
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+      WORDPRESS_DB_NAME: wordpress
+    ports:
+      - "8080:80"
+    volumes:
+      - wp-data:/var/www/html
+      - ./plugins/wp-compat-orchestrator/plugin:/var/www/html/wp-content/plugins/ddns-compat-orchestrator
+
+  wp-cli:
+    image: wordpress:cli-2
+    depends_on:
+      - db
+      - wordpress
+    user: "0:0"
+    command: ["sleep", "infinity"]
+    network_mode: "service:wordpress"
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+      WORDPRESS_DB_NAME: wordpress
+      WP_CLI_ALLOW_ROOT: "1"
+    volumes:
+      - wp-data:/var/www/html
+      - ./plugins/wp-compat-orchestrator/plugin:/var/www/html/wp-content/plugins/ddns-compat-orchestrator
+
+  control-plane:
+    build:
+      context: ./compat-control-plane
+    environment:
+      DATA_DIR: /data
+      PORT: "8788"
+    ports:
+      - "8788:8788"
+    volumes:
+      - control-plane-data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+
+volumes:
+  db-data:
+  wp-data:
+  control-plane-data:

@@ -58,3 +58,13 @@ jobs:
         run: |
           npm ci
           npm run build
+
+  compat-mvp:
+    name: Compat MVP validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run compat validation harness
+        run: |
+          bash scripts/validate-compat-mvp.sh

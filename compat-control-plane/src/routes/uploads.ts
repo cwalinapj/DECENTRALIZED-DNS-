@@ -1,13 +1,14 @@
-import { Router } from "express";
+import { Router, type Request, type Response } from "express";
 import type { Storage } from "../storage.js";
 import multer from "multer";
+import fs from "node:fs";
 import path from "node:path";
 
 export function uploadsRouter(store: Storage) {
   const r = Router();
   const upload = multer({ dest: store.uploadsDir });
 
-  r.post("/:site_id", upload.single("bundle"), (req, res) => {
+  r.post("/:site_id", upload.single("bundle"), (req: Request, res: Response) => {
     const site_id = String(req.params.site_id || "").trim();
     const token = String(req.headers["x-ddns-site-token"] || "");
 
@@ -21,7 +22,6 @@ export function uploadsRouter(store: Storage) {
     const finalPath = path.join(store.uploadsDir, `${upload_id}.zip`);
 
     // move multer temp file to deterministic name
-    const fs = await import("node:fs");
     fs.renameSync(req.file.path, finalPath);
 
     return res.json({ ok: true, upload_id });
