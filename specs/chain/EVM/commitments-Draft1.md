@@ -30,6 +30,7 @@ For each `name_id` (bytes32), store:
 name_id -> (seq, exp, routeset_hash)
 
 Clients resolve by:
+
 1) reading the chain commitment
 2) fetching RouteSet from decentralized network/cache
 3) verifying hash and signature
@@ -54,17 +55,19 @@ See `specs/records/GatewayRoutesV1.md`.
 ## 4. Update Rules (Chain-Agnostic)
 
 A valid update MUST satisfy:
+
 - `new_seq > old_seq` (recommended strict)
 - `new_exp > now`
-- authorization per the chain’s ownership model (account-owned or pubkey-owned)
+- authorization per the chain's ownership model (account-owned or pubkey-owned)
 
 Delegation update MUST satisfy:
+
 - `new_g_seq > old_g_seq`
 - `new_g_exp > now`
 
 ---
 
-# 5. EVM Profile (Solidity-Compatible)
+## 5. EVM Profile (Solidity-Compatible)
 
 This section defines recommended storage types, function shapes, and events for Ethereum/EVM chains.
 
@@ -93,13 +96,13 @@ mapping(bytes32 => Commitment) public commitments;
 Pick one (or support both):
 
 Model A: EVM account owns name_id
-	•	Maintain mapping(bytes32 => address) ownerOf;
-	•	Only ownerOf[name_id] may update commitments.
+ • Maintain mapping(bytes32 => address) ownerOf;
+ • Only ownerOf[name_id] may update commitments.
 
 Model B: Owner is an Ed25519 pubkey (off-chain verified)
-	•	Store owner_pubkey_hash or pubkey bytes in contract.
-	•	Updates still come from an EVM tx sender, but must include proof.
-	•	This is more complex because EVM does not natively verify Ed25519.
+ • Store owner_pubkey_hash or pubkey bytes in contract.
+ • Updates still come from an EVM tx sender, but must include proof.
+ • This is more complex because EVM does not natively verify Ed25519.
 
 Recommendation for v1: Model A (EVM account ownership) for simplicity.
 
@@ -114,10 +117,10 @@ function setCommitment(
 ) external;
 
 Rules:
-	•	require msg.sender == ownerOf[nameId]
-	•	require newSeq > commitments[nameId].seq
-	•	require newExp > block.timestamp
-	•	set fields
+ • require msg.sender == ownerOf[nameId]
+ • require newSeq > commitments[nameId].seq
+ • require newExp > block.timestamp
+ • set fields
 
 5.3.2 Update GatewayRoutes commitment 
 
@@ -129,9 +132,9 @@ function setDelegation(
 ) external;
 
 Rules:
-	•	require msg.sender == ownerOf[nameId]
-	•	require newGSeq > delegations[nameId].gSeq
-	•	require newGExp > block.timestamp
+ • require msg.sender == ownerOf[nameId]
+ • require newGSeq > delegations[nameId].gSeq
+ • require newGExp > block.timestamp
 
 5.4 Events 
 
@@ -158,9 +161,9 @@ event OwnerChanged(
 5.5 Indexing Notes
 
 Indexers/watchdogs should:
-	•	treat the latest finalized block state as canonical
-	•	detect equivocation off-chain (if multiple RouteSets claim same seq but different hash, that’s a network incident)
-	•	verify that served RouteSets match the on-chain hash
+ • treat the latest finalized block state as canonical
+ • detect equivocation off-chain (if multiple RouteSets claim same seq but different hash, that's a network incident)
+ • verify that served RouteSets match the on-chain hash
 
 5.6 Hash Algorithm Note (EVM)
 
@@ -173,7 +176,7 @@ Clients/watchdogs compute BLAKE3 off-chain and compare.
 Use block.timestamp as the reference for expiry checks on-chain.
 
 Off-chain verifiers should allow small skew, but on-chain rules are strict:
-	•	newExp > block.timestamp
+ • newExp > block.timestamp
 ---
 
 If you want the repo to be extra consistent, I can also provide **`specs/chain/namespaces.md`** (ns_id allocations) and a short **`specs/chain/evm-contract-interface.md`** that mirrors the ABI cleanly for SDK implementers.

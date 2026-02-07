@@ -1,6 +1,7 @@
-# Example Adapter — DNS Upstream Quorum (Illustrative)
+# Example Adapter -- DNS Upstream Quorum (Illustrative)
 
 This example shows how an adapter might implement:
+
 - `RECURSIVE_DNS` or `UPSTREAM_QUORUM`
 - `resolve()` behavior with N-of-M upstreams
 - minimal metadata for receipts and watchdog probes
@@ -17,6 +18,7 @@ This example shows how an adapter might implement:
 ## resolve(req)
 
 Pseudo-flow:
+
 1) If `mode_flags` includes `CACHE_ONLY`, answer only from cache.
 2) Query upstream set concurrently with strict timeouts.
 3) Normalize answers and compute quorum decision.

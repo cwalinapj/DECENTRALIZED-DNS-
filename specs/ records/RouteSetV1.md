@@ -5,6 +5,7 @@
 **Purpose:** Define a compact, deterministic, signed ruleset that maps **subdomain patterns** under a parent name to **gateway route targets**.
 
 GatewayRoutesV1 is intended to be:
+
 - distributed primarily via the decentralized DNS network and edge caches
 - optionally backed up via IPFS (as redundancy)
 - committed on-chain only by **hash** (see `specs/chain/commitments.md`)
@@ -38,6 +39,7 @@ This spec is designed for routers/firmware friendliness: simple pattern matching
 - **Hash algorithm (for commitments):** BLAKE3-256 (32 bytes)
 
 On-chain commits to:
+
 - `gateway_routes_hash = BLAKE3_256( canonical_gatewayroutes_bytes_including_sig )`
 
 ---
@@ -60,10 +62,13 @@ GatewayRoutesV1 contains:
 ## 5. Canonical Binary Encoding
 
 ### 5.1 Endianness
+
 All integer fields are **little-endian**.
 
 ### 5.2 Canonical ordering (determinism)
+
 Before encoding:
+
 1. Gateway sets MUST be sorted by `gateway_set_id` ascending.
 2. Rules MUST be sorted by:
    `(pattern_len, pattern_bytes, gateway_set_id, priority)` ascending, bytewise.
@@ -89,7 +94,7 @@ Before encoding:
 
 ## 6. GatewaySetV1
 
-A “gateway set” is a small list of targets that can serve as routing endpoints.
+A "gateway set" is a small list of targets that can serve as routing endpoints.
 
 ### 6.1 Layout
 
@@ -108,6 +113,7 @@ A “gateway set” is a small list of targets that can serve as routing endpoin
 | data      | var  | bytes| kind-specific payload |
 
 **Target kinds (v1):**
+
 - `1 = NODE_ID`  
   - data: 32 bytes (node identifier / peer id hash)
 - `2 = IPV4_PORT`  
@@ -135,6 +141,7 @@ Patterns match labels under the parent name:
   - wildcard label `*` (matches any single label)
 
 Examples under parent `example`:
+
 - `api` matches `api.example`
 - `*` matches `<anything>.example` (one label deep)
 - `svc.*` matches `svc.<anything>.example` (two labels deep)
@@ -161,12 +168,15 @@ Examples under parent `example`:
 | bytes    | var  | bytes | label bytes (EXACT only) |
 
 **Label constraints:**
+
 - EXACT label bytes MUST be lowercase ASCII (punycode allowed)
 - len MUST be 1..63 for EXACT
 - wildcard uses `kind=2` and `len=0` with no bytes
 
 ### 7.4 Rule flags (u8)
+
 Recommended flags:
+
 - bit 0: `F_ALLOW_FALLBACK` (if gateway set fails, try next matching rule)
 - bit 1: `F_CACHE_OK` (routers may cache gateway choice for ttl policy)
 - others: reserved (0)
@@ -195,14 +205,16 @@ Given a requested full name `child` and known `parent` (by configuration or by w
 ## 9. Signature Rules
 
 ### 9.1 Signing payload
-Sign the canonical bytes from `magic` through `owner_pub` inclusive, excluding `sig`.
 
+Sign the canonical bytes from `magic` through `owner_pub` inclusive, excluding `sig`.
 
 payload = encode_gatewayroutes_without_sig(obj)
 sig = ed25519_sign(owner_priv, payload)
 
 ### 9.2 Verification
+
 Verification succeeds if:
+
 - `magic == "GWRT"`
 - `version == 1`
 - signature verifies against `owner_pub`
@@ -212,6 +224,7 @@ Verification succeeds if:
 ## 10. Replay Protection & Validity
 
 A GatewayRoutesV1 object is valid only if:
+
 - `g_exp` is in the future (allow small skew)
 - `g_seq` is >= last accepted `g_seq` for `parent_name_id` (policy; recommended strictly increasing)
 - `gwset_count` and `rule_count` are within safe bounds (policy)
@@ -221,6 +234,7 @@ A GatewayRoutesV1 object is valid only if:
 ## 11. Recommended Limits (Implementation Guidance)
 
 To keep router implementations safe:
+
 - Max gateway sets: 32
 - Max targets per set: 8
 - Max rules: 128
@@ -234,9 +248,11 @@ These are not consensus rules unless enforced by registry/chain policy.
 ## 12. Relationship to Chain Commitments
 
 On-chain stores only:
+
 - `(g_seq, g_exp, gateway_routes_hash)` for `parent_name_id`
 
 Clients/watchdogs:
+
 - fetch GatewayRoutesV1 from network (or redundancy storage)
 - verify signature and hash match the chain commitment
 - apply rules when direct child RouteSets are missing/untrusted
@@ -246,9 +262,10 @@ Clients/watchdogs:
 ## 13. Notes & Future Extensions
 
 Possible v2 upgrades:
+
 - suffix-only matching (e.g., `*.svc.*`) without fixed label count
 - weighted target selection inside a gateway set
-- signed “conflict proofs” for equivocation reporting
+- signed "conflict proofs" for equivocation reporting
 - compact label-length encoding if needed for ASIC optimization### 9.2 Verification
 Verification succeeds if:
 - `magic == "GWRT"`
@@ -260,6 +277,7 @@ Verification succeeds if:
 ## 10. Replay Protection & Validity
 
 A GatewayRoutesV1 object is valid only if:
+
 - `g_exp` is in the future (allow small skew)
 - `g_seq` is >= last accepted `g_seq` for `parent_name_id` (policy; recommended strictly increasing)
 - `gwset_count` and `rule_count` are within safe bounds (policy)
@@ -269,6 +287,7 @@ A GatewayRoutesV1 object is valid only if:
 ## 11. Recommended Limits (Implementation Guidance)
 
 To keep router implementations safe:
+
 - Max gateway sets: 32
 - Max targets per set: 8
 - Max rules: 128
@@ -282,9 +301,11 @@ These are not consensus rules unless enforced by registry/chain policy.
 ## 12. Relationship to Chain Commitments
 
 On-chain stores only:
+
 - `(g_seq, g_exp, gateway_routes_hash)` for `parent_name_id`
 
 Clients/watchdogs:
+
 - fetch GatewayRoutesV1 from network (or redundancy storage)
 - verify signature and hash match the chain commitment
 - apply rules when direct child RouteSets are missing/untrusted
@@ -294,13 +315,8 @@ Clients/watchdogs:
 ## 13. Notes & Future Extensions
 
 Possible v2 upgrades:
+
 - suffix-only matching (e.g., `*.svc.*`) without fixed label count
 - weighted target selection inside a gateway set
-- signed “conflict proofs” for equivocation reporting
+- signed "conflict proofs" for equivocation reporting
 - compact label-length encoding if needed for ASIC optimization
-
-
-
-
-
-

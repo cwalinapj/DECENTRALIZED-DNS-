@@ -1,10 +1,11 @@
 # TollDNS / DECENTRALIZED-DNS — Prospectus (Developer + Partner Version)
 
-Repo: https://github.com/cwalinapj/DECENTRALIZED-DNS-
+Repo: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 
 TollDNS is a concept for a **decentralized Cloudflare-like edge fabric** that starts with **paid recursive DNS (DoH/DoT)** and expands into a distributed network of **edge ingress + caching + gateways + minimal hosting** operated by independent “miners” (operators).
 
 Two core wedges make this adoptable:
+
 1) **Stable, paid DNS** (Index Unit tolls via vouchers; no per-query on-chain).
 2) A **secure-by-default edge platform** (hosting, email, gateways) where **Workers + watchdogs** actively prevent fraud, spam, and phishing.
 
@@ -13,17 +14,22 @@ Two core wedges make this adoptable:
 ## 1) What We’re Building
 
 ### A) Paid Recursive DNS (DoH/DoT)
+
 - ICANN domains immediately.
 - Web3 namespaces via adapters (ENS/SNS/Handshake/PKDNS/etc.).
 - Policy-driven routing and automatic fallback.
 
 ### B) Proxy-Only Hosting and Gateway (Cloudflare-Style)
+
 **Strong stance:** TollDNS-hosted properties are **100% proxied behind TollDNS edge/CDN**.
+
 - We do not plan to assign each hosted domain its own public IP by default.
 - The “control plane” is domain/DNS/policy driven.
 
 ### C) Workers: The Product That Users See
+
 Workers are not a footnote. Workers are how we deliver:
+
 - plugin-free forms and automations,
 - secure webhook routing,
 - anti-fraud scanning of hosted properties,
@@ -31,21 +37,27 @@ Workers are not a footnote. Workers are how we deliver:
 - security/functionality “checkups” for hosted sites.
 
 ### D) Email + Anti-Spam (First-Class)
+
 We will offer **free webmail (starter tier)** and use:
+
 - domain/DNS-first spam signals,
 - honeypots,
 - user feedback labels,
 - and a token-incentivized “reasoned reporting” system.
 
 ### E) Minimal Hosting: Static + Workers = Reliability
+
 Static hosting + Workers:
+
 - reduces attack surface,
 - improves uptime,
 - avoids CMS/plugin maintenance traps,
 - and scales efficiently on edge caches.
 
 ### F) Miners = Hosters = Edge (Docker First)
+
 Miners run the edge:
+
 - ingress, caching, gateways, and hosting components
 - via a Phase 1 Docker stack → then Pi firmware → router firmware → ASIC edge devices.
 
@@ -54,11 +66,14 @@ Miners run the edge:
 ## 2) Economic Model (Two-Asset)
 
 ### Index Units (Usage / Tolls)
+
 - DNS/edge usage is priced in an Index Unit (stable usage unit).
 - Paid via off-chain vouchers + batch settlement (no prompt per query).
 
 ### Native Token (Incentives + Governance)
+
 Native token is used for:
+
 - miner rewards,
 - gateway/adaptor listing fees and revenue shares,
 - grants/bug bounties,
@@ -84,6 +99,7 @@ This puts the “Worker feature” in the center:
 ## 4) Adoption Flywheel: Free Benefits → Opt-In Contribution
 
 We lead with free benefits:
+
 - free static hosting for simple sites,
 - free webmail starter tier,
 - secure checkups and alerts,
@@ -91,11 +107,13 @@ We lead with free benefits:
 - plugin-free forms and automations.
 
 Over time, users can opt into running a lightweight background service to help sustain the free tier:
+
 - caching contribution, health probing, policy-compliant edge participation (resource capped).
 
 ---
 
 ## 5) Roadmap Highlights (Fast Path)
+
 1) Docker miner stack (operators join quickly)
 2) Minimal testnet loop (policy + settlement + receipts)
 3) Default gateway + hosting + webmail starter
@@ -112,6 +130,7 @@ Over time, users can opt into running a lightweight background service to help s
 - Email + anti-spam: `docs/15-email-and-anti-spam.md`
 
 Specs:
+
 - Backend interface: `specs/backend-interface.md`
 - Health: `specs/health-report-format.md`
 - Receipts: `specs/receipt-format.md`

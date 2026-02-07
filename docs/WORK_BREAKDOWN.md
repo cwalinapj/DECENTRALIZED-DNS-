@@ -1,10 +1,11 @@
 # Work Breakdown (MVP → Beta): Make TollDNS Usable for Real Projects
 
-Repo: https://github.com/cwalinapj/DECENTRALIZED-DNS-
+Repo: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 
 This document breaks the project into **shippable modules** so multiple contributors can work in parallel. The immediate goal is an MVP that the maintainer can use for real projects (and eventually Origin OS) without relying on a single centralized edge provider.
 
 Guiding principles:
+
 - **Domain/DNS-first** control plane (hosted properties are proxy-only behind the edge).
 - **Run it locally in < 30 minutes** using Docker.
 - **Small PRs** with tests and a clear Definition of Done.
@@ -14,6 +15,7 @@ Guiding principles:
 ## 0) MVP Definition (What “usable” means)
 
 **MVP v0.1 must:**
+
 1) Run locally: `docker compose up --build`
 2) Provide a working resolver endpoint:
    - DoH (HTTP) with cache
@@ -35,9 +37,11 @@ Guiding principles:
 ## 1) Module Map (Owners Wanted)
 
 ### A) Resolver Service (DoH/DoT + Cache)
+
 **Path:** `/services/resolver/`  
 **Priority:** P0  
 **Definition of Done**
+
 - `GET /health` returns OK
 - DoH endpoint works for `example.com A`
 - Caching works (basic in-memory acceptable for v0.1)
@@ -45,6 +49,7 @@ Guiding principles:
 - Unit tests for request parsing + caching behavior
 
 **Issues to open**
+
 - “Resolver: DoH JSON endpoint + cache”
 - “Resolver: wireformat DoH (RFC8484) support”
 - “Resolver: DoT endpoint (optional v0.2)”
@@ -52,9 +57,11 @@ Guiding principles:
 ---
 
 ### B) Upstream Quorum Adapter (N-of-M)
+
 **Path:** `/adapters/dns-upstream-quorum/`  
 **Priority:** P0  
 **Definition of Done**
+
 - Queries N upstream resolvers concurrently with timeouts
 - Picks a majority / quorum result (policy-configurable)
 - Normalizes answers deterministically
@@ -63,9 +70,11 @@ Guiding principles:
 ---
 
 ### C) Policy Engine (Config-first → On-chain later)
+
 **Path:** `/internal/policy/`  
 **Priority:** P0  
 **Definition of Done**
+
 - Reads a local policy config (YAML/JSON)
 - Produces effective backend states (HEALTHY/DEGRADED/DISABLED)
 - Exposes a simple API to resolver/gateway: “is backend allowed?” “preferred fallback set?”
@@ -74,9 +83,11 @@ Guiding principles:
 ---
 
 ### D) Receipt / Proof-of-Serving (MVP stub)
+
 **Path:** `/internal/receipts/` and `specs/receipt-format.md`  
 **Priority:** P0  
 **Definition of Done**
+
 - Implements receipt struct matching `specs/receipt-format.md`
 - Deterministic request hash + response hash
 - Operator signature generation + verification test
@@ -85,24 +96,29 @@ Guiding principles:
 ---
 
 ### E) Gateway Service (Routing + IPFS adapter first)
+
 **Path:** `/services/gateway/` and `/adapters/ipfs/`  
 **Priority:** P1  
 **Definition of Done**
+
 - `GET /health` returns OK
 - `GET /v1/route?...` returns ordered `gateway_routes`
 - Adapter interface implemented per `specs/backend-interface.md`
 - Unit tests for route selection and adapter wiring
 
 **v0.2 add-ons**
+
 - Content retrieval endpoint: `/ipfs/<CID>`
 - Cache objects and serve cache-only under incident policy
 
 ---
 
 ### F) Watchdogs (Probers + Incident detector) — Minimal
+
 **Path:** `/watchdogs/`  
 **Priority:** P1  
 **Definition of Done**
+
 - A small prober that checks resolver/gateway availability and emits a health report
 - Output matches `specs/health-report-format.md`
 - Can be run in Docker as a separate container
@@ -110,9 +126,11 @@ Guiding principles:
 ---
 
 ### G) Workers-lite (Forms/Webhooks) — Optional in MVP
+
 **Path:** `/services/workers/`  
 **Priority:** P2  
 **Definition of Done**
+
 - A single template: “form submit → forward to webhook”
 - Strict allowlisted egress
 - Rate limiting
@@ -121,8 +139,10 @@ Guiding principles:
 ---
 
 ### H) Docs + Developer Experience
+
 **Priority:** P0  
 **Definition of Done**
+
 - `docs/QUICKSTART.md` works
 - Adapter examples exist (`specs/examples/`)
 - CI passes (markdownlint at minimum)
@@ -155,6 +175,7 @@ Guiding principles:
 ## 4) Ownership Slots (Optional)
 
 If you want to claim a module, open an issue titled:
+
 - “Owner: <Module Name>” and list what you will ship in 1–2 PRs.
 
 ---

@@ -1,10 +1,11 @@
-Economics & Settlement
+# Economics & Settlement
+
 This document describes how TollDNS charges per-query tolls and pays miners without requiring on-chain transactions for every DNS request.
 
-Goals
+## Goals
 Charge a small toll for each DNS resolution (and/or gateway resolution).
 Avoid per-query on-chain settlement (latency + cost).
-Prevent “approve every payment” popups via escrow + local spend rules.
+Prevent "approve every payment" popups via escrow + local spend rules.
 Pay miners for real delivered service, not just registration.
 Roles
 Client: phone/desktop/router app that runs a local DNS stub + wallet.
@@ -13,7 +14,7 @@ Miner: provides gateway/caching/edge capacity; gets paid based on delivered serv
 L2 Chain: accounting + control plane (escrow, registry, rewards/payouts).
 Payment Model Overview
 Escrow (On-Chain)
-Users deposit tokens into an escrow contract on the project’s L2. The escrow balance authorizes spending without interactive prompts.
+Users deposit tokens into an escrow contract on the project's L2. The escrow balance authorizes spending without interactive prompts.
 
 Client-side spend protections (enforced locally):
 
@@ -21,7 +22,7 @@ Max spend per day/week/month
 Max spend per domain/category
 Resolver allowlist / denylist
 Minimum balance threshold + emergency stop
-Optional “surge pricing” caps
+Optional "surge pricing" caps
 Off-Chain Vouchers (Per Query)
 Each request includes a signed voucher authorizing payment. The resolver verifies it instantly (signature + sequence checks).
 
@@ -59,14 +60,14 @@ optional protocol/insurance fee
 Suggested Fee Split (Example)
 Configurable, but a common split is:
 
-Miner service share: 70–85%
-Resolver share: 10–20%
-Protocol/insurance: 0–10%
+Miner service share: 70-85%
+Resolver share: 10-20%
+Protocol/insurance: 0-10%
 Miner Receipts (Proof-of-Serving)
 To ensure miners get paid only for real work:
 
 A miner returns a response plus a receipt proving service occurred.
-The resolver validates correctness + SLO and records a “payable unit.”
+The resolver validates correctness + SLO and records a "payable unit."
 Receipt can include:
 
 miner_id

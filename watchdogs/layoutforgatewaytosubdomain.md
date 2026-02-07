@@ -1,3 +1,5 @@
-watchdogs/
-  web3-ownership-watcher/
-    README.md
+# watchdogs/
+
+web3-ownership-watcher/
+
+- README.md

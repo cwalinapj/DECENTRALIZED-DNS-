@@ -38,6 +38,7 @@ This is **not DNS wire format**. A gateway can translate RouteSets to classic DN
 | reserved    | 4    | u32   | must be zero |
 
 ### 3.1 Flags (u16)
+
 - bit 0: `F_WANT_ANCHOR` (prefer AnchorV1 response if available)
 - bit 1: `F_NO_CACHE` (bypass cache if possible)
 - bit 2: `F_TRUNCATED` (response truncated; retry via TCP)
@@ -62,6 +63,7 @@ This is **not DNS wire format**. A gateway can translate RouteSets to classic DN
 ## 5. Payloads
 
 ### 5.1 QRY (msg_type=1)
+
 | Field   | Size | Type  | Description |
 |--------|-----:|-------|-------------|
 | name_id| 32   | bytes | derived identifier |
@@ -69,6 +71,7 @@ This is **not DNS wire format**. A gateway can translate RouteSets to classic DN
 | min_seq| 8    | u64   | 0 or minimum acceptable sequence |
 
 ### 5.2 ANS (msg_type=2)
+
 | Field        | Size | Type | Description |
 |-------------|-----:|------|-------------|
 | status      | 1    | u8   | 0=OK else error |
@@ -76,6 +79,7 @@ This is **not DNS wire format**. A gateway can translate RouteSets to classic DN
 | routeset    | var  | bytes| canonical RouteSetV1 bytes |
 
 ### 5.3 ANC (msg_type=3)
+
 | Field      | Size | Type | Description |
 |-----------|-----:|------|-------------|
 | status    | 1    | u8   | 0=OK else error |
@@ -83,6 +87,7 @@ This is **not DNS wire format**. A gateway can translate RouteSets to classic DN
 | anchor    | var  | bytes| canonical AnchorV1 bytes |
 
 ### 5.4 NOT (msg_type=4)
+
 | Field   | Size | Type | Description |
 |--------|-----:|------|-------------|
 | code   | 2    | u16  | error code |
@@ -91,6 +96,7 @@ This is **not DNS wire format**. A gateway can translate RouteSets to classic DN
 | msg    | var  | bytes| optional UTF-8 message |
 
 Suggested codes:
+
 - 1 NOT_FOUND
 - 2 EXPIRED
 - 3 BAD_REQUEST
@@ -98,6 +104,7 @@ Suggested codes:
 - 5 TRY_TCP
 
 ### 5.5 GSP (msg_type=5)
+
 | Field         | Size | Type  | Description |
 |--------------|-----:|-------|-------------|
 | name_id      | 32   | bytes | identifier |
@@ -108,6 +115,7 @@ Suggested codes:
 | reserved     | 7    | bytes | zero |
 
 ### 5.6 GET (msg_type=6)
+
 | Field     | Size | Type  | Description |
 |----------|-----:|-------|-------------|
 | mode     | 1    | u8    | 1=(name_id,seq), 2=hash |
@@ -117,6 +125,7 @@ Suggested codes:
 | hash     | 32   | bytes | if mode=2 |
 
 ### 5.7 PUT (msg_type=7) (optional)
+
 | Field        | Size | Type | Description |
 |-------------|-----:|------|-------------|
 | routeset_len| 4    | u32  | bytes length |
@@ -139,6 +148,7 @@ Lightweight routers may delegate verification to a local agent.
 ## 7. UDP Size Handling
 
 If response does not fit safely in UDP:
+
 - set header flag `F_TRUNCATED`
 - optionally send NOT with code `TRY_TCP`
 - client retries via TCP

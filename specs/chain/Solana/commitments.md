@@ -14,7 +14,7 @@ On Solana, commitments are stored in accounts. Each `name_id` maps to a PDA (pro
   - `name_id` (32 bytes)
 
 PDA:
-commitment_pda = PDA( seeds=[ “ddns_commitment”, LE32(ns_id), name_id ], program_id )
+commitment_pda = PDA( seeds=[ "ddns_commitment", LE32(ns_id), name_id ], program_id )
 
 ### 6.1.2 Commitment Account Layout
 
@@ -28,6 +28,7 @@ Recommended fields:
 - `owner` (Pubkey)
 
 Optional delegation fields (either inline or in a separate PDA; see §6.4):
+
 - `g_seq` (u64)
 - `g_exp` (u64)
 - `gateway_routes_hash` ([u8; 32])
@@ -35,6 +36,7 @@ Optional delegation fields (either inline or in a separate PDA; see §6.4):
 ## 6.2 Authorization Models (Solana)
 
 ### Model A (recommended v1): Account owner controls updates
+
 - `owner` stored in the commitment account (a Solana Pubkey).
 - Updates require `owner` to sign the transaction.
 
@@ -47,10 +49,12 @@ This avoids any on-chain Ed25519 verification complexity (Solana already uses Ed
 Creates the PDA account for a `(ns_id, name_id)` pair.
 
 Inputs:
+
 - `ns_id`, `name_id`
 - `owner` (signer)
 
 Rules:
+
 - PDA must not already exist
 - set `owner`
 - initialize seq/exp/hash

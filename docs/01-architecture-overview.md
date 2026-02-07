@@ -1,6 +1,6 @@
 # 01 — Architecture Overview (DECENTRALIZED-DNS / TollDNS)
 
-Repo home: https://github.com/cwalinapj/DECENTRALIZED-DNS-
+Repo home: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 
 This document describes the high-level architecture of TollDNS: a **paid recursive DNS (DoH/DoT)** plus a distributed network of **edge/gateway/caching operators** (“miners”), coordinated by an **L2 control plane** with immutable policy and automatic fallback.
 
@@ -23,6 +23,7 @@ TollDNS has five major layers:
 ### 1) Client (Phone / Desktop / Router)
 
 The client provides:
+
 - a **local DNS stub** (intercepts system DNS and forwards via DoH/DoT)
 - a **wallet** used for DNS tolls (via spend escrow)
 - client-side policy controls:
@@ -33,6 +34,7 @@ The client provides:
 - optional namespace handling (web3 names) and caching
 
 **Primary responsibilities**
+
 - maintain a **spend escrow balance** (prepaid; no per-query prompts)
 - attach **signed payment vouchers** to DNS requests
 - enforce local safety policy (rate/spend limits, allowlists)
@@ -50,6 +52,7 @@ Miners provide always-on infrastructure such as:
 - Optional: **SCRUBBING** (DDoS filtering capacity; specialized operators)
 
 **Miner rewards**
+
 - paid primarily for **delivered service** (proof-of-serving)
 - further weighted by performance, uptime, tail latency, and correctness
 - governed by regional quotas and diversity constraints
@@ -59,6 +62,7 @@ Miners provide always-on infrastructure such as:
 ### 3) Core Resolver Layer (Paid Recursive DoH/DoT)
 
 Core resolvers are responsible for:
+
 - receiving DoH/DoT queries
 - validating vouchers (cheap signature checks + sequence rules)
 - performing recursion and validation (DNSSEC policy as defined)
@@ -74,16 +78,19 @@ Early on, resolvers may forward web2 recursion to upstream recursive DNS provide
 ### 4) Watchdogs / Verifier Network
 
 A distributed set of verifiers continuously measure:
+
 - backend health (availability, latency buckets, error classes)
 - conformance/equivalence checks (bounded challenge sets)
 - incident signals (multi-backend degradation)
 
 Verifiers publish signed reports. The chain enforces an immutable state machine that:
+
 - degrades/disables unhealthy backends
 - shifts routing to fallbacks
 - triggers “attack mode” policies where necessary
 
 See:
+
 - Watchdogs & fallback: `docs/03-watchdogs-and-fallback.md`
 - Functional equivalence proofs: `docs/04-functional-equivalence-proofs.md`
 
@@ -92,6 +99,7 @@ See:
 ### 5) L2 Control Plane (Token + Policy + Settlement)
 
 The L2 is the **accounting and policy layer**, not the data plane. It provides:
+
 - token accounting
 - **spend escrow** for users (prepaid tolls)
 - **DAO Governance Stake Pool** (time-locked; not instantly withdrawable)
@@ -105,6 +113,7 @@ The L2 is the **accounting and policy layer**, not the data plane. It provides:
 ## Data Plane vs Control Plane
 
 ### Data Plane (Fast Path)
+
 - DNS queries over DoH/DoT
 - gateway retrieval and serving
 - cache hits and edge routing
@@ -113,6 +122,7 @@ The L2 is the **accounting and policy layer**, not the data plane. It provides:
 **Rule:** no per-query chain interactions.
 
 ### Control Plane (Slow Path)
+
 - escrow deposits/withdrawals (users)
 - batch settlements (resolver pays miners)
 - registry updates (miners/gateways/backends)
@@ -137,6 +147,7 @@ The L2 is the **accounting and policy layer**, not the data plane. It provides:
 ## Routing and Backend Selection
 
 Routing is governed by:
+
 - backend capability requirements (web2 recursion vs gateway vs cache)
 - region preference and measured latency
 - regional quotas and diversity constraints (avoid centralization)
@@ -150,6 +161,7 @@ Routing is governed by:
 ## “Toll Booth” Admission (DDoS Hardening Concept)
 
 Before performing expensive work (recursion, heavy parsing, long upstream fetches), ingress nodes should be able to:
+
 - reject unpaid/unauthenticated traffic cheaply
 - use stateless challenge tokens or QUIC retry patterns
 - prefer session resumption/keep-alive to reduce handshake costs
@@ -161,14 +173,15 @@ Note: this does not eliminate volumetric bandwidth saturation risk by itself; re
 ## Extensibility: Adapters and Gateways
 
 TollDNS integrates existing networks via a standard adapter interface (examples):
-- ENS: https://github.com/ensdomains
-- SNS/Bonfida: https://github.com/Bonfida and https://github.com/SolanaNameService/sns-sdk
-- Unstoppable: https://github.com/unstoppabledomains/resolution
-- Handshake: https://github.com/handshake-org and https://github.com/handshake-org/hnsd
-- PKDNS/PKARR: https://github.com/pubky/pkdns and https://github.com/pubky/pkarr
-- IPFS: https://github.com/ipfs
-- Filecoin: https://github.com/filecoin-project
-- Arweave: https://github.com/arweaveteam
+
+- ENS: <https://github.com/ensdomains>
+- SNS/Bonfida: <https://github.com/Bonfida> and <https://github.com/SolanaNameService/sns-sdk>
+- Unstoppable: <https://github.com/unstoppabledomains/resolution>
+- Handshake: <https://github.com/handshake-org> and <https://github.com/handshake-org/hnsd>
+- PKDNS/PKARR: <https://github.com/pubky/pkdns> and <https://github.com/pubky/pkarr>
+- IPFS: <https://github.com/ipfs>
+- Filecoin: <https://github.com/filecoin-project>
+- Arweave: <https://github.com/arweaveteam>
 
 See: `docs/02-resolution-backends.md`
 
