@@ -2,6 +2,7 @@ import { Router } from "express";
 import type { Storage } from "../storage.js";
 import multer from "multer";
 import path from "node:path";
+import fs from "node:fs";
 
 export function uploadsRouter(store: Storage) {
   const r = Router();
@@ -21,7 +22,6 @@ export function uploadsRouter(store: Storage) {
     const finalPath = path.join(store.uploadsDir, `${upload_id}.zip`);
 
     // move multer temp file to deterministic name
-    const fs = await import("node:fs");
     fs.renameSync(req.file.path, finalPath);
 
     return res.json({ ok: true, upload_id });

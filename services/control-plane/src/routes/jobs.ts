@@ -67,7 +67,7 @@ async function runRunner(store: Storage, job: Job) {
   if (!j) return;
 
   j.state = "running";
-  j.started_at = Math.floor(Date.now() / 1000);
+  j.started_at = now();
   store.saveJob(j);
 
   const uploadZip = path.join(store.uploadsDir, `${job.upload_id}.zip`);
@@ -102,14 +102,14 @@ async function runRunner(store: Storage, job: Job) {
 
   if (!fs.existsSync(reportPath)) {
     j2.state = "failed";
-    j2.finished_at = Math.floor(Date.now() / 1000);
+    j2.finished_at = now();
     j2.error = "report_missing";
     store.saveJob(j2);
     return;
   }
 
   j2.state = "done";
-  j2.finished_at = Math.floor(Date.now() / 1000);
+  j2.finished_at = now();
   j2.report_path = reportPath;
   store.saveJob(j2);
 }
