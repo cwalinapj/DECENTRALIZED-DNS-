@@ -1,10 +1,12 @@
 (() => {
   const cfg = window.DDNS_COMPAT_ADMIN || {};
+  const loginCfg = window.DDNS_COMPAT_LOGIN || {};
   const statusEl = document.getElementById('ddns-compat-status');
   const reportEl = document.getElementById('ddns-compat-report');
   const walletStatusEl = document.getElementById('ddns-compat-wallet-status');
   const payStatusEl = document.getElementById('ddns-compat-pay-status');
   const minerStatusEl = document.getElementById('ddns-compat-miner-status');
+  const loginStatusEl = document.getElementById('ddns-compat-login-status');
 
   const setStatus = (el, message, tone = '') => {
     if (!el) return;
@@ -13,9 +15,9 @@
     el.classList.toggle('is-success', tone === 'success');
   };
 
-  const post = async (action, data = {}) => {
-    const body = new URLSearchParams({ action, nonce: cfg.nonce, ...data });
-    const response = await fetch(cfg.ajaxUrl, {
+  const postWithConfig = async (config, action, data = {}) => {
+    const body = new URLSearchParams({ ...data, action, nonce: config.nonce });
+    const response = await fetch(config.ajaxUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8' },
       body,
@@ -26,6 +28,15 @@
       throw new Error(error);
     }
     return payload.data;
+  };
+
+  const post = (action, data = {}) => postWithConfig(cfg, action, data);
+  const hasLoginConfig = Boolean(loginCfg.ajaxUrl && loginCfg.nonce);
+  const postLogin = (action, data = {}) => {
+    if (!hasLoginConfig) {
+      throw new Error('Login configuration missing.');
+    }
+    return postWithConfig(loginCfg, action, data);
   };
 
   const renderReport = (data) => {
@@ -218,4 +229,90 @@
       setStatus(minerStatusEl, error.message, 'error');
     }
   });
+
+  const loginWithEvm = async () => {
+    if (!window.ethereum) {
+      throw new Error('No EVM wallet detected.');
+    }
+    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    const address = accounts?.[0];
+    if (!address) {
+      throw new Error('No EVM account selected.');
+    }
+    const challenge = await postLogin('ddns_compat_wallet_login_challenge', {
+      chain: 'evm',
+      address,
+    });
+    const message = challenge.message;
+    const signature = await window.ethereum.request({
+      method: 'personal_sign',
+      params: [message, address],
+    });
+    return postLogin('ddns_compat_wallet_login', {
+      chain: 'evm',
+      address,
+      message,
+      signature,
+      redirect: loginCfg.redirectUrl || '',
+    });
+  };
+
+  const loginWithSolana = async () => {
+    const provider = window.solana;
+    if (!provider?.connect || !provider?.signMessage) {
+      throw new Error('No Solana wallet detected.');
+    }
+    const response = await provider.connect();
+    const address = response?.publicKey?.toString() || provider.publicKey?.toString();
+    if (!address) {
+      throw new Error('No Solana account selected.');
+    }
+    const challenge = await postLogin('ddns_compat_wallet_login_challenge', {
+      chain: 'solana',
+      address,
+    });
+    const message = challenge.message;
+    const encoded = new TextEncoder().encode(message);
+    const signed = await provider.signMessage(encoded);
+    const signature = bytesToBase64(signed.signature || signed);
+    return postLogin('ddns_compat_wallet_login', {
+      chain: 'solana',
+      address,
+      message,
+      signature,
+      redirect: loginCfg.redirectUrl || '',
+    });
+  };
+
+  const loginEvmBtn = document.getElementById('ddns-compat-login-evm');
+  if (loginEvmBtn && loginStatusEl && hasLoginConfig) {
+    loginEvmBtn.addEventListener('click', async () => {
+      try {
+        setStatus(loginStatusEl, 'Signing in with EVM wallet...');
+        const data = await loginWithEvm();
+        setStatus(loginStatusEl, 'Login successful. Redirecting...', 'success');
+        if (data?.redirect) {
+          window.location.href = data.redirect;
+        }
+      } catch (error) {
+        setStatus(loginStatusEl, error.message, 'error');
+      }
+    });
+  }
+
+  const loginSolBtn = document.getElementById('ddns-compat-login-solana');
+  if (loginSolBtn && loginStatusEl && hasLoginConfig) {
+    loginSolBtn.addEventListener('click', async () => {
+      try {
+        setStatus(loginStatusEl, 'Signing in with Solana wallet...');
+        const data = await loginWithSolana();
+        setStatus(loginStatusEl, 'Login successful. Redirecting...', 'success');
+        if (data?.redirect) {
+          window.location.href = data.redirect;
+        }
+      } catch (error) {
+        setStatus(loginStatusEl, error.message, 'error');
+      }
+    });
+  }
 })();
