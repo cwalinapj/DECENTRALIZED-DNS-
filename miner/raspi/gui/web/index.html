@@ -1,0 +1,71 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>DDNS Miner Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 20px; }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .card { border: 1px solid #ddd; border-radius: 12px; padding: 12px; min-width: 260px; }
+    .good { color: #0a7; }
+    .bad { color: #c00; }
+    .warn { color: #b80; }
+    code { background: #f6f6f6; padding: 2px 6px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <h1>DECENTRALIZED-DNS Miner</h1>
+  <p>Health + auto-recovery (watchdog) for this Raspberry Pi.</p>
+
+  <div id="recovery"></div>
+  <div class="row" id="cards"></div>
+
+  <script>
+    function cls(s) {
+      if (s === "healthy" || s === "running") return "good";
+      if (s === "unhealthy" || s === "exited") return "bad";
+      if (s === "starting" || s === "none") return "warn";
+      return "";
+    }
+
+    async function refresh() {
+      const r = await fetch("/api/status");
+      const j = await r.json();
+
+      const rec = document.getElementById("recovery");
+      const cards = document.getElementById("cards");
+      cards.innerHTML = "";
+
+      if (!j.ok) {
+        rec.innerHTML = `<p class="bad">Error: ${j.error}</p>`;
+        return;
+      }
+
+      const actions = (j.recovery?.actions || []);
+      rec.innerHTML = `
+        <p><b>Auto-recovery:</b> ${j.recovery.enabled ? "enabled" : "disabled"}</p>
+        ${actions.length ? `<p class="warn"><b>Actions:</b> ${actions.join(", ")}</p>` : ""}
+      `;
+
+      for (const s of j.services) {
+        const health = s.health || "none";
+        const state = s.state || "unknown";
+        const e = s.error ? `<div class="bad"><b>Error:</b> ${s.error}</div>` : "";
+        cards.innerHTML += `
+          <div class="card">
+            <h3>${s.name}</h3>
+            <div><b>State:</b> <span class="${cls(state)}">${state}</span></div>
+            <div><b>Health:</b> <span class="${cls(health)}">${health}</span></div>
+            <div><b>Exit:</b> <code>${s.exitCode ?? ""}</code></div>
+            ${e}
+          </div>
+        `;
+      }
+    }
+
+    refresh();
+    setInterval(refresh, 5000);
+  </script>
+</body>
+</html>
