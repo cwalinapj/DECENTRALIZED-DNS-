@@ -1,27 +1,25 @@
-# Client (Phone / Desktop / Router)
+# Client Apps
 
-Repo home: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
+This repo provides wallet-based clients for mobile, desktop, browser extensions, gateways, and swarm.
 
-The client provides:
+## Modules
+- apps/mobile: React Native (iOS first, Android supported)
+- apps/desktop: macOS/Windows/Linux
+- apps/browser: Chrome/Firefox/Safari/Edge extensions
+- core: wallet SDK, vault, session tokens, key choice flow
+- gateways: DNS enforcer, edge proxy, toll gate
+- swarm: optional outbound tunnel to edge
+- storage: opt-in compute/storage agent with resource caps
 
-- local DNS stub (system DNS interception)
-- DoH/DoT forwarding to TollDNS ingress/resolvers
-- wallet integration for **Index Unit** spend escrow (no per-query prompts)
-- local spend rules and safety controls
+## Key Storage
+- User chooses device-only or encrypted cloud backup.
 
-Key economic rule:
+## Pricing
+- Mobile cloud storage uses IPFS at 30% of Apple storage pricing.
 
-- Users spend **Index Units** for usage/tolls.
-- Native token staking is required for business/dev/operator roles (not typical end users).
-
-Client responsibilities:
-
-- maintain escrow balance (Index Units)
-- sign vouchers authorizing micro-spends
-- enforce local policy (spend caps, allowlists, emergency stop)
-- optionally manage web3 namespace preferences and caching
-
-Related:
-
-- Tokenomics: `docs/05-tokenomics.md`
-- Architecture: `docs/01-architecture-overview.md`
+## Tests
+```bash
+cd /Users/root1/scripts/DECENTRALIZED-DNS-/client
+npm install
+npm test
+```
