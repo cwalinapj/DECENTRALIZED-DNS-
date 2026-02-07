@@ -8,7 +8,7 @@ function ddns_compat_default_site_id(): string
 {
     $host = wp_parse_url(home_url(), PHP_URL_HOST);
     if (!$host) {
-        return uniqid('site_', false);
+        return 'site_' . wp_generate_uuid4();
     }
     return 'site_' . preg_replace('/[^a-z0-9_-]/i', '_', $host);
 }

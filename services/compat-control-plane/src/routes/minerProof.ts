@@ -32,8 +32,8 @@ export function createMinerProofRoutes(state: CompatState): Route[] {
         const expected = createHmac('sha256', state.minerProofSecret)
           .update(nonce)
           .digest('hex');
-        const signatureBuf = Buffer.from(signature, 'utf8');
-        const expectedBuf = Buffer.from(expected, 'utf8');
+        const signatureBuf = Buffer.from(signature, 'hex');
+        const expectedBuf = Buffer.from(expected, 'hex');
         if (signatureBuf.length !== expectedBuf.length ||
           !timingSafeEqual(signatureBuf, expectedBuf)) {
           res.writeHead(400, { 'Content-Type': 'application/json' });

@@ -133,7 +133,7 @@
   };
 
   // Chunk conversion to avoid call stack limits for large byte arrays.
-  const toBase64 = (bytes) => {
+  const bytesToBase64 = (bytes) => {
     let binary = '';
     const chunkSize = 0x8000;
     for (let i = 0; i < bytes.length; i += chunkSize) {
@@ -158,8 +158,8 @@
     });
     const message = challenge.message;
     const encoded = new TextEncoder().encode(message);
-    const signed = await provider.signMessage(encoded, 'utf8');
-    const signature = toBase64(signed.signature || signed);
+    const signed = await provider.signMessage(encoded);
+    const signature = bytesToBase64(signed.signature || signed);
     await post('ddns_compat_wallet_verify', {
       chain: 'solana',
       address,
