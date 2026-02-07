@@ -12,3 +12,7 @@ RUN npx tsc -p tsconfig.json
 
 EXPOSE 8080
 CMD ["node", "dist/server.js"]
+
+# Copy worker package into the GUI image
+COPY ../diagnostics /workers/diagnostics
+RUN cd /workers/diagnostics && npm install && npm run build
