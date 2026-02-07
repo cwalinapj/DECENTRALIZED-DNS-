@@ -4,3 +4,5 @@ export * from "./crypto_ed25519.js";
 export * from "./routeset.js";
 export * from "./anchor.js";
 export * from "./bytes.js";
+export * from "./wire_limits.js";
+export * from "./wire_safe.js";
