@@ -1,10 +1,12 @@
 import json
 import os
-from http.server import BaseHTTPRequestHandler, HTTPServer
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 PORT = int(os.environ.get("CACHE_PORT", "7082"))
 CACHE = {}
+CACHE_LOCK = threading.Lock()
 
 
 class CacheHandler(BaseHTTPRequestHandler):
@@ -15,13 +17,17 @@ class CacheHandler(BaseHTTPRequestHandler):
             return
         params = parse_qs(parsed.query)
         name = params.get("name", [None])[0]
-        if not name or name not in CACHE:
+        if not name:
+            self.send_error(400, "Missing name")
+            return
+        with CACHE_LOCK:
+            record = CACHE.get(name)
+        if record is None:
             self.send_error(404, "Cache miss")
             return
-        payload = json.dumps(CACHE[name]).encode("utf-8")
+        payload = json.dumps(record).encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(payload)))
         self.end_headers()
         self.wfile.write(payload)
 
@@ -45,11 +51,11 @@ class CacheHandler(BaseHTTPRequestHandler):
         if not name or record is None:
             self.send_error(400, "Missing name or record")
             return
-        CACHE[name] = record
+        with CACHE_LOCK:
+            CACHE[name] = record
         response = json.dumps({"cached": name}).encode("utf-8")
         self.send_response(201)
         self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(response)))
         self.end_headers()
         self.wfile.write(response)
 
@@ -58,6 +64,6 @@ class CacheHandler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    server = HTTPServer(("0.0.0.0", PORT), CacheHandler)
-    print(f"[cache] rrset cache listening on :{PORT}")
+    server = ThreadingHTTPServer(("0.0.0.0", PORT), CacheHandler)
+    print(f"[cache] RRSet cache listening on :{PORT}")
     server.serve_forever()

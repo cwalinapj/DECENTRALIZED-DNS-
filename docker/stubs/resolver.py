@@ -1,12 +1,12 @@
 import json
 import os
+import socketserver
 import threading
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from socketserver import ThreadingTCPServer, BaseRequestHandler
 from urllib.parse import parse_qs, urlparse
 
 POLICY_URL = os.environ.get("POLICY_URL", "http://policy-client:7080/policy")
@@ -46,9 +46,7 @@ def cache_lookup(name: str):
     try:
         with urllib.request.urlopen(url, timeout=2) as response:
             return json.load(response)
-    except urllib.error.HTTPError as exc:
-        if exc.code == 404:
-            return None
+    except urllib.error.HTTPError:
         return None
     except (urllib.error.URLError, json.JSONDecodeError):
         return None
@@ -74,9 +72,10 @@ class ResolverHandler(BaseHTTPRequestHandler):
         name = params.get("name", ["example.com"])[0]
         policy = load_policy()
         record = cache_lookup(name)
-        source = "cache"
+        source = "cache" if record is not None else None
         if record is None:
-            upstream = fetch_json(f"{UPSTREAM_URL}?{urllib.parse.urlencode({'name': name})}")
+            query = urllib.parse.urlencode({"name": name})
+            upstream = fetch_json(f"{UPSTREAM_URL}?{query}")
             if upstream:
                 record = upstream
                 cache_store(name, upstream)
@@ -90,11 +89,12 @@ class ResolverHandler(BaseHTTPRequestHandler):
             "answer": record,
             "source": source,
         }
-        post_json(RECEIPT_URL, response)
+        receipt_response = post_json(RECEIPT_URL, response)
+        if receipt_response is None:
+            print("[resolver] warning: receipt stub unavailable")
         payload = json.dumps(response).encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(payload)))
         self.end_headers()
         self.wfile.write(payload)
 
@@ -102,16 +102,16 @@ class ResolverHandler(BaseHTTPRequestHandler):
         return
 
 
-class DotHandler(BaseRequestHandler):
+class DotHandler(socketserver.BaseRequestHandler):
     def handle(self):
         data = self.request.recv(1024)
         if not data:
             return
-        reply = f"resolver-dot-stub {int(time.time())}\n".encode("utf-8")
-        self.request.sendall(reply)
+        payload = json.dumps({"protocol": "dot", "bytes": len(data), "timestamp": int(time.time())}).encode("utf-8")
+        self.request.sendall(payload + b"\n")
 
 
-class ReusableTCPServer(ThreadingTCPServer):
+class ReusableTCPServer(socketserver.ThreadingTCPServer):
     allow_reuse_address = True
 
 

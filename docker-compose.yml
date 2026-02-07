@@ -38,7 +38,6 @@ services:
     command: ["python", "/app/receipt_stub.py"]
     environment:
       RECEIPT_DIR: /receipts
-      RECEIPT_SECRET: local-dev-secret
     volumes:
       - receipts-data:/receipts
     ports:

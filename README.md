@@ -211,6 +211,8 @@ Exercise a sample DoH request:
 curl "http://localhost:8053/resolve?name=example.com"
 ```
 
+Set `RECEIPT_SECRET` in the receipt-stub service environment if you want deterministic receipt signatures.
+
 The DoT stub listens on TCP port `8853` and simply echoes a stub response (no TLS in the stub).
 
 ## Contributing

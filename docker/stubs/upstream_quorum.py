@@ -3,10 +3,18 @@ import os
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse
 
-UPSTREAMS = [item.strip() for item in os.environ.get("UPSTREAMS", "cloudflare,google").split(",") if item.strip()]
+RAW_UPSTREAM_LIST = os.environ.get("UPSTREAMS", "cloudflare,google").split(",")
+UPSTREAMS = [item.strip() for item in RAW_UPSTREAM_LIST if item.strip()]
 DEFAULT_RECORD = os.environ.get("UPSTREAM_RECORD", "203.0.113.10")
 DEFAULT_TTL = int(os.environ.get("UPSTREAM_TTL", "60"))
-QUORUM_REQUIRED = int(os.environ.get("QUORUM_REQUIRED", str(max(1, len(UPSTREAMS)))))
+QUORUM_REQUIRED_ENV = os.environ.get("QUORUM_REQUIRED")
+
+
+def default_quorum() -> int:
+    return max(1, (len(UPSTREAMS) // 2) + 1)
+
+
+QUORUM_REQUIRED = int(QUORUM_REQUIRED_ENV) if QUORUM_REQUIRED_ENV is not None else default_quorum()
 PORT = int(os.environ.get("UPSTREAM_PORT", "7081"))
 
 
@@ -32,7 +40,6 @@ class UpstreamHandler(BaseHTTPRequestHandler):
         payload = json.dumps(response).encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(payload)))
         self.end_headers()
         self.wfile.write(payload)
 

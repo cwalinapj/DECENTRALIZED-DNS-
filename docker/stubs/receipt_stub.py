@@ -9,7 +9,12 @@ from urllib.parse import urlparse
 
 PORT = int(os.environ.get("RECEIPT_PORT", "7083"))
 RECEIPT_DIR = os.environ.get("RECEIPT_DIR", "/receipts")
-SECRET = os.environ.get("RECEIPT_SECRET", "local-dev-secret").encode("utf-8")
+SECRET_VALUE = os.environ.get("RECEIPT_SECRET")
+SECRET_GENERATED = False
+if not SECRET_VALUE:
+    SECRET_VALUE = uuid.uuid4().hex
+    SECRET_GENERATED = True
+SECRET = SECRET_VALUE.encode("utf-8")
 
 
 def sign_payload(payload: str) -> str:
@@ -32,14 +37,17 @@ class ReceiptHandler(BaseHTTPRequestHandler):
         except json.JSONDecodeError:
             self.send_error(400, "Invalid JSON")
             return
-        receipt_id = str(uuid.uuid4())
-        receipt = {
+        receipt_id = uuid.uuid4().hex
+        receipt_payload = {
             "id": receipt_id,
             "timestamp": int(time.time()),
             "payload": data,
         }
-        payload_str = json.dumps(receipt, sort_keys=True)
-        receipt["signature"] = sign_payload(payload_str)
+        payload_str = json.dumps(receipt_payload, sort_keys=True)
+        receipt = {
+            "payload": receipt_payload,
+            "signature": sign_payload(payload_str),
+        }
         os.makedirs(RECEIPT_DIR, exist_ok=True)
         path = os.path.join(RECEIPT_DIR, f"receipt-{receipt_id}.json")
         with open(path, "w", encoding="utf-8") as handle:
@@ -47,7 +55,6 @@ class ReceiptHandler(BaseHTTPRequestHandler):
         response = json.dumps({"receipt_id": receipt_id, "path": path}).encode("utf-8")
         self.send_response(201)
         self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(response)))
         self.end_headers()
         self.wfile.write(response)
 
@@ -56,6 +63,8 @@ class ReceiptHandler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
+    if SECRET_GENERATED:
+        print("[receipt] warning: RECEIPT_SECRET not set; generated ephemeral secret")
     server = HTTPServer(("0.0.0.0", PORT), ReceiptHandler)
     print(f"[receipt] stub listening on :{PORT}, writing to {RECEIPT_DIR}")
     server.serve_forever()
