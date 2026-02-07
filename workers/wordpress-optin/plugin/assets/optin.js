@@ -13,7 +13,7 @@
     });
     const text = await r.text();
     let json = null;
-    try { json = JSON.parse(text); } catch {}
+    try { json = JSON.parse(text); } catch (error) { json = null; }
     return { ok: r.ok, status: r.status, json, text };
   }
 

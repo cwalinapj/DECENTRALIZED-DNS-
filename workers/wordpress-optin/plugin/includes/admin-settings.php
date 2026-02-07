@@ -168,8 +168,11 @@ function ddns_optin_render_site_id_field(): void
 
 function ddns_optin_render_categories_field(): void
 {
-    $value = esc_textarea(get_option('ddns_optin_categories', ''));
-    echo '<textarea class="large-text" rows="4" name="ddns_optin_categories">' . $value . '</textarea>';
+    $value = get_option('ddns_optin_categories', '');
+    printf(
+        '<textarea class="large-text" rows="4" name="ddns_optin_categories">%s</textarea>',
+        esc_textarea($value)
+    );
     echo '<p class="description">Comma or newline separated categories shown as checkboxes.</p>';
 }
 
