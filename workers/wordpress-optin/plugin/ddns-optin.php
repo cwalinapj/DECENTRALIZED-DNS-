@@ -33,12 +33,13 @@ function ddns_optin_enqueue_assets(): void
         true
     );
 
-    $endpoint = get_option('ddns_optin_worker_endpoint', '');
-    $site_id = get_option('ddns_optin_site_id', '');
+    $endpoint = esc_url_raw((string) get_option('ddns_optin_worker_endpoint', ''));
+    $site_id = sanitize_text_field((string) get_option('ddns_optin_site_id', ''));
     $cats = get_option('ddns_optin_categories', array('SITE_AVAILABILITY'));
     if (!is_array($cats)) {
         $cats = array('SITE_AVAILABILITY');
     }
+    $cats = array_map('sanitize_text_field', $cats);
 
     wp_localize_script('ddns-optin', 'DDNS_OPTIN_CFG', array(
         'endpoint' => $endpoint,
