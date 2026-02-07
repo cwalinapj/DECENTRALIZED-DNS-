@@ -1,0 +1,70 @@
+services:
+  policy-client:
+    build:
+      context: .
+      dockerfile: docker/stubs/Dockerfile
+    command: ["python", "/app/policy_client.py"]
+    environment:
+      POLICY_CONFIG: /config/policy.json
+    volumes:
+      - ./policy/config:/config:ro
+    ports:
+      - "7080:7080"
+
+  upstream-quorum:
+    build:
+      context: .
+      dockerfile: docker/stubs/Dockerfile
+    command: ["python", "/app/upstream_quorum.py"]
+    environment:
+      UPSTREAMS: cloudflare,google
+    ports:
+      - "7081:7081"
+
+  cache:
+    build:
+      context: .
+      dockerfile: docker/stubs/Dockerfile
+    command: ["python", "/app/cache.py"]
+    volumes:
+      - cache-data:/data
+    ports:
+      - "7082:7082"
+
+  receipt-stub:
+    build:
+      context: .
+      dockerfile: docker/stubs/Dockerfile
+    command: ["python", "/app/receipt_stub.py"]
+    environment:
+      RECEIPT_DIR: /receipts
+      RECEIPT_SECRET: local-dev-secret
+    volumes:
+      - receipts-data:/receipts
+    ports:
+      - "7083:7083"
+
+  resolver:
+    build:
+      context: .
+      dockerfile: docker/stubs/Dockerfile
+    command: ["python", "/app/resolver.py"]
+    depends_on:
+      - policy-client
+      - upstream-quorum
+      - cache
+      - receipt-stub
+    environment:
+      POLICY_URL: http://policy-client:7080/policy
+      UPSTREAM_URL: http://upstream-quorum:7081/query
+      CACHE_URL: http://cache:7082/cache
+      RECEIPT_URL: http://receipt-stub:7083/receipt
+      DOH_PORT: "8053"
+      DOT_PORT: "8853"
+    ports:
+      - "8053:8053"
+      - "8853:8853"
+
+volumes:
+  cache-data:
+  receipts-data:
