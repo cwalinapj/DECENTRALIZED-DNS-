@@ -1,4 +1,3 @@
-```yaml
 version: "3.9"
 
 services:
@@ -72,9 +71,7 @@ services:
       interval: 60s
       timeout: 5s
       retries: 3
-volumes:
-  - /var/run/docker.sock:/var/run/docker.sock
-  - /mnt/nvme/ddns/state:/state
+
   miner-gui:
     build:
       context: ./gui
@@ -90,6 +87,7 @@ volumes:
       - "${DDNS_GUI_PORT:-8080}:8080/tcp"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - /mnt/nvme/ddns/state:/state
 
   integrity-daemon:
     build:
@@ -108,4 +106,4 @@ volumes:
       - DDNS_ALERT_WEBHOOK=${DDNS_ALERT_WEBHOOK}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - /mnt/nvme/ddns/state:/state      
+      - /mnt/nvme/ddns/state:/state
