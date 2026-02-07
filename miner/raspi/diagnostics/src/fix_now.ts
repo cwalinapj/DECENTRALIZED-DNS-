@@ -6,6 +6,8 @@ function run(cmd: string, args: string[]) {
 
 const main = async () => {
   const actions: any[] = [];
+
+  // Restart watchdog first (most common recovery step)
   try {
     run("docker", ["restart", "ddns-watchdog"]);
     actions.push({ action: "restart_watchdog", ok: true });
@@ -13,8 +15,8 @@ const main = async () => {
     actions.push({ action: "restart_watchdog", ok: false, error: String(e?.message || e) });
   }
 
-  // Optional: attempt pull for known images (safe but may fail for local builds)
-  const images = ["ddns-edge-node", "ddns-watchdog", "ddns-ipfs-anchor", "ddns-miner-gui"];
+  // Best-effort pulls (safe; will fail if images are local-only)
+  const images = ["ddns-edge-node", "ddns-watchdog", "ddns-ipfs-anchor", "ddns-miner-gui", "ddns-integrity-daemon"];
   for (const img of images) {
     try {
       run("docker", ["pull", img]);
