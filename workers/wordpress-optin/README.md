@@ -47,6 +47,3 @@ Admin API (run from your terminal):
 
 Worker API:
 - POST /v1/optin/submit
-
-
-Plugin moved to `/Users/root1/dev/web3-repos/web3-wp-plugins`.
