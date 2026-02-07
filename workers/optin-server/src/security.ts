@@ -93,16 +93,16 @@ export const verifySiteKey = (req: Request, site: SiteConfig): boolean => {
 export class RateLimiter {
   private hits = new Map<string, number[]>();
 
-  check(key: string, configOverride: RateLimitConfig): {
+  check(key: string, rateLimitConfig: RateLimitConfig): {
     ok: boolean;
     retryAfterSec: number;
   } {
     const now = Date.now();
-    const windowMs = configOverride.windowSec * 1000;
+    const windowMs = rateLimitConfig.windowSec * 1000;
     const bucket = this.hits.get(key) ?? [];
     const fresh = bucket.filter((ts) => now - ts < windowMs);
 
-    if (fresh.length >= configOverride.max) {
+    if (fresh.length >= rateLimitConfig.max) {
       const retryAfterMs = windowMs - (now - fresh[0]);
       this.hits.set(key, fresh);
       return {
@@ -119,16 +119,19 @@ export class RateLimiter {
 
 export class NonceStore {
   private store = new Map<string, number>();
+  private lastSweep = 0;
 
   constructor(private ttlMs: number) {}
 
   checkAndStore(siteId: string, nonce: string): boolean {
     const now = Date.now();
     const key = `${siteId}:${nonce}`;
-
-    for (const [entry, seenAt] of this.store.entries()) {
-      if (now - seenAt > this.ttlMs) {
-        this.store.delete(entry);
+    if (now - this.lastSweep > this.ttlMs) {
+      this.lastSweep = now;
+      for (const [entry, seenAt] of this.store.entries()) {
+        if (now - seenAt > this.ttlMs) {
+          this.store.delete(entry);
+        }
       }
     }
 
