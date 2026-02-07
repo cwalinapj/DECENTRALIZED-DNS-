@@ -13,6 +13,8 @@ creates jobs, and exposes reports for the wp-admin plugin.
 - `POST /v1/wallets/verify`
 - `POST /v1/payments/create`
 - `POST /v1/miner-proof/verify`
+- `POST /v1/toll-comments/refund`
+- `POST /v1/toll-comments/forfeit`
 
 ## Environment
 - `PORT=8790`
@@ -24,6 +26,10 @@ creates jobs, and exposes reports for the wp-admin plugin.
 - `PAYMENT_AMOUNT=5.00`
 - `MAX_BODY_BYTES=2000000`
 - `MINER_PROOF_SECRET=change-me`
+- `TOLL_SITE_TOKEN=change-me`
+- `TOLL_RPC_URL=https://rpc.example.com`
+- `TOLL_ESCROW_CONTRACT=0x...`
+- `TOLL_OPERATOR_KEY=0x...`
 
 ## Notes
 - Bundles are stored as JSON in `DATA_DIR/sites/<siteId>/bundles`.
