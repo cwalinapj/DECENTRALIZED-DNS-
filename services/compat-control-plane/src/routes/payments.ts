@@ -71,7 +71,7 @@ export function createPaymentsRoutes(state: CompatState): Route[] {
           return;
         }
         // Expire after the recorded expiration timestamp.
-        if (new Date(challenge.expires_at).getTime() < Date.now()) {
+        if (Date.now() > new Date(challenge.expires_at).getTime()) {
           state.walletChallenges.delete(key);
           res.writeHead(400, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: 'Challenge expired' }));
@@ -108,7 +108,7 @@ export function createPaymentsRoutes(state: CompatState): Route[] {
           return;
         }
         // Expire after the recorded expiration timestamp.
-        if (new Date(session.expires_at).getTime() < Date.now()) {
+        if (Date.now() > new Date(session.expires_at).getTime()) {
           state.walletSessions.delete(sessionToken);
           res.writeHead(401, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: 'Session expired' }));

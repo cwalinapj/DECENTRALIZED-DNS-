@@ -133,11 +133,11 @@
   };
 
   // Chunk conversion to avoid call stack limits for large byte arrays.
+  const CHUNK_SIZE_BYTES = 0x8000;
   const bytesToBase64 = (bytes) => {
     let binary = '';
-    const chunkSize = 0x8000;
-    for (let i = 0; i < bytes.length; i += chunkSize) {
-      binary += String.fromCharCode(...bytes.slice(i, i + chunkSize));
+    for (let i = 0; i < bytes.length; i += CHUNK_SIZE_BYTES) {
+      binary += String.fromCharCode(...bytes.slice(i, i + CHUNK_SIZE_BYTES));
     }
     return btoa(binary);
   };
