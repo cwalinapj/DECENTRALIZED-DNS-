@@ -1,13 +1,6 @@
-FROM mcr.microsoft.com/playwright:v1.49.0-jammy
+FROM node:20-alpine
 
 WORKDIR /app
-COPY package.json package-lock.json* ./
-RUN npm install
+COPY . .
 
-COPY tsconfig.json ./
-COPY src ./src
-RUN npm run build
-
-# input/output mounts
-RUN mkdir -p /in /out /work
-CMD ["node", "dist/run.js"]
+CMD ["node", "--experimental-strip-types", "src/run.ts"]
