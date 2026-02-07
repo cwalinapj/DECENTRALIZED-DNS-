@@ -30,7 +30,18 @@ app.get("/api/status", async (_req, res) => {
     res.status(500).json({ ok: false, error: String(e?.message || e) });
   }
 });
+app.get("/api/events", (req, res) => {
+  const id = String(Date.now()) + "-" + Math.random().toString(16).slice(2);
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders?.();
 
+  addClient(id, res);
+  res.write(`event: hello\ndata: ${JSON.stringify({ ok: true })}\n\n`);
+
+  req.on("close", () => removeClient(id));
+});
 app.use("/", express.static(path.join(__dirname, "../web")));
 
 app.listen(PORT, () => {
