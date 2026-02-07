@@ -1,0 +1,3 @@
+.ddns-actions { display:flex; gap:10px; flex-wrap:wrap; margin: 10px 0; }
+.ddns-box { background:#fff; border:1px solid #ddd; border-radius:12px; padding:10px; margin: 10px 0; }
+.ddns-report { white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
