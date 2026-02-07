@@ -1,0 +1,12 @@
+name = "ddns-site-control"
+main = "src/worker.ts"
+compatibility_date = "2026-02-06"
+
+[vars]
+# Optional admin key for control-plane requests
+# ADMIN_API_KEY = "change-me"
+
+# Cloudflare account settings used when provisioning routes
+# CF_ACCOUNT_ID = "your-account-id"
+# CF_WORKER_SCRIPT = "ddns-cache-worker"
+# CF_API_TOKEN = "token-with-workers-permission"
