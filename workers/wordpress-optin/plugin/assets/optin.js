@@ -3,12 +3,12 @@
   function $all(sel, root) { return Array.from((root || document).querySelectorAll(sel)); }
 
   function randomNonce() {
-    if (window.crypto && window.crypto.getRandomValues) {
-      const bytes = new Uint8Array(8);
-      window.crypto.getRandomValues(bytes);
-      return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+    if (!window.crypto || !window.crypto.getRandomValues) {
+      return null;
     }
-    return Math.random().toString(16).slice(2);
+    const bytes = new Uint8Array(8);
+    window.crypto.getRandomValues(bytes);
+    return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
   }
 
   async function postJSON(url, body) {
@@ -22,7 +22,7 @@
     });
     const text = await r.text();
     let json = null;
-    try { json = JSON.parse(text); } catch (_) { json = null; }
+    try { json = JSON.parse(text); } catch (parseError) { json = null; }
     return { ok: r.ok, status: r.status, json, text };
   }
 
@@ -69,7 +69,7 @@
     const categories = Array.isArray(cfg.categories) ? cfg.categories : [];
 
     if (!endpoint || !siteId) {
-      setMsg(msg, "Opt-in is not configured (missing endpoint or Site ID).", "ddns-bad");
+      setMsg(msg, "This form is temporarily unavailable. Please try again later.", "ddns-bad");
       return;
     }
 
@@ -87,12 +87,18 @@
 
       setMsg(msg, "Submitting…", "ddns-warn");
 
+      const nonce = randomNonce();
+      if (!nonce) {
+        setMsg(msg, "This form is temporarily unavailable. Please try again later.", "ddns-bad");
+        return;
+      }
+
       const payload = {
         site_id: siteId,
         email,
         categories: selected.length ? selected : categories,
         ts: Math.floor(Date.now() / 1000),
-        nonce: randomNonce() + "-" + Date.now(),
+        nonce: nonce + "-" + Date.now(),
         page_url: location.href
       };
 
