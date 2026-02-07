@@ -1,0 +1,16 @@
+{
+  "name": "ddns-escrow",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.4",
+    "typescript": "^5.6.3",
+    "vitest": "^4.0.18"
+  }
+}
