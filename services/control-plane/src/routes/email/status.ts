@@ -1,11 +1,11 @@
-export interface EmailDomainStatus {
+export interface EmailDomainHealthStatus {
   domain: string;
   mxHealthy: boolean;
   lastReceivedAt: number | null;
   rejects: number;
 }
 
-const statuses = new Map<string, EmailDomainStatus>();
+const statuses = new Map<string, EmailDomainHealthStatus>();
 
 function now(): number {
   return Math.floor(Date.now() / 1000);
@@ -15,7 +15,7 @@ function normalizeDomain(input: string): string {
   return input.trim().toLowerCase().replace(/\.$/, "");
 }
 
-export function getDomainStatus(rawDomain: string): EmailDomainStatus {
+export function getDomainStatus(rawDomain: string): EmailDomainHealthStatus {
   const domain = normalizeDomain(rawDomain);
   if (!domain) throw new Error("domain_required");
 
@@ -30,7 +30,7 @@ export function getDomainStatus(rawDomain: string): EmailDomainStatus {
 export function setMxHealth(
   rawDomain: string,
   mxHealthy: boolean
-): EmailDomainStatus {
+): EmailDomainHealthStatus {
   const domain = normalizeDomain(rawDomain);
   if (!domain) throw new Error("domain_required");
 
@@ -43,7 +43,7 @@ export function setMxHealth(
 export function recordReceived(
   rawDomain: string,
   timestamp = now()
-): EmailDomainStatus {
+): EmailDomainHealthStatus {
   const domain = normalizeDomain(rawDomain);
   if (!domain) throw new Error("domain_required");
 
@@ -53,7 +53,7 @@ export function recordReceived(
   return updated;
 }
 
-export function recordReject(rawDomain: string): EmailDomainStatus {
+export function recordReject(rawDomain: string): EmailDomainHealthStatus {
   const domain = normalizeDomain(rawDomain);
   if (!domain) throw new Error("domain_required");
 
