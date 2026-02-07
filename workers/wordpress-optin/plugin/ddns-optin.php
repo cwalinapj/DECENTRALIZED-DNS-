@@ -43,6 +43,9 @@ function ddns_optin_enqueue_assets(): void
     $cats = array_map(static function ($cat) {
         return sanitize_text_field((string) $cat);
     }, $cats);
+    $cats = array_filter($cats, static function ($cat) {
+        return $cat !== '';
+    });
 
     wp_localize_script('ddns-optin', 'DDNS_OPTIN_CFG', array(
         'endpoint' => $endpoint,
