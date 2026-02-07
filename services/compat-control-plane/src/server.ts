@@ -13,6 +13,7 @@ const allowUnauthenticated = process.env.ALLOW_UNAUTHENTICATED === '1';
 const paymentAddress = process.env.PAYMENT_ADDRESS || '0x0000000000000000000000000000000000000000';
 const paymentAsset = process.env.PAYMENT_ASSET || 'USDC';
 const paymentAmount = process.env.PAYMENT_AMOUNT || '5.00';
+const minerProofSecret = process.env.MINER_PROOF_SECRET || '';
 const maxBodyBytes = Number(process.env.MAX_BODY_BYTES || 2_000_000);
 
 const state: CompatState = {
@@ -22,6 +23,7 @@ const state: CompatState = {
   paymentAddress,
   paymentAsset,
   paymentAmount,
+  minerProofSecret,
   sites: new Map(),
   jobs: new Map(),
   walletChallenges: new Map(),

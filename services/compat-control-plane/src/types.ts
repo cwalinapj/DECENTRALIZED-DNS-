@@ -70,6 +70,7 @@ export type CompatState = {
   paymentAddress: string;
   paymentAsset: string;
   paymentAmount: string;
+  minerProofSecret: string;
 };
 
 export type RouteContext = {

@@ -118,7 +118,7 @@
       chain: 'evm',
       address,
     });
-    const message = challenge.message || challenge.challenge;
+    const message = challenge.message;
     const signature = await window.ethereum.request({
       method: 'personal_sign',
       params: [message, address],
@@ -156,7 +156,7 @@
       chain: 'solana',
       address,
     });
-    const message = challenge.message || challenge.challenge;
+    const message = challenge.message;
     const encoded = new TextEncoder().encode(message);
     const signed = await provider.signMessage(encoded, 'utf8');
     const signature = toBase64(signed.signature || signed);

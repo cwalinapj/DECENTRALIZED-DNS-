@@ -23,9 +23,12 @@ creates jobs, and exposes reports for the wp-admin plugin.
 - `PAYMENT_ASSET=USDC`
 - `PAYMENT_AMOUNT=5.00`
 - `MAX_BODY_BYTES=2000000`
+- `MINER_PROOF_SECRET=change-me`
 
 ## Notes
 - Bundles are stored as JSON in `DATA_DIR/sites/<siteId>/bundles`.
 - The MVP issues placeholder reports immediately for wp-admin preview.
 - Signature verification should be replaced with SIWE + Solana adapters in
   production.
+- Miner proof tokens use `proof_<nonce>.<hmac-sha256>` with the shared
+  secret.

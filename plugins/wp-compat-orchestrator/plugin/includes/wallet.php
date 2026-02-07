@@ -61,7 +61,7 @@ function ddns_compat_ajax_wallet_verify(): void
 
     $chain = isset($_POST['chain']) ? sanitize_text_field(wp_unslash($_POST['chain'])) : '';
     $address = isset($_POST['address']) ? sanitize_text_field(wp_unslash($_POST['address'])) : '';
-    $message = isset($_POST['message']) ? sanitize_textarea_field(wp_unslash($_POST['message'])) : '';
+    $message = isset($_POST['message']) ? (string) wp_unslash($_POST['message']) : '';
     $signature = isset($_POST['signature']) ? sanitize_text_field(wp_unslash($_POST['signature'])) : '';
 
     if ($chain === '' || $address === '' || $message === '' || $signature === '') {
