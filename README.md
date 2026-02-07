@@ -2,31 +2,32 @@
 
 Repo: https://github.com/cwalinapj/DECENTRALIZED-DNS-
 
-TollDNS is a concept for a **decentralized cloud-edge fabric** starting with **paid recursive DNS (DoH/DoT)** and expanding into a distributed network of **gateway + caching + resilient ingress** operators (“miners”). A small **toll per query** funds infrastructure while making abusive query patterns economically costly.
+TollDNS is a concept for a **decentralized cloud-edge fabric** built around a **paid recursive DNS** (DoH/DoT) and an extensible network of **gateway + caching + ingress** operators (“miners”). A small **toll per query** funds infrastructure and makes abusive query patterns economically costly.
 
-The long-term goal is a “decentralized Cloudflare”: many independent operators, multi-provider diversity, and automated fallbacks so the network can remain functional even when centralized infrastructure is pressured or attacked.
+The long-term goal is a “decentralized Cloudflare”: many independent operators, multi-provider diversity, and automatic failover so the network remains functional even when centralized infrastructure is pressured or attacked.
 
 ---
 
 ## Why
 
-Centralized edge providers concentrate a large amount of internet reliability and security behind a small number of organizations and networks. That creates systemic risk:
-- correlated failure during outages and routing incidents
-- policy and regulatory pressure concentrated on single entities
-- trust bottlenecks for DNS, gateways, and edge delivery
+Internet reliability and security are increasingly concentrated in a small number of edge providers (DNS, DDoS absorption, gateways, caching). This creates systemic risk:
+- correlated failures during outages or routing incidents
+- policy/regulatory pressure concentrated on a few entities
+- a trust bottleneck for core internet plumbing
 
-TollDNS aims to reduce over-reliance on any one provider by funding **distributed, independently operated** edge capacity.
+TollDNS aims to reduce reliance on any single provider by funding **distributed, independently operated edge capacity** and making routing decisions **policy-driven and auditable**.
 
 ---
 
 ## Core Ideas
 
-- **Per-query tolls** paid via **escrow** (no “click OK” prompts)
-- **Micropayments via off-chain vouchers**, settled in batches on an **L2**
-- **Miners provide edge services** (gateway + cache + ingress) and earn from **proof-of-serving**
-- **Regional quotas + diversity controls** to prevent centralization into one cloud/ASN
-- **Watchdogs + automatic fallback** to centralized services (Cloudflare/Google/etc.) when a decentralized backend degrades
-- **Composable resolution backends** (integrate existing networks instead of reinventing them)
+- **Paid recursive DNS** over **DoH/DoT** with a small toll per query
+- **No per-query on-chain transactions**: micropayments use **off-chain vouchers** + batch settlement on an L2
+- **User spend escrow** to avoid “click OK for every query” (with spend limits and safety rules)
+- **Miner network** provides gateway/caching/ingress and earns based on **proof-of-serving**
+- **Regional quotas + diversity constraints** to avoid centralizing into one region/provider
+- **Watchdogs + automatic fallback** to centralized services (e.g., Cloudflare/Google) when a backend is unhealthy
+- **Composable backends**: integrate existing networks instead of reinventing them
 
 ---
 
@@ -34,22 +35,92 @@ TollDNS aims to reduce over-reliance on any one provider by funding **distribute
 
 Start here:
 
-- Resolution backends (what protocols we integrate and why):  
-  `docs/02-resolution-backends.md`
+- [Resolution backends (what we integrate and why)](docs/02-resolution-backends.md)
+- [Watchdogs + automatic fallback (immutable policy + verifiable health)](docs/03-watchdogs-and-fallback.md)
+- [Functional equivalence proofs (how we decide “backend matches reference behavior”)](docs/04-functional-equivalence-proofs.md)
 
-- Watchdogs + automatic fallback (immutable policy + verifiable health):  
-  `docs/03-watchdogs-and-fallback.md`
+Tokenomics:
+- [Tokenomics (escrow vs governance stake, payouts)](docs/05-tokenomics.md)
 
-- Functional equivalence proofs (how we decide “backend matches reference behavior”):  
-  `docs/04-functional-equivalence-proofs.md`
+Optional supporting docs (add/expand over time):
+- [Resilience tokenomics (anycast/edges/scrubbing)](docs/06-resilience-tokenomics.md)
+- [Routing engine](docs/07-routing-engine.md)
+- [Flow diagrams (Mermaid)](docs/flow-diagram.md)
+- [Threat model](docs/08-threat-model.md)
+- [Roadmap](docs/09-roadmap.md)
 
-Recommended supporting docs (add as you build):
-- Economics & settlement: `docs/economics-settlement.md`
-- Miner eligibility & rewards: `docs/miner-eligibility-rewards.md`
-- Routing engine: `docs/routing-algorithm.md`
-- Resilience tokenomics (anycast/edges/scrubbing): `docs/resilience-tokenomics.md`
-- Flow diagrams (Mermaid): `docs/flow-diagram.md`
-- Roadmap: `docs/roadmap.md`
+---
+
+## Developer Tools: Bring-Your-Own Gateway (Extensible Ecosystem)
+
+TollDNS will include **developer tooling** that allows third parties to register and operate their own **gateways / resolution adapters** (e.g., additional Web3 name systems, content networks, specialized retrieval layers). This expands the ecosystem without requiring the core project to build every integration in-house.
+
+### What Developers Can Do
+- Build and publish a **Gateway Adapter** that implements the TollDNS backend interface
+- Submit that adapter for inclusion (DAO-governed)
+- Operate gateway capacity and earn based on **proof-of-serving**, performance, and correctness
+
+### Gateway Listing Fee + Revenue Potential
+Gateway providers may pay an **initial listing fee** to have their gateway considered for inclusion in the TollDNS routing set.
+
+After listing, gateways can earn ongoing revenue:
+- When TollDNS routes traffic through a third-party gateway, that gateway can receive a **share of toll revenue** associated with that routed traffic.
+- If enough tolls are collected from traffic routed through the gateway, the operator can potentially earn **more than the initial listing fee** (i.e., operate profitably).
+- Payouts are based on measurable delivered service (successful requests/bytes served), plus correctness and SLO performance — not merely on being listed.
+
+> Fee splits and payout formulas are governed by DAO policy and can vary by gateway type, region, and network conditions.
+
+---
+
+## Governance Stake (No “Refundable Escrow Staking”)
+
+TollDNS uses escrow for **user spending** (prepaying tolls), but **stake for security/accountability must not be instantly withdrawable**.
+
+We explicitly avoid “refundable escrow staking” because it can be abused if a provider can:
+1) post stake,
+2) behave exploitively,
+3) withdraw stake quickly before consequences apply.
+
+Instead, staking (when used) is only permitted in forms that reduce or eliminate this abuse class:
+- **DAO Governance Stake Pool** with a **minimum lock/freeze period** (e.g., 30 days)
+- **Cooling-off exit**: withdrawals become claimable only after a delay window
+- Optional later: **slashable stake** for provable violations (governance-defined)
+
+See: [docs/05-tokenomics.md](docs/05-tokenomics.md)
+
+---
+
+## DAO Governance: Curated Backends and Gateways
+
+All gateways/backends integrated into the TollDNS routing set are governed by a DAO process that can:
+- approve or reject new adapters
+- define conformance profiles and watchdog thresholds
+- assign routing weights / quotas / region buckets
+- pause, degrade, or delist a gateway/backend that violates policy or becomes unsafe/unreliable
+
+---
+
+## Hosted Gateways + Policy Enforcement (Safety + Compliance)
+
+TollDNS is designed to provide reliable gateway infrastructure. In early phases (and potentially long-term), TollDNS will operate and/or coordinate **hosted gateway infrastructure** to ensure:
+- predictable performance
+- consistent policy enforcement
+- the ability to **delist** gateways/backends that facilitate clearly illegal activity
+
+### Content Policy Intent (High-Level)
+TollDNS gateways are not intended to route or cache content that is clearly unlawful or primarily infringing, including:
+- piracy / large-scale copyright infringement distribution
+- malware distribution or phishing kits
+
+Some privacy-preserving access methods may be permitted where lawful and aligned with governance policy (e.g., Tor gateway support), but will be subject to DAO-approved rules and operational constraints.
+
+### Auditing Model
+Enforcement may include:
+- **DAO governance auditing**
+- both **human review workflows** and **automated AI crawler checks**
+- the ability to **delist** or disable gateways/backends that violate policy or present unacceptable risk
+
+> Policy and enforcement details will be refined and expressed as transparent governance rules and watchdog criteria.
 
 ---
 
@@ -58,7 +129,7 @@ Recommended supporting docs (add as you build):
 TollDNS is designed to reuse proven networks and protocols.
 
 ### Naming / Resolution
-- ENS (Ethereum Name Service): https://github.com/ensdomains
+- ENS: https://github.com/ensdomains
 - Solana Name Service / Bonfida (.sol): https://github.com/Bonfida  
   SNS SDK: https://github.com/SolanaNameService/sns-sdk
 - Unstoppable Domains Resolution: https://github.com/unstoppabledomains/resolution
@@ -72,9 +143,6 @@ TollDNS is designed to reuse proven networks and protocols.
 - Filecoin: https://github.com/filecoin-project
 - Arweave: https://github.com/arweaveteam
 
-### Optional Reference Integration
-- CoreDNS ENS plugin (reference for bridging DNS <-> ENS): https://github.com/wealdtech/coredns-ens
-
 ---
 
 ## Status
@@ -85,9 +153,10 @@ Early concept / design notes. Expect iteration.
 
 ## Contributing
 
-If you want to help, areas that matter most:
+High-impact areas:
 - voucher + escrow settlement mechanics
+- governance stake pool design (locks, exits, slashing rules)
 - miner scoring and anti-centralization incentives
 - watchdog attestation formats + policy state machine
-- resolution adapters (ENS/SNS/Handshake/PKDNS/IPFS/Filecoin/Arweave)
+- adapters (ENS/SNS/Handshake/PKDNS/IPFS/Filecoin/Arweave)
 - threat modeling and “attack mode” degradation strategies
