@@ -70,9 +70,7 @@ PROSPECTUS.md
   repair-runner/
   wordpress-optin/
 /plugins
-  wp-compat-orchestrator/
-  wp-optin/
-  wp-ai-admin/
+  (WordPress plugins moved to /Users/root1/dev/web3-repos/web3-wp-plugins)
 /packages
   shared-types/
   crypto-ed25519/
