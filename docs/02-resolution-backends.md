@@ -142,3 +142,32 @@ Each backend is integrated as an **Adapter** that implements a standard interfac
   ipfs/
   filecoin/
   arweave/
+
+### Further DISCUSION
+```txt
+Backend Registry (On-Chain)
+
+Each backend has an on-chain entry (registry record or NFT-like immutable pointer) that references immutable configuration and expected behavior:
+	•	backend_id
+	•	adapter_id
+	•	policy_id (watchdog thresholds + equivalence rules)
+	•	verifier_set_id
+	•	fallback_backend_set (e.g., Cloudflare/Google or resolver-owned fallback)
+	•	conformance_profile_id (what “correct” means for this backend)
+	•	content_hash pointers (immutable configs/specs)
+
+This makes integrations composable, auditable, and governance-controlled.
+
+⸻
+
+Developer Gateways (Third-Party Adapters)
+
+TollDNS is intended to support third-party gateways and adapters:
+	•	developers can submit new adapters for DAO review
+	•	listed adapters can earn ongoing revenue based on routed traffic and proof-of-serving
+	•	adapters can be delisted or degraded if they violate policy or fail conformance/health checks
+
+See:
+	•	Watchdogs & fallback: docs/03-watchdogs-and-fallback.md
+	•	Tokenomics: docs/05-tokenomics.md
+
