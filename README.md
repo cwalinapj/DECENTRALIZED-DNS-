@@ -98,6 +98,7 @@ Tokenomics:
 
 Optional supporting docs (add/expand over time):
 
+- [Raspberry Pi miner reference stack (ports, NVMe, GUI, rewards gating)](docs/raspi-miner.md)
 - [Resilience tokenomics (anycast/edges/scrubbing)](docs/06-resilience-tokenomics.md)
 - [Routing engine](docs/07-routing-engine.md)
 - [Flow diagrams (Mermaid)](docs/flow-diagram.md)

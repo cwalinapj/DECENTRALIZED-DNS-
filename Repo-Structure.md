@@ -49,6 +49,7 @@ PROSPECTUS.md
   README.md
 /miner
   README.md
+  raspi/ (Raspberry Pi reference stack: NVMe + Docker, integrity checks, GUI worker)
 
   Why this layout
  • /docs = narrative “prospectus” (what + why)
@@ -106,6 +107,7 @@ The following files/modules are needed to implement the behavior described in ea
 ### /miner
 
 - `docker-compose.yml` (phase-1 operator stack)
+- `raspi/` (Raspberry Pi reference stack with integrity daemon + GUI worker model)
 - `src/ingress/proxy` (edge admission + caching)
 - `src/cache/rrsets` (validated response caching)
 - `src/gateway/{backend}` (IPFS/Filecoin/Arweave handlers)
