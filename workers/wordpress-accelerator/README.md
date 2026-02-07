@@ -61,3 +61,6 @@ Workers can do a lot at the edge (caching, security headers, rewriting, bot
 protection), but they cannot execute PHP or replace WordPress core server-side
 logic. The goal is to move as much as possible to the edge: caching, routing,
 security, asset optimization, backup triggers, and automation.
+
+
+Plugin moved to `/Users/root1/dev/web3-repos/web3-wp-plugins`.
