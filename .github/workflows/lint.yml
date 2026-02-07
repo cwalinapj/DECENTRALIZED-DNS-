@@ -1,0 +1,13 @@
+name: Lint
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Placeholder
+        run: echo "lint placeholder"
