@@ -1,92 +1,80 @@
-NameNormalization
+# NameNormalization
 
-Status: Draft
-Version: 1
-Purpose: Define the canonical name normalization and name_id derivation rules used across all modules (resolver, registry, watchdogs, adaptors, clients).
+**Status:** Draft  
+**Version:** 1  
+**Purpose:** Define canonical name normalization and `name_id` derivation used across all modules (resolver, registry, watchdogs, adaptors, clients).
 
 All components MUST implement these rules identically.
 
-⸻
+---
 
-1. Inputs & Outputs
+## 1. Outputs
 
-Input: a user-supplied name string (e.g., Api.Exämple.)
-Output:
-	•	normalized_name (string)
-	•	name_id (32 bytes)
+Given an input string `name`, produce:
+- `normalized_name` (ASCII lowercase, punycode for IDN, no trailing dot)
+- `name_id` (32 bytes)
 
-⸻
+---
 
-2. Normalization Algorithm
+## 2. Normalization Algorithm
 
-Given name:
-	1.	Trim leading/trailing whitespace.
-	2.	Remove trailing dot: if the name ends with . remove exactly one trailing dot.
-	3.	Split into labels by ..
-	4.	Validate labels:
-	•	no empty labels
-	•	each label length 1..63 after punycode conversion
-	•	total name length <= 253 characters (policy; optional strictness)
-	5.	IDN handling:
-	•	Convert any Unicode label to Punycode A-label (e.g., xn--...)
-	6.	Lowercase the full result (ASCII lowercase).
-	7.	Re-join labels with ..
+Given `name`:
 
-Result: normalized_name is ASCII-only, lowercase, and contains no trailing dot.
+1. Trim leading/trailing whitespace.
+2. If name ends with `.` remove exactly one trailing dot.
+3. Split by `.` into labels.
+4. Reject if any label is empty.
+5. Convert Unicode labels to **Punycode A-label** form (`xn--...`).
+6. Convert full name to ASCII lowercase.
+7. Re-join labels with `.`.
 
-⸻
+**Result:** `normalized_name` is ASCII-only, lowercase, and has no trailing dot.
 
-3. Disallowed Names (recommended)
+---
 
-Implementations SHOULD reject:
-	•	empty string
-	•	any label containing characters outside [a-z0-9-] after punycode/lowercase
-	•	labels starting or ending with - (optional policy; DNS allows but many systems restrict)
-	•	consecutive dots ..
-	•	names exceeding size limits
+## 3. Allowed Character Set (Recommended Policy)
 
-If your system supports special namespaces (e.g., _service._tcp.example), you may relax the allowed charset accordingly, but you MUST document it here.
+After punycode + lowercase:
+- labels SHOULD match: `[a-z0-9-]{1,63}`
+- names SHOULD have total length <= 253 characters
 
-⸻
+If your system supports underscore labels (e.g., `_service._tcp`), document that exception here.
 
-4. Namespace ID
+---
 
-RouteSetV1 and AnchorV1 use a numeric namespace id ns_id (u32).
+## 4. Namespace IDs
 
-Example allocations (placeholder):
-	•	1 = dDNS (main decentralized DNS namespace)
-	•	2 = toll (tollDNS pricing namespace)
-	•	etc.
+RouteSetV1/AnchorV1 use `ns_id` (u32). The mapping is project-defined.
 
-The authoritative mapping MUST live in one place (recommended: specs/registry/namespaces.md).
+**Example allocation (placeholder):**
+- `1` = `dDNS` (main namespace)
 
-⸻
+Document your final mapping in `specs/chain/namespaces.md` (recommended).
 
-5. name_id Derivation
+---
+
+## 5. name_id Derivation
 
 Given:
-	•	ns_id (u32)
-	•	normalized_name (ASCII string)
+- `ns_id` (u32)
+- `normalized_name` (ASCII string)
 
 Compute:
-
 name_id = BLAKE3_256( LE32(ns_id) || ASCII_BYTES(normalized_name) )
-
 Output is 32 bytes.
 
-6. Test Vectors (required)
-Example vectors (placeholders; replace with real computed values)
-	1.	Input: Api.Example.
-Normalized: api.example
-ns_id: 1
-name_id: <32-byte hex>
-	2.	Input: Exämple.com
-Normalized: xn--exmple-cua.com
-ns_id: 1
-name_id: <32-byte hex>
-	3.	Input:  example 
-Normalized: example
-ns_id: 1
-name_id: <32-byte hex>
+---
 
-Note: Once you compute official vectors, all languages MUST match them byte-for-byte
+## 6. Test Vectors (To Fill)
+
+This section MUST be updated with computed vectors and used across all languages.
+
+1) Input: `Api.Example.`
+- normalized: `api.example`
+- ns_id: `1`
+- name_id: `<hex32>`
+
+2) Input: `Exämple.com`
+- normalized: `xn--exmple-cua.com`
+- ns_id: `1`
+- name_id: `<hex32>`
