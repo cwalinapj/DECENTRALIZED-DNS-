@@ -80,9 +80,15 @@ See:
 
 ### G) Governance (DAO)
 
-- `Governor`: proposal + voting mechanisms
-- `Timelock`: delayed execution for sensitive actions
+- `DDNSGovernor`: proposal + voting mechanisms (ERC20Votes + timelock)
+- `DDNSTimelock`: delayed execution for sensitive actions
 - `ParameterStore`: versioned policy parameters referenced by registries/state machine
+- `DDNSVotesToken`: ERC20Votes token (EVM hub)
+
+### H) MultiGov (Base Hub + Solana Spoke)
+- Base is the hub chain for governance execution.
+- Solana is a spoke (30-day token lock gating).
+- Arbitrum can be added later as a spoke.
 
 ---
 
@@ -146,3 +152,21 @@ contracts/
     Merkle.sol
     Signature.sol
     Buckets.sol
+
+---
+
+## Foundry Tests
+
+From repo root:
+
+```bash
+make test-contracts
+```
+
+This expects Foundry installed and `lib/forge-std` available. If missing:
+
+```bash
+cd /Users/root1/scripts/DECENTRALIZED-DNS-/contracts
+forge install foundry-rs/forge-std
+forge install OpenZeppelin/openzeppelin-contracts
+```
