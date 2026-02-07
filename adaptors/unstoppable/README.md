@@ -1,26 +1,18 @@
-# Adapter: unstoppable (Unstoppable Domains)
+# Adapter
 
-This adapter resolves Unstoppable Domains to records and content pointers according to the supported surface.
+## Purpose
+This adapter integrates the upstream network or naming system into the DDNS stack.
 
-Namespace:
+## Token Swap / OTC
+- Eligible partners can offer custodial OTC swaps for client onboarding.
+- Flow: client pays -> OTC desk swaps -> credits issued -> adapter routes traffic.
+- Settlement can be in native token, USDC, or agreed stable.
 
-- `UNSTOPPABLE`
+## Integration Points
+- Resolver routing
+- Toll credits / usage ledger
+- Optional trust-score hooks
 
-Capabilities:
-
-- `WEB3_NAME_RESOLUTION`
-
-Key behaviors:
-
-- resolve supported UD naming outputs into DNS-compatible responses
-- enforce conformance profile semantics
-- support caching with conservative bounds
-
-Fallback:
-
-- centralized resolution services or RPCs only when policy allows
-- cache-only under incident rules (policy-controlled)
-
-Upstream reference:
-
-- Resolution SDK: <https://github.com/unstoppabledomains/resolution>
+## Operator Opportunity
+Partners can grow usage by onboarding DDNS clients, providing routing and caching,
+and participating in the OTC swap pipeline.

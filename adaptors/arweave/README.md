@@ -1,28 +1,18 @@
-# Adapter: arweave (Gateway / Permanent Storage Retrieval)
+# Adapter
 
-This adapter retrieves content from Arweave via gateway operators, returning either DNS-compatible mappings or retrieval routes.
+## Purpose
+This adapter integrates the upstream network or naming system into the DDNS stack.
 
-Namespace:
+## Token Swap / OTC
+- Eligible partners can offer custodial OTC swaps for client onboarding.
+- Flow: client pays -> OTC desk swaps -> credits issued -> adapter routes traffic.
+- Settlement can be in native token, USDC, or agreed stable.
 
-- `ARWEAVE`
+## Integration Points
+- Resolver routing
+- Toll credits / usage ledger
+- Optional trust-score hooks
 
-Capabilities:
-
-- `GATEWAY_RESOLUTION`
-- `CONTENT_RETRIEVAL`
-
-Key behaviors:
-
-- resolve Arweave transaction IDs to gateway retrieval routes
-- validate integrity where applicable (tx id mapping correctness per profile)
-- cache-friendly behavior (content permanence assumptions are profile-defined)
-
-Fallback:
-
-- alternate gateways
-- centralized gateways only under policy
-- cache-only serving for previously validated content
-
-Upstream reference:
-
-- Arweave org: <https://github.com/arweaveteam>
+## Operator Opportunity
+Partners can grow usage by onboarding DDNS clients, providing routing and caching,
+and participating in the OTC swap pipeline.

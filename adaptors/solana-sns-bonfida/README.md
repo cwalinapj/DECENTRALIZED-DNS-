@@ -1,27 +1,18 @@
-# Adapter: solana-sns-bonfida (SNS / Bonfida .sol)
+# Adapter
 
-This adapter resolves Solana Name Service / Bonfida names (.sol) into records and pointers, mapping them into DNS-compatible results.
+## Purpose
+This adapter integrates the upstream network or naming system into the DDNS stack.
 
-Namespace:
+## Token Swap / OTC
+- Eligible partners can offer custodial OTC swaps for client onboarding.
+- Flow: client pays -> OTC desk swaps -> credits issued -> adapter routes traffic.
+- Settlement can be in native token, USDC, or agreed stable.
 
-- `SNS_SOL`
+## Integration Points
+- Resolver routing
+- Toll credits / usage ledger
+- Optional trust-score hooks
 
-Capabilities:
-
-- `WEB3_NAME_RESOLUTION`
-
-Key behaviors:
-
-- lookup SNS name accounts and supported record types
-- apply conformance profile normalization and mapping rules
-- support caching with conservative TTL/policy
-
-Fallback:
-
-- centralized RPC providers may be used temporarily under policy
-- cache-only during incident conditions (policy-controlled)
-
-Upstream references:
-
-- Bonfida: <https://github.com/Bonfida>
-- SNS SDK: <https://github.com/SolanaNameService/sns-sdk>
+## Operator Opportunity
+Partners can grow usage by onboarding DDNS clients, providing routing and caching,
+and participating in the OTC swap pipeline.

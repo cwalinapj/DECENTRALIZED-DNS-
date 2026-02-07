@@ -1,3 +1,3 @@
 # Implementation
 
-Placeholder content.
+Adapter implementation code and notes.

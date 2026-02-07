@@ -1,43 +1,18 @@
-# web3-name-gateway adaptor
+# Adapter
 
-This adaptor lets users route **ENS (.eth)** and **SNS (.sol)** names through **DECENTRALIZED-DNS** by:
+## Purpose
+This adapter integrates the upstream network or naming system into the DDNS stack.
 
-1. **Verifying wallet ownership** of the Web3 name
-2. **Mapping Web3 name records** to DECENTRALIZED-DNS native formats:
-   - `RouteSetV1` (required)
-   - `GatewayRoutesV1` (optional, for subdomain routing / delegation)
-3. **Publishing updates** into the decentralized network and (optionally) updating chain commitments
+## Token Swap / OTC
+- Eligible partners can offer custodial OTC swaps for client onboarding.
+- Flow: client pays -> OTC desk swaps -> credits issued -> adapter routes traffic.
+- Settlement can be in native token, USDC, or agreed stable.
 
-> **IPFS is anchor-only:** by default we store/publish `AnchorV1` objects on IPFS for redundancy, **not** full RouteSets.
+## Integration Points
+- Resolver routing
+- Toll credits / usage ledger
+- Optional trust-score hooks
 
----
-
-## Composition (Uses Existing Adaptors)
-
-This adaptor is an orchestrator that should **reuse** the chain-specific adaptors already in this repo:
-
-- `adaptors/ens/` for ENS ownership + record reads  
-- `adaptors/solana-sns-bonfida/` for SNS ownership + record reads  
-- `adaptors/ipfs/` for publishing `AnchorV1` (anchor-only redundancy)
-
-`web3-name-gateway` coordinates these pieces and produces DECENTRALIZED-DNS-native artifacts.
-
----
-
-## Directory Layout
-
-```text
-adaptors/web3-name-gateway/
-  README.md
-
-  ens/
-    resolver/      # ENS reads (owner, resolver, text records, addr records, etc.)
-    verifier/      # wallet proof + ENS ownership validation
-
-  sns/
-    resolver/      # .sol reads (name registry ownership, records if available)
-    verifier/      # wallet proof + SNS ownership validation
-
-  mapper/
-    routeset/      # convert ENS/SNS records -> RouteSetV1
-    gatewayroutes/ # optional: generate GatewayRoutesV1 for subdomain routing
+## Operator Opportunity
+Partners can grow usage by onboarding DDNS clients, providing routing and caching,
+and participating in the OTC swap pipeline.

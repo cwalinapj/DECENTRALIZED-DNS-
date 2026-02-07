@@ -1,27 +1,18 @@
-# Adapter: pkdns-pkarr (DHT-backed DNS Records)
+# Adapter
 
-This adapter resolves PKDNS/PKARR records stored in a DHT substrate and maps them into DNS-compatible outputs.
+## Purpose
+This adapter integrates the upstream network or naming system into the DDNS stack.
 
-Namespace:
+## Token Swap / OTC
+- Eligible partners can offer custodial OTC swaps for client onboarding.
+- Flow: client pays -> OTC desk swaps -> credits issued -> adapter routes traffic.
+- Settlement can be in native token, USDC, or agreed stable.
 
-- `PKDNS_PKARR`
+## Integration Points
+- Resolver routing
+- Toll credits / usage ledger
+- Optional trust-score hooks
 
-Capabilities:
-
-- `DHT_RECORD_RESOLUTION`
-
-Key behaviors:
-
-- retrieve signed record packets from DHT
-- verify record signatures and validity per conformance profile
-- apply TTL and caching bounds
-
-Fallback:
-
-- cache-only for previously validated records (policy-controlled)
-- return UNAVAILABLE for this namespace when DISABLED (do not lie)
-
-Upstream references:
-
-- PKDNS: <https://github.com/pubky/pkdns>
-- PKARR: <https://github.com/pubky/pkarr>
+## Operator Opportunity
+Partners can grow usage by onboarding DDNS clients, providing routing and caching,
+and participating in the OTC swap pipeline.
