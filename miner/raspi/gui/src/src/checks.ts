@@ -1,4 +1,4 @@
-import { inspectContainer, listContainers } from "./docker.js";
+import { inspectContainer, listContainers } from "../docker.js";
 
 export type ServiceStatus = {
   name: string;

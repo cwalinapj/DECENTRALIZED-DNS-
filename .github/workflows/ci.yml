@@ -28,13 +28,30 @@ jobs:
             --config .markdownlint.json
 
   tests:
-    name: Future tests placeholder
+    name: Raspi TS package builds
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Test placeholder
+      - name: Use Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Build raspi gui
+        working-directory: miner/raspi/gui
         run: |
-          echo "Add language-specific tests here (Go/TS/etc.)"
-          echo "For Go: go test ./..."
-          echo "For TS: npm test"
+          npm ci
+          npm run build
+
+      - name: Build raspi diagnostics
+        working-directory: miner/raspi/diagnostics
+        run: |
+          npm ci
+          npm run build
+
+      - name: Build raspi integrity
+        working-directory: miner/raspi/integrity
+        run: |
+          npm ci
+          npm run build

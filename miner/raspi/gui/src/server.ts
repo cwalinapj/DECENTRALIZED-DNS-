@@ -4,8 +4,8 @@ import { fileURLToPath } from "url";
 import fs from "node:fs";
 
 import { getServiceStatuses } from "./checks.js";
-import { autoRecover } from "./recover.js";
-import { startJob, readJob } from "./jobs.js";
+import { autoRecover } from "./recovery.js";
+import { startJob, readJob } from "./src/jobs.js";
 import { addClient, removeClient, broadcast } from "./events.js";
 
 const __filename = fileURLToPath(import.meta.url);
