@@ -1,218 +1,162 @@
-# TollDNS — A Token-Paid Recursive DNS + Subsidized Web3 Gateway Network (Concept)
+# DECENTRALIZED-DNS (TollDNS) — A Decentralized “Cloudflare-Like” Resolver + Gateway Network
 
-> **Status:** Early concept / design notes  
-> **Goal:** Build a recursive DNS resolver that charges a tiny “toll” per query in a native token, using those tolls to subsidize a decentralized network of Web3/IPFS gateway capacity operated by miners.
+Repo: https://github.com/cwalinapj/DECENTRALIZED-DNS-
 
----
+TollDNS is a concept for a **decentralized cloud-edge fabric** built around a **paid recursive DNS** (DoH/DoT) and an extensible network of **gateway + caching + ingress** operators (“miners”). A small **toll per query** funds infrastructure and makes abusive query patterns economically costly.
 
-## TL;DR
-
-**TollDNS** is a **paid recursive DNS resolver** (primarily via **DoH/DoT**) where each query costs a small amount of a **native token**. Users deposit tokens into **escrow** so queries don’t require popups or confirmations.  
-A **miner network** earns tokens by operating **gateway + cache infrastructure** and meeting performance/correctness requirements.  
-A custom **L2 blockchain** provides the accounting/control plane for escrow, rewards, staking, and miner registry—without putting per-query traffic on-chain.
+The long-term goal is a “decentralized Cloudflare”: many independent operators, multi-provider diversity, and automatic failover so the network remains functional even when centralized infrastructure is pressured or attacked.
 
 ---
 
-## Motivation
+## Why
 
-DNS is a high-value target for abuse:
-- DDoS against resolvers
-- random-subdomain / NXDOMAIN floods
-- cache poisoning attempts
-- abuse of “free” Web3 gateways
+Internet reliability and security are increasingly concentrated in a small number of edge providers (DNS, DDoS absorption, gateways, caching). This creates systemic risk:
+- correlated failures during outages or routing incidents
+- policy/regulatory pressure concentrated on a few entities
+- a trust bottleneck for core internet plumbing
 
-Adding a **micro-toll** introduces real cost per request, making many attacks **economically expensive** while funding shared infrastructure (gateways, caching, availability).
-
----
-
-## Design Principles
-
-- **No per-query on-chain transactions** (too slow/expensive)
-- **Micropayments via escrow + off-chain vouchers**, settled in batches on L2
-- **DoH/DoT first** (reduce reflection/amplification risk and add authentication)
-- **Pay for delivered service** (proof-of-serving), not just claims
-- **Quota per region** to reduce correlated failure and keep the network globally distributed
-- **Privacy-aware**: do not store per-user query logs on-chain
+TollDNS aims to reduce reliance on any single provider by funding **distributed, independently operated edge capacity** and making routing decisions **policy-driven and auditable**.
 
 ---
 
-## System Overview
+## Core Ideas
 
-### Actors
-- **Client**: phone/desktop/router app with local stub resolver + wallet
-- **Resolver**: paid recursive DoH/DoT service (can forward “normal DNS” to existing providers)
-- **Miners**: run Web3/IPFS gateways and optionally edge cache/DoH endpoints
-- **L2 Chain**: token, escrow, miner registry, reward distribution, slashing (control plane)
-
----
-
-## Query Flow (High-Level)
-
-1. User device sends a DNS query to the **local stub** (app/service).
-2. Stub forwards the query via **DoH/DoT** to a TollDNS resolver and attaches a **signed payment voucher**.
-3. Resolver verifies voucher quickly (signature + sequence checks) and responds.
-4. Resolver batches vouchers and periodically settles totals on the **L2 escrow contract**.
-
-**Key UX goal:** user does **not** click “OK” for every query.
+- **Paid recursive DNS** over **DoH/DoT** with a small toll per query
+- **No per-query on-chain transactions**: micropayments use **off-chain vouchers** + batch settlement on an L2
+- **User spend escrow** to avoid “click OK for every query” (with spend limits and safety rules)
+- **Miner network** provides gateway/caching/ingress and earns based on **proof-of-serving**
+- **Regional quotas + diversity constraints** to avoid centralizing into one region/provider
+- **Watchdogs + automatic fallback** to centralized services (e.g., Cloudflare/Google) when a backend is unhealthy
+- **Composable backends**: integrate existing networks instead of reinventing them
 
 ---
 
-## Payment Model
+## Docs (Prospectus)
 
-### Escrow
-Users deposit tokens into an on-chain escrow. The local wallet enforces:
-- max spend/day
-- per-domain/category limits
-- emergency stop
-- resolver allowlist
+Start here:
 
-### Off-Chain Vouchers (Micropayments)
-Each query includes a signed authorization (voucher), e.g.:
-- user public key
-- resolver ID
-- amount (toll)
-- sequence number (monotonic)
-- expiry
-- optional binding to query hash
-- signature
+- [Resolution backends (what we integrate and why)](docs/02-resolution-backends.md)
+- [Watchdogs + automatic fallback (immutable policy + verifiable health)](docs/03-watchdogs-and-fallback.md)
+- [Functional equivalence proofs (how we decide “backend matches reference behavior”)](docs/04-functional-equivalence-proofs.md)
 
-Resolvers settle **in batches** on-chain to avoid per-query transactions.
+Tokenomics:
+- [Tokenomics (escrow vs governance stake, payouts)](docs/05-tokenomics.md)
+
+Optional supporting docs (add/expand over time):
+- [Resilience tokenomics (anycast/edges/scrubbing)](docs/06-resilience-tokenomics.md)
+- [Routing engine](docs/07-routing-engine.md)
+- [Flow diagrams (Mermaid)](docs/flow-diagram.md)
+- [Threat model](docs/08-threat-model.md)
+- [Roadmap](docs/09-roadmap.md)
 
 ---
 
-## Mining Model
+## Developer Tools: Bring-Your-Own Gateway (Extensible Ecosystem)
 
-Miners contribute infrastructure such as:
-- **Web3 gateway capacity** (HTTP gateways for IPFS / name systems)
-- **Edge caching** (hot RRsets, validated records, web3 pointer data)
-- Optional: **DoH edge endpoints** for cache hits / regional acceleration
+TollDNS will include **developer tooling** that allows third parties to register and operate their own **gateways / resolution adapters** (e.g., additional Web3 name systems, content networks, specialized retrieval layers). This expands the ecosystem without requiring the core project to build every integration in-house.
 
-Miners earn tokens primarily for:
-- **Proof-of-serving** (successful responses + bandwidth served)
-- performance (latency, uptime, tail latency)
-- correctness (validated data, no invalid responses)
-- optional **proof-of-storage** bonuses
+### What Developers Can Do
+- Build and publish a **Gateway Adapter** that implements the TollDNS backend interface
+- Submit that adapter for inclusion (DAO-governed)
+- Operate gateway capacity and earn based on **proof-of-serving**, performance, and correctness
 
----
+### Gateway Listing Fee + Revenue Potential
+Gateway providers may pay an **initial listing fee** to have their gateway considered for inclusion in the TollDNS routing set.
 
-## Regional Quotas (Anti-Centralization)
+After listing, gateways can earn ongoing revenue:
+- When TollDNS routes traffic through a third-party gateway, that gateway can receive a **share of toll revenue** associated with that routed traffic.
+- If enough tolls are collected from traffic routed through the gateway, the operator can potentially earn **more than the initial listing fee** (i.e., operate profitably).
+- Payouts are based on measurable delivered service (successful requests/bytes served), plus correctness and SLO performance — not merely on being listed.
 
-A major risk is miners clustering in a few cheap hosting regions/providers.
-
-To encourage global coverage and reduce correlated failure, TollDNS uses **quota per region**:
-
-- The network defines regions (example):  
-  `NA-WEST, NA-EAST, EU-WEST, EU-CENTRAL, APAC, SA, AFR, OCE`
-- Each region has a target capacity / slot count.
-- Miners compete within a region for active slots based on:
-  - stake
-  - performance score
-  - serving receipts (real delivered work)
-  - availability history
-
-**Admission rule idea:** if a region is at capacity, the lowest-scoring active miner is replaced by a higher-scoring candidate.
-
-> Note: Region is treated as a *performance attribute* (measured RTT/SLO from verifiers), not a perfect “GPS truth.”
+> Fee splits and payout formulas are governed by DAO policy and can vary by gateway type, region, and network conditions.
 
 ---
 
-## Web2 vs Web3 Resolution
+## Governance Stake (No “Refundable Escrow Staking”)
 
-### Web2 (normal DNS)
-- TollDNS can recursively resolve normally.
-- Optionally forward to established resolvers (Cloudflare/Google/etc.) for cost efficiency and reliability.
-- DNSSEC validation policy to be defined (recommended).
+TollDNS uses escrow for **user spending** (prepaying tolls), but **stake for security/accountability must not be instantly withdrawable**.
 
-### Web3 / IPFS / Gateways
-- Certain namespaces (e.g., `.eth`, `.sol`, `ipfs://`) are resolved through:
-  - miner-operated gateways
-  - fallback gateways
-- Gateways are subsidized by toll revenue and miner rewards.
+We explicitly avoid “refundable escrow staking” because it can be abused if a provider can:
+1) post stake,
+2) behave exploitively,
+3) withdraw stake quickly before consequences apply.
 
-**Goal:** make Web3 content reachable with standard apps via the client stub/router integration.
+Instead, staking (when used) is only permitted in forms that reduce or eliminate this abuse class:
+- **DAO Governance Stake Pool** with a **minimum lock/freeze period** (e.g., 30 days)
+- **Cooling-off exit**: withdrawals become claimable only after a delay window
+- Optional later: **slashable stake** for provable violations (governance-defined)
 
----
-
-## L2 Blockchain Responsibilities
-
-**On-chain (recommended minimal set):**
-- token + staking
-- escrow + settlement
-- miner registry (identity keys, endpoints, region bucket)
-- reward distribution epochs
-- slashing conditions for provable fraud (optional early-phase)
-
-**Off-chain (hot path & privacy):**
-- per-query details
-- raw performance metrics
-- routing tables and miner selection logic
-- exact geolocation (use coarse region labels)
+See: [docs/05-tokenomics.md](docs/05-tokenomics.md)
 
 ---
 
-## Security & Abuse Resistance
+## DAO Governance: Curated Backends and Gateways
 
-### What the toll helps with
-- makes high-volume abuse expensive
-- funds capacity to absorb attacks (gateway + resolver scaling)
-- discourages random-subdomain floods by pricing policy
-
-### What still needs engineering
-- rate limiting & surge pricing policies
-- anti-sybil measures (stake + identity)
-- replay protection (voucher sequences)
-- correctness enforcement (DNSSEC validation, signed gateway artifacts)
-- diversity constraints (avoid one provider/ASN dominating)
+All gateways/backends integrated into the TollDNS routing set are governed by a DAO process that can:
+- approve or reject new adapters
+- define conformance profiles and watchdog thresholds
+- assign routing weights / quotas / region buckets
+- pause, degrade, or delist a gateway/backend that violates policy or becomes unsafe/unreliable
 
 ---
 
-## MVP Roadmap
+## Hosted Gateways + Policy Enforcement (Safety + Compliance)
 
-### Phase 1 — Paid DoH Resolver + Client Wallet
-- local stub + wallet on desktop/phone
-- escrow deposits + signed vouchers
-- resolver batch settlement on chain (or temporary backend → chain later)
+TollDNS is designed to provide reliable gateway infrastructure. In early phases (and potentially long-term), TollDNS will operate and/or coordinate **hosted gateway infrastructure** to ensure:
+- predictable performance
+- consistent policy enforcement
+- the ability to **delist** gateways/backends that facilitate clearly illegal activity
 
-### Phase 2 — Miner Gateways (Subsidized)
-- miner registry + staking
-- gateway routing + performance scoring
-- rewards for serving bandwidth/requests
+### Content Policy Intent (High-Level)
+TollDNS gateways are not intended to route or cache content that is clearly unlawful or primarily infringing, including:
+- piracy / large-scale copyright infringement distribution
+- malware distribution or phishing kits
 
-### Phase 3 — Regional Quotas + Diversity Controls
-- region slot caps
-- replacement rules based on score
-- optional provider/ASN caps
+Some privacy-preserving access methods may be permitted where lawful and aligned with governance policy (e.g., Tor gateway support), but will be subject to DAO-approved rules and operational constraints.
 
-### Phase 4 — Hardening / Slashing / Governance
-- slashing for provable invalid serving
-- decentralized verifier set
-- governance for pricing/regions/policies
+### Auditing Model
+Enforcement may include:
+- **DAO governance auditing**
+- both **human review workflows** and **automated AI crawler checks**
+- the ability to **delist** or disable gateways/backends that violate policy or present unacceptable risk
 
----
-
-## Open Questions
-
-- Voucher format and settlement mechanism (channels vs batch receipts)
-- DNSSEC policy and validation placement (resolver vs miner vs both)
-- Name resolution strategy for `.eth/.sol` (stub-level rules vs gateway domains)
-- Miner scoring formula and anti-gaming mechanisms
-- Region definitions and how to handle mobile/roaming clients
-- Privacy model: what logs exist, where, retention policies
+> Policy and enforcement details will be refined and expressed as transparent governance rules and watchdog criteria.
 
 ---
 
-## Disclaimer
+## Ecosystem Integrations (Clickable Links)
 
-This repository describes a **concept** for a decentralized, token-incentivized DNS + gateway network.  
-It is not a commitment to specific functionality or security guarantees. Expect iteration.
+TollDNS is designed to reuse proven networks and protocols.
+
+### Naming / Resolution
+- ENS: https://github.com/ensdomains
+- Solana Name Service / Bonfida (.sol): https://github.com/Bonfida  
+  SNS SDK: https://github.com/SolanaNameService/sns-sdk
+- Unstoppable Domains Resolution: https://github.com/unstoppabledomains/resolution
+- Handshake (alt-root / TLD): https://github.com/handshake-org  
+  hnsd resolver: https://github.com/handshake-org/hnsd
+- PKDNS (DHT-backed DNS server): https://github.com/pubky/pkdns  
+  PKARR (signed packets to DHT): https://github.com/pubky/pkarr
+
+### Content / Storage (Gateways)
+- IPFS: https://github.com/ipfs
+- Filecoin: https://github.com/filecoin-project
+- Arweave: https://github.com/arweaveteam
+
+---
+
+## Status
+
+Early concept / design notes. Expect iteration.
 
 ---
 
 ## Contributing
 
-PRs and design feedback welcome:
-- payment/voucher mechanisms
-- L2 contract interfaces
-- miner incentive models
-- resolver/gateway architecture
-- threat modeling
+High-impact areas:
+- voucher + escrow settlement mechanics
+- governance stake pool design (locks, exits, slashing rules)
+- miner scoring and anti-centralization incentives
+- watchdog attestation formats + policy state machine
+- adapters (ENS/SNS/Handshake/PKDNS/IPFS/Filecoin/Arweave)
+- threat modeling and “attack mode” degradation strategies
