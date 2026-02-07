@@ -36,6 +36,36 @@ function ddns_optin_register_settings(): void
         )
     );
 
+    register_setting(
+        'ddns_optin',
+        'ddns_optin_endpoint',
+        array(
+            'type' => 'string',
+            'sanitize_callback' => 'esc_url_raw',
+            'default' => '',
+        )
+    );
+
+    register_setting(
+        'ddns_optin',
+        'ddns_optin_site_id',
+        array(
+            'type' => 'string',
+            'sanitize_callback' => 'sanitize_text_field',
+            'default' => '',
+        )
+    );
+
+    register_setting(
+        'ddns_optin',
+        'ddns_optin_categories',
+        array(
+            'type' => 'string',
+            'sanitize_callback' => 'sanitize_textarea_field',
+            'default' => '',
+        )
+    );
+
     add_settings_section(
         'ddns_optin_main',
         'Opt-in Form',
@@ -66,6 +96,30 @@ function ddns_optin_register_settings(): void
         'ddns-optin',
         'ddns_optin_main'
     );
+
+    add_settings_field(
+        'ddns_optin_endpoint',
+        'Worker Endpoint URL',
+        'ddns_optin_render_endpoint_field',
+        'ddns-optin',
+        'ddns_optin_main'
+    );
+
+    add_settings_field(
+        'ddns_optin_site_id',
+        'Site ID',
+        'ddns_optin_render_site_id_field',
+        'ddns-optin',
+        'ddns_optin_main'
+    );
+
+    add_settings_field(
+        'ddns_optin_categories',
+        'Allowed Categories',
+        'ddns_optin_render_categories_field',
+        'ddns-optin',
+        'ddns_optin_main'
+    );
 }
 add_action('admin_init', 'ddns_optin_register_settings');
 
@@ -91,6 +145,25 @@ function ddns_optin_render_button_field(): void
 {
     $value = esc_attr(get_option('ddns_optin_button', 'Notify me'));
     echo '<input class="regular-text" type="text" name="ddns_optin_button" value="' . $value . '">';
+}
+
+function ddns_optin_render_endpoint_field(): void
+{
+    $value = esc_attr(get_option('ddns_optin_endpoint', ''));
+    echo '<input class="regular-text" type="url" name="ddns_optin_endpoint" value="' . $value . '" placeholder="https://example.com/v1/optin/submit">';
+}
+
+function ddns_optin_render_site_id_field(): void
+{
+    $value = esc_attr(get_option('ddns_optin_site_id', ''));
+    echo '<input class="regular-text" type="text" name="ddns_optin_site_id" value="' . $value . '">';
+}
+
+function ddns_optin_render_categories_field(): void
+{
+    $value = esc_textarea(get_option('ddns_optin_categories', ''));
+    echo '<textarea class="large-text" rows="4" name="ddns_optin_categories">' . $value . '</textarea>';
+    echo '<p class="description">Comma or newline separated categories shown as checkboxes.</p>';
 }
 
 function ddns_optin_render_settings_page(): void

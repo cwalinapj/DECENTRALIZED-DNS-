@@ -16,7 +16,8 @@ that can be embedded with a shortcode.
 
 ## Settings
 Use Settings → DDNS Opt-in to edit the heading, placeholder, and button
-label used by the opt-in form.
+label used by the opt-in form, plus the worker endpoint URL, site ID, and
+optional categories for checkbox selection.
 # WordPress Opt-in Plugin (No Public WP Endpoints)
 
 This plugin renders an opt-in form on WordPress sites and sends submissions
@@ -29,7 +30,6 @@ Public-facing:
 Admin-facing:
 - Configure worker endpoint URL
 - Configure site_id
-- Configure site_secret (HMAC signing key)
 - Optional: data categories (checkboxes)
 
 Worker API:
