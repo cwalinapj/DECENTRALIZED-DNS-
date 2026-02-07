@@ -29,12 +29,19 @@
 
     const wrap = document.createElement("div");
     wrap.className = "ddns-optin-cats";
-    wrap.innerHTML = `<div class="ddns-optin-cats-title">Allowed categories</div>`;
+    wrap.innerHTML = `<div class="ddns-optin-cats-title">Allowed Categories</div>`;
     categories.forEach((c) => {
       const id = "ddns-cat-" + c.toLowerCase().replace(/[^a-z0-9]+/g, "-");
       const label = document.createElement("label");
       label.className = "ddns-optin-cat";
-      label.innerHTML = `<input type="checkbox" name="ddns_optin_categories" value="${c}" checked /> ${c}`;
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.name = "ddns_optin_categories";
+      input.value = c;
+      input.id = id;
+      input.checked = true;
+      label.appendChild(input);
+      label.appendChild(document.createTextNode(" " + c));
       wrap.appendChild(label);
     });
 

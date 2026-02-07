@@ -149,14 +149,21 @@ function ddns_optin_render_button_field(): void
 
 function ddns_optin_render_endpoint_field(): void
 {
-    $value = esc_attr(get_option('ddns_optin_endpoint', ''));
-    echo '<input class="regular-text" type="url" name="ddns_optin_endpoint" value="' . $value . '" placeholder="https://example.com/v1/optin/submit">';
+    $value = get_option('ddns_optin_endpoint', '');
+    printf(
+        '<input class="regular-text" type="url" name="ddns_optin_endpoint" value="%s" placeholder="%s">',
+        esc_attr($value),
+        esc_attr('https://example.com/v1/optin/submit')
+    );
 }
 
 function ddns_optin_render_site_id_field(): void
 {
-    $value = esc_attr(get_option('ddns_optin_site_id', ''));
-    echo '<input class="regular-text" type="text" name="ddns_optin_site_id" value="' . $value . '">';
+    $value = get_option('ddns_optin_site_id', '');
+    printf(
+        '<input class="regular-text" type="text" name="ddns_optin_site_id" value="%s">',
+        esc_attr($value)
+    );
 }
 
 function ddns_optin_render_categories_field(): void
