@@ -1,8 +1,9 @@
 # Quickstart (Local Resolver + Gateway Stack)
 
-Repo: https://github.com/cwalinapj/DECENTRALIZED-DNS-
+Repo: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 
 This quickstart spins up a **local development stack** for:
+
 - Resolver (DoH/DoT)
 - Gateway (IPFS adapter first)
 - Optional: local policy config + receipt logging

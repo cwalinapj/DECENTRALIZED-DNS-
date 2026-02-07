@@ -1,17 +1,20 @@
 # Settlement Contracts (Batch Spend + Rewards)
 
-Repo home: https://github.com/cwalinapj/DECENTRALIZED-DNS-
+Repo home: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 
 This folder specifies contracts that:
+
 - settle Index Unit spending in batches (from SpendEscrow),
 - validate Proof-of-Serving receipts,
 - and distribute **native token** rewards to operators and contributors.
 
 Key principle:
+
 - **Index Units** are spent by users for usage.
 - **Native token** is paid out for mining/operator rewards, integrations, grants, and ecosystem ops.
 
 Related:
+
 - Tokenomics: `docs/05-tokenomics.md`
 - Receipt format: `specs/receipt-format.md`
 
@@ -20,43 +23,54 @@ Related:
 ## Contracts in this Module
 
 ### 1) SettlementCoordinator (optional name)
+
 Tracks epochs and allows authorized settlement submitters (resolvers/settlers) to post:
+
 - voucher spend totals
 - receipt roots
 - payout calculations (or inputs to calculation)
 
 **Purpose**
+
 - define “what epoch are we settling?”
 - prevent double settlement
 
 ---
 
 ### 2) ReceiptIngestor
+
 Validates receipts or receipt batch roots:
+
 - signature verification
 - operator registry checks
 - policy version alignment
 - optional audit proofs (Merkle leaf proofs)
 
 **Purpose**
+
 - prevent fake traffic claims
 - enable scalable settlement
 
 ---
 
 ### 3) RewardDistributor
+
 Computes and distributes native token payouts based on:
+
 - verified receipts
 - reward multipliers (region scarcity, diversity, anycast, scrubbing, attack mode)
 - caps (per operator/ASN/region) to reduce centralization
 
 **Purpose**
+
 - pay for delivered service, not claimed capacity
 
 ---
 
 ### 4) Treasury / Reserves Link
+
 Settlement may allocate a portion of Index Unit revenue to:
+
 - treasury reserves (native or Index, depending on design)
 - grants/subsidies pools
 - burn mechanism triggers

@@ -1,9 +1,11 @@
 # Chain Commitments (Minimal)
 
 **Status:** Draft  
-**Purpose:** Define the minimal on-chain commitment required to secure DECENTRALIZED-DNS updates while keeping chain storage and fees low.
+**Purpose:** Define the minimal on-chain commitment required to secure
+DECENTRALIZED-DNS updates while keeping chain storage and fees low.
 
 The chain stores only:
+
 - ordering/freshness metadata (`seq`, `exp`)
 - a cryptographic commitment (`routeset_hash`)
 
@@ -33,17 +35,18 @@ name_id -> (seq, exp, routeset_hash)
   - watchdogs/validators are compromised, or
   - bootstrap needs a redundant reference.
 
-Chain commitments remain the primary source of “latest hash”.
+Chain commitments remain the primary source of "latest hash".
 
 ---
 
 ## 3. Update Rules (Chain-Agnostic)
 
 A valid update MUST satisfy:
+
 - `new_seq > old_seq` (recommended strict)
 - `new_exp > now`
 - `routeset_hash` is 32 bytes
-- authorization is enforced by the chain’s ownership model (account-owned or pubkey-owned)
+- authorization is enforced by the chain's ownership model (account-owned or pubkey-owned)
 
 ---
 
@@ -52,6 +55,7 @@ A valid update MUST satisfy:
 This section defines a recommended minimal contract interface for EVM chains.
 
 ### 4.1 Storage
+
 ```solidity
 struct Commitment {
     uint64 seq;
@@ -62,10 +66,10 @@ mapping(bytes32 => Commitment) public commitments;
 mapping(bytes32 => address) public ownerOf;
 
 Required checks:
-	•	require(msg.sender == ownerOf[nameId])
-	•	require(newSeq > commitments[nameId].seq)
-	•	require(newExp > block.timestamp)
-	•	store (newSeq, newExp, newRoutesetHash)
+ • require(msg.sender == ownerOf[nameId])
+ • require(newSeq > commitments[nameId].seq)
+ • require(newExp > block.timestamp)
+ • store (newSeq, newExp, newRoutesetHash)
 
 4.3 Events
 
@@ -81,31 +85,31 @@ event OwnerChanged(
     address indexed newOwner
 );
 4.4 Notes
-	•	Contracts do not compute BLAKE3; they only store the provided routesetHash.
-	•	Clients/watchdogs compute BLAKE3 off-chain and compare.
-	•	Off-chain verification MUST also verify RouteSetV1 Ed25519 signatures.
+ • Contracts do not compute BLAKE3; they only store the provided routesetHash.
+ • Clients/watchdogs compute BLAKE3 off-chain and compare.
+ • Off-chain verification MUST also verify RouteSetV1 Ed25519 signatures.
 
 ⸻
 
 5. Client/Resolver Verification (Off-chain)
 
 Given a query for (ns_id, name):
-	1.	normalize and derive name_id per NameNormalization.md
-	2.	read chain commitment (seq, exp, routeset_hash)
-	3.	fetch RouteSetV1 from decentralized network/cache
-	4.	verify:
-	•	RouteSet name_id matches
-	•	RouteSet seq == chain.seq
-	•	RouteSet exp == chain.exp (recommended strict match)
-	•	BLAKE3(RouteSet_bytes_including_sig) == chain.routeset_hash
-	•	RouteSet Ed25519 signature verifies
-	5.	optionally fetch AnchorV1 from IPFS and ensure it matches (routeset_hash), as redundancy
+ 1. normalize and derive name_id per NameNormalization.md
+ 2. read chain commitment (seq, exp, routeset_hash)
+ 3. fetch RouteSetV1 from decentralized network/cache
+ 4. verify:
+ • RouteSet name_id matches
+ • RouteSet seq == chain.seq
+ • RouteSet exp == chain.exp (recommended strict match)
+ • BLAKE3(RouteSet_bytes_including_sig) == chain.routeset_hash
+ • RouteSet Ed25519 signature verifies
+ 5. optionally fetch AnchorV1 from IPFS and ensure it matches (routeset_hash), as redundancy
 
 If any check fails:
-	•	treat data as untrusted
-	•	refetch from multiple peers
-	•	record incident (watchdogs)
+ • treat data as untrusted
+ • refetch from multiple peers
+ • record incident (watchdogs)
 
 ---
 
-If you want, I can also generate a **`specs/records/RouteSetV1.md` “diff checklist”** that tells you exactly what to add/align in your existing file so all five specs are consistent (e.g., ensure RouteSet hash definition matches the one used in Anchor + commitments).
+If you want, I can also generate a **`specs/records/RouteSetV1.md` "diff checklist"** that tells you exactly what to add/align in your existing file so all five specs are consistent (e.g., ensure RouteSet hash definition matches the one used in Anchor + commitments).

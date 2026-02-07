@@ -1,6 +1,6 @@
 # Contributing to TollDNS / DECENTRALIZED-DNS
 
-Repo: https://github.com/cwalinapj/DECENTRALIZED-DNS-
+Repo: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 
 Thanks for contributing. This project is intentionally modular so you can land useful work quickly.
 
@@ -35,6 +35,7 @@ Start a local dev stack:
 ## Issue Labels
 
 We try to keep issues “claimable”:
+
 - `good first issue` — small tasks, minimal context needed
 - `help wanted` — medium tasks
 - `P0/P1/P2` — priority level
@@ -44,6 +45,7 @@ We try to keep issues “claimable”:
 Start with: `docs/WORK_BREAKDOWN.md`
 
 High-impact early modules:
+
 - Resolver (DoH) + caching
 - Upstream quorum adapter
 - Policy engine (config-first)
@@ -53,6 +55,7 @@ High-impact early modules:
 ## Adapter Contributions
 
 If you implement a new adapter:
+
 - follow `specs/backend-interface.md`
 - add an example doc under `specs/examples/`
 - add at least:
@@ -63,6 +66,7 @@ If you implement a new adapter:
 ## Code Style
 
 Until language toolchains are finalized:
+
 - keep code readable and well-commented
 - prefer explicit errors over silent fallbacks
 - add strict bounds on inputs (sizes, recursion depth, timeouts)
@@ -70,6 +74,7 @@ Until language toolchains are finalized:
 ## Community / Maintainer Notes
 
 If you want to become a long-term maintainer of a module:
+
 - open an issue titled: “Owner: <Module Name>”
 - list what you plan to deliver in the first two PRs
 

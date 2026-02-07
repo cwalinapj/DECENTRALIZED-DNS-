@@ -1,12 +1,17 @@
 # Health Report Format (Spec)
 
-Repo home: https://github.com/cwalinapj/DECENTRALIZED-DNS-
+Repo home: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 
-This spec defines the **Health Report** message submitted by verifier/watchdog nodes to the TollDNS policy layer. Health reports drive the immutable circuit-breaker state machine that sets backend states (`HEALTHY`, `DEGRADED`, `DISABLED`, `RECOVERING`) and updates routing policy.
+This spec defines the **Health Report** message submitted by
+verifier/watchdog nodes to the TollDNS policy layer. Health reports drive
+the immutable circuit-breaker state machine that sets backend states
+(`HEALTHY`, `DEGRADED`, `DISABLED`, `RECOVERING`) and updates routing
+policy.
 
 This is a **normative** specification unless stated otherwise.
 
 Related docs:
+
 - Watchdogs & fallback: `docs/03-watchdogs-and-fallback.md`
 - Functional equivalence: `docs/04-functional-equivalence-proofs.md`
 - Routing engine: `docs/07-routing-engine.md`
@@ -16,6 +21,7 @@ Related docs:
 ## 1. Goals
 
 Health reports must:
+
 - be **small** and cheap to submit
 - be **verifiable** (signatures, membership)
 - be **privacy-preserving** (no raw user queries)
@@ -53,8 +59,11 @@ A health report is an object with these top-level fields:
 - `signature` (object, REQUIRED)
 
 ### 3.1 `window_id` definition
-`window_id` MUST correspond to a fixed window duration defined by governance (e.g., 60s, 300s).  
-Verifiers MUST report using the canonical window boundaries to enable aggregation.
+
+`window_id` MUST correspond to a fixed window duration defined by
+governance (e.g., 60s, 300s).
+Verifiers MUST report using the canonical window boundaries to enable
+aggregation.
 
 ---
 
@@ -75,6 +84,7 @@ The `metrics` object MUST include bucketed summaries:
 - `latency_p99_bucket_ms` (string, OPTIONAL)
 
 Example bucket strings:
+
 - `<25`, `<50`, `<100`, `<200`, `<500`, `<1000`, `>=1000`
 
 - `response_size_p95_bucket_bytes` (string, OPTIONAL)
@@ -93,9 +103,13 @@ Example bucket strings:
   - `OTHER`
 
 ### 4.1 Counting rules
+
 - `success_count + timeout_count + error_count` MUST be `<= probe_count`
-- `NXDOMAIN` and `NODATA` MAY be represented in `error_class_counts` for visibility, but do not necessarily indicate backend failure (policy decides).
-- `INVALID_SIG` and `MALFORMED` SHOULD be treated as higher severity signals.
+- `NXDOMAIN` and `NODATA` MAY be represented in `error_class_counts`
+  for visibility, but do not necessarily indicate backend failure (policy
+  decides).
+- `INVALID_SIG` and `MALFORMED` SHOULD be treated as higher severity
+  signals.
 
 ---
 
@@ -114,8 +128,10 @@ If included, `conformance` MUST include:
 - `fail_count` (integer, OPTIONAL)
 - `pass_count` (integer, OPTIONAL)
 - `conformance_reason_bucket` (string, OPTIONAL)
+  Reason for conformance result.
 
 Example conformance reason buckets:
+
 - `WRONG_SEMANTICS`
 - `INVALID_PROOF`
 - `INVALID_SIGNATURE`
@@ -131,6 +147,7 @@ Example conformance reason buckets:
 `reason_codes` is an optional array of coarse codes intended for auditability:
 
 Examples:
+
 - `PERF_DEGRADED`
 - `TIMEOUT_SPIKE`
 - `ERROR_SPIKE`
@@ -157,6 +174,7 @@ The `signature` object MUST include:
   Signature over a canonical serialization of the report fields.
 
 ### 7.1 Canonical serialization
+
 - The serialization format MUST be deterministic (e.g., canonical JSON).
 - Field ordering and encoding must be specified and versioned per `report_version`.
 
@@ -169,7 +187,8 @@ A policy contract (or policy enforcement service) MUST verify:
 1) `verifier_id` is a member of `verifier_set_id` for the relevant epoch/window.
 2) signature is valid for the canonical serialization.
 3) `window_id` matches the expected window boundaries.
-4) `region_id` is valid and matches verifier configuration (or is acceptable via policy).
+4) `region_id` is valid and matches verifier configuration (or is
+   acceptable via policy).
 5) numeric fields are within bounds (sanity checks).
 
 Reports failing verification MUST be ignored.

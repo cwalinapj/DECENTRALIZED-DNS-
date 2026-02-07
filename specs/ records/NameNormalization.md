@@ -2,7 +2,9 @@
 
 **Status:** Draft  
 **Version:** 1  
-**Purpose:** Define canonical name normalization and `name_id` derivation used across all modules (resolver, registry, watchdogs, adaptors, clients).
+**Purpose:** Define canonical name normalization and `name_id` derivation
+used across all modules (resolver, registry, watchdogs, adaptors,
+clients).
 
 All components MUST implement these rules identically.
 
@@ -11,6 +13,7 @@ All components MUST implement these rules identically.
 ## 1. Outputs
 
 Given an input string `name`, produce:
+
 - `normalized_name` (ASCII lowercase, punycode for IDN, no trailing dot)
 - `name_id` (32 bytes)
 
@@ -35,10 +38,12 @@ Given `name`:
 ## 3. Allowed Character Set (Recommended Policy)
 
 After punycode + lowercase:
+
 - labels SHOULD match: `[a-z0-9-]{1,63}`
 - names SHOULD have total length <= 253 characters
 
-If your system supports underscore labels (e.g., `_service._tcp`), document that exception here.
+If your system supports underscore labels (e.g., `_service._tcp`),
+document that exception here.
 
 ---
 
@@ -47,6 +52,7 @@ If your system supports underscore labels (e.g., `_service._tcp`), document that
 RouteSetV1/AnchorV1 use `ns_id` (u32). The mapping is project-defined.
 
 **Example allocation (placeholder):**
+
 - `1` = `dDNS` (main namespace)
 
 Document your final mapping in `specs/chain/namespaces.md` (recommended).
@@ -56,6 +62,7 @@ Document your final mapping in `specs/chain/namespaces.md` (recommended).
 ## 5. name_id Derivation
 
 Given:
+
 - `ns_id` (u32)
 - `normalized_name` (ASCII string)
 
@@ -70,11 +77,13 @@ Output is 32 bytes.
 This section MUST be updated with computed vectors and used across all languages.
 
 1) Input: `Api.Example.`
+
 - normalized: `api.example`
 - ns_id: `1`
 - name_id: `<hex32>`
 
-2) Input: `Exämple.com`
+1) Input: `Exämple.com`
+
 - normalized: `xn--exmple-cua.com`
 - ns_id: `1`
 - name_id: `<hex32>`
