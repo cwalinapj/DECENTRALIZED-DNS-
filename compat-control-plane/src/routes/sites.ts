@@ -1,10 +1,10 @@
 import { Router, type Request, type Response } from "express";
 import type { Storage } from "../storage.js";
 
-export function sitesRouter(store: Storage) {
+export function sitesRouter(store: Storage, requireAdmin: any) {
   const r = Router();
 
-  r.post("/register", (req: Request, res: Response) => {
+  r.post("/register", requireAdmin, (req: Request, res: Response) => {
     const site_id = String(req.body?.site_id || "").trim();
     if (!site_id) return res.status(400).json({ ok: false, error: "site_id_required" });
 

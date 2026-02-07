@@ -12,7 +12,8 @@ export function uploadsRouter(store: Storage) {
   const rateBuckets = new Map<string, { count: number; resetAt: number }>();
 
   function rateLimit(req: Request, res: Response, next: NextFunction) {
-    const key = String(req.ip || "unknown");
+    const site_id = String(req.params.site_id || req.headers["x-ddns-site-id"] || "unknown");
+    const key = site_id || String(req.ip || "unknown");
     const now = Date.now();
     if (rateBuckets.size > 1000) {
       for (const [id, entry] of rateBuckets) {

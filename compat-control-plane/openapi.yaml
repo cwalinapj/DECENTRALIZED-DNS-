@@ -1,0 +1,27 @@
+openapi: 3.0.3
+info:
+  title: Compat Control Plane
+  version: 0.1.0
+paths:
+  /v1/sites/register:
+    post:
+      summary: Register a site
+  /v1/uploads/{site_id}:
+    post:
+      summary: Upload a bundle zip
+      parameters:
+        - name: site_id
+          in: path
+          required: true
+          schema: { type: string }
+  /v1/jobs/create:
+    post:
+      summary: Create a compat job
+  /v1/jobs/{id}:
+    get:
+      summary: Get job status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
