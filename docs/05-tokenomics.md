@@ -21,6 +21,28 @@ Related:
 
 ---
 
+## 6) Paid Routing (Provider/Gateway Revenue)
+
+Adapters and gateways can opt into paid routing tiers. This does not override global routing, and only applies within the adapter class.
+
+### 6.1 Tiers (Default)
+- Gold: highest priority, flat + per-query pricing
+- Silver: mid priority, flat or per-query
+- Bronze: lowest priority, per-query only
+
+### 6.2 SLA Minimums
+- Uptime: 99.9% monthly
+- P95 latency: <= 300ms
+- Error rate: <= 0.5%
+- Max stale cache: 5 minutes
+
+Routes that fail SLA are automatically demoted for the window.
+
+### 6.3 Pricing Models
+- Flat fee (monthly) for preferred routing tier
+- Per-query fee for usage-based billing
+- Both supported for premium providers
+
 ## 1) Index Unit (Usage / Tolls)
 
 ### 1.1 What the Index Unit Prices

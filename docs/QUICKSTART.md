@@ -26,3 +26,50 @@ From repo root:
 
 ```bash
 docker compose up --build
+```
+
+## 2) Test the resolver stub
+
+```bash
+curl "http://localhost:8053/resolve?name=example.com"
+curl "http://localhost:8053/dns-query?name=example.com"
+```
+
+## 3) Run compat control plane (for WordPress opt-in)
+
+```bash
+/Users/root1/scripts/DECENTRALIZED-DNS-/scripts/run-compat-control-plane.sh
+```
+
+The control plane listens on `http://localhost:8788`.
+
+## 4) WordPress opt-in plugin (minimal)
+
+- Copy `/Users/root1/scripts/DECENTRALIZED-DNS-/plugins/wp-optin/plugin` into your WordPress `wp-content/plugins/ddns-optin`.
+- Activate **DDNS Opt-in** in WP admin.
+- Set Control Plane URL to `http://localhost:8788`.
+- Register the site to receive a `site_token`.
+
+---
+
+## Toll Tokens + Session Tokens
+
+- See `docs/TOLL_TOKENS.md` and `docs/SESSION_TOKENS.md`.
+- Non-ASIC clients can use session tokens backed by escrow.
+
+## Toll Gates (Ingress)
+
+- See `docs/TOLL_GATES.md` for Kubernetes ingress gate design.
+
+## Faucet (Dev)
+
+- See `docs/FAUCET.md` for the dev faucet plan.
+
+---
+
+## Tests
+
+```bash
+make test-contracts
+make test-solana
+```

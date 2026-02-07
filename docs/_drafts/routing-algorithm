@@ -1,0 +1,105 @@
+# Routing Algorithm (Resolver → Miners)
+
+This document describes how the paid recursive resolver selects miners for gateway/caching work while maintaining performance and diversity.
+
+## Goals
+
+- Pick the fastest reliable miner for a given client region.
+- Enforce **regional quotas** and diversity constraints.
+- Provide fast failover.
+- Keep sensitive routing details off-chain.
+
+## Inputs
+
+Resolver maintains (off-chain) rolling stats:
+- miner region bucket
+- capability flags (gateway/cache/edge DoH)
+- recent error rate
+- p50/p95/p99 latency per region vantage
+- observed throughput / capacity
+- recent “served receipts” correctness rate
+- diversity metadata (ASN/provider, operator id)
+
+## Query Classification
+
+On receiving a request, classify:
+
+### A) Normal DNS (Web2)
+- resolver may recurse locally and/or forward upstream (Cloudflare/Google/etc.)
+- toll is still charged (depending on policy)
+
+### B) Web3/Gateway-required
+- route to miner gateway network
+- fallback to resolver-owned gateway if no miners available
+
+### C) Cache-eligible
+- if miner edge DoH/cache is enabled, attempt cache path
+- otherwise use resolver recursion path
+
+## Candidate Selection
+
+For a given request:
+1. Determine **target region bucket** for the client.
+2. Filter miners by:
+   - capability required
+   - active status
+   - region bucket match (or nearest acceptable fallback region)
+   - minimum health thresholds (uptime/error rate)
+3. Apply **diversity constraints**:
+   - ASN/provider caps
+   - operator caps
+   - /24 caps (optional)
+4. Rank remaining candidates by a weighted score:
+   - lowest p95 latency (dominant)
+   - recent success rate
+   - capacity headroom
+   - lower tail latency jitter (optional)
+
+## Selection Strategy (Suggested)
+
+Use a “top-K then pick” approach:
+- choose top K (e.g., 5–20) candidates
+- select using weighted randomization to prevent a single miner from always winning
+- increase probability for better performers
+
+This avoids a rigid winner-take-all dynamic.
+
+## Failover
+
+If a miner fails:
+- retry immediately with next candidate from the ranked set
+- keep retry budget small (DNS latency constraints)
+- mark miner “degraded” for a cooldown window if failures persist
+
+## Preventing Routing Capture
+
+To avoid one provider/operator dominating:
+- enforce diversity constraints at selection time
+- apply per-epoch caps on traffic share per ASN/operator
+- Routing must enforce diversity constraints (ASN/operator caps) and prefer resilient ingress providers; see `docs/resilience-tokenomics.md`.
+
+## Preventing Routing Capture
+
+To avoid a single provider/operator dominating traffic (and to reduce correlated failure), resolvers must enforce diversity constraints during miner selection:
+
+- **ASN/provider caps:** limit selection share per ASN per region per time window
+- **Operator caps:** limit selection share per operator per region per time window
+- **Optional /24 caps:** prevent over-concentration within a single IP block
+- **Weighted selection:** prefer top performers, but avoid deterministic winner-take-all routing
+
+In addition to routing-time constraints, apply **reward caps** at settlement-time so payouts cannot be monopolized even if routing temporarily misbehaves.
+
+For resilience-first routing (anycast ingress, diversity constraints, scrubbing partnerships), see `docs/resilience-tokenomics.md`.
+
+## Output Accounting (for Rewards)
+
+When a miner serves a request:
+- miner returns a receipt
+- resolver verifies correctness + SLO
+- resolver records payable units for epoch rewards
+- resolver settles payouts via batch settlement on L2
+
+## Notes
+
+- Routing policy should be deterministic enough to audit but flexible enough to adapt to performance.
+- Keep per-request routing decisions off-chain for privacy and performance.
