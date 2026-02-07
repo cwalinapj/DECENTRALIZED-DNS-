@@ -13,9 +13,10 @@ PROSPECTUS.md
   09-roadmap.md
   flow-diagram.md
 /specs
-  Backend-Adaptor-Interface
+  backend-interface.md
   economic-settlement.md
-  health-report-format
+  health-report-format.md
+  receipt-format.md
   spam-report-format.md
 /contracts
   README.md
