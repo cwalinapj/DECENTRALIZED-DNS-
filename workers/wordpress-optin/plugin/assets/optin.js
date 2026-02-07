@@ -22,7 +22,7 @@
     });
     const text = await r.text();
     let json = null;
-    try { json = JSON.parse(text); } catch (_error) { json = null; }
+    try { json = JSON.parse(text); } catch (_) { json = null; }
     return { ok: r.ok, status: r.status, json, text };
   }
 
@@ -69,7 +69,7 @@
     const categories = Array.isArray(cfg.categories) ? cfg.categories : [];
 
     if (!endpoint || !siteId) {
-      setMsg(msg, "Opt-in is not configured (missing endpoint or site_id).", "ddns-bad");
+      setMsg(msg, "Opt-in is not configured (missing endpoint or Site ID).", "ddns-bad");
       return;
     }
 
