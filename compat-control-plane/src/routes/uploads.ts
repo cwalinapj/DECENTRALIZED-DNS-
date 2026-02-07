@@ -1,4 +1,4 @@
-import { Router, type Request, type Response } from "express";
+import { Router, type Request, type Response, type NextFunction } from "express";
 import type { Storage } from "../storage.js";
 import multer from "multer";
 import fs from "node:fs";
@@ -7,13 +7,18 @@ import path from "node:path";
 export function uploadsRouter(store: Storage) {
   const r = Router();
   const upload = multer({ dest: store.uploadsDir });
-  const rateWindowMs = 60_000;
-  const rateMax = 20;
+  const rateWindowMs = Number(process.env.RATE_WINDOW_MS || "60000");
+  const rateMax = Number(process.env.RATE_MAX || "20");
   const rateBuckets = new Map<string, { count: number; resetAt: number }>();
 
-  function rateLimit(req: Request, res: Response, next: () => void) {
+  function rateLimit(req: Request, res: Response, next: NextFunction) {
     const key = String(req.ip || "unknown");
     const now = Date.now();
+    if (rateBuckets.size > 1000) {
+      for (const [id, entry] of rateBuckets) {
+        if (entry.resetAt <= now) rateBuckets.delete(id);
+      }
+    }
     const bucket = rateBuckets.get(key);
     if (!bucket || bucket.resetAt <= now) {
       rateBuckets.set(key, { count: 1, resetAt: now + rateWindowMs });
