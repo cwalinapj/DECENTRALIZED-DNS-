@@ -1,4 +1,4 @@
-import express from "express";
+import express, { type Request, type Response } from "express";
 import { Storage } from "./storage.js";
 import { sitesRouter } from "./routes/sites.js";
 import { uploadsRouter } from "./routes/uploads.js";
@@ -9,7 +9,7 @@ app.use(express.json({ limit: "10mb" }));
 
 const store = new Storage(process.env.DATA_DIR || "./data");
 
-app.get("/healthz", (_req, res) => res.json({ ok: true }));
+app.get("/healthz", (_req: Request, res: Response) => res.json({ ok: true }));
 app.use("/v1/sites", sitesRouter(store));
 app.use("/v1/uploads", uploadsRouter(store));
 app.use("/v1/jobs", jobsRouter(store));

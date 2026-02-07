@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM mcr.microsoft.com/playwright:v1.58.2-jammy
 
 WORKDIR /app
 COPY . .

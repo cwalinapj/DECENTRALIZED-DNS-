@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type Request, type Response } from "express";
 import type { Storage, Job } from "../storage.js";
 import crypto from "node:crypto";
 import { spawn } from "node:child_process";
@@ -10,7 +10,7 @@ function now() { return Math.floor(Date.now() / 1000); }
 export function jobsRouter(store: Storage) {
   const r = Router();
 
-  function requireSite(req: any) {
+  function requireSite(req: Request) {
     const site_id = String(req.headers["x-ddns-site-id"] || "").trim();
     const token = String(req.headers["x-ddns-site-token"] || "");
     if (!site_id || !token) throw new Error("missing_site_auth");
@@ -20,7 +20,7 @@ export function jobsRouter(store: Storage) {
     return { site_id };
   }
 
-  r.post("/create", (req, res) => {
+  r.post("/create", (req: Request, res: Response) => {
     try {
       const { site_id } = requireSite(req);
       const upload_id = String(req.body?.upload_id || "").trim();
@@ -47,7 +47,7 @@ export function jobsRouter(store: Storage) {
     }
   });
 
-  r.get("/:id", (req, res) => {
+  r.get("/:id", (req: Request, res: Response) => {
     try {
       requireSite(req);
       const id = String(req.params.id || "").trim();

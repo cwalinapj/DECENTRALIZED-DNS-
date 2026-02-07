@@ -29,8 +29,8 @@ require_once DDNS_COMPAT_PATH . 'includes/miner-proof.php';
 function ddns_compat_enqueue_admin_assets($hook): void {
   if ($hook !== 'settings_page_ddns-compat') return;
 
-  wp_enqueue_style('ddns-compat-admin', DDNS_COMPAT_URL . 'assets/admin.css', array(), DDNS_COMPAT_VERSION);
-  wp_enqueue_script('ddns-compat-admin', DDNS_COMPAT_URL . 'assets/admin.js', array(), DDNS_COMPAT_VERSION, true);
+  wp_enqueue_style('ddns-compat-admin', DDNS_COMPAT_URL . 'includes/assets/admin.css', array(), DDNS_COMPAT_VERSION);
+  wp_enqueue_script('ddns-compat-admin', DDNS_COMPAT_URL . 'includes/assets/admin.js', array(), DDNS_COMPAT_VERSION, true);
 
   wp_localize_script('ddns-compat-admin', 'DDNS_COMPAT_CFG', array(
     'ajaxUrl' => admin_url('admin-ajax.php'),
