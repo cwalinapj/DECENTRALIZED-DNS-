@@ -1,0 +1,11 @@
+{
+  "bootstrap_peers": [],
+  "cache": {
+    "path": "/var/lib/ddns/cache",
+    "max_bytes": 4294967296
+  },
+  "limits": {
+    "max_routeset_bytes": 49152,
+    "max_anchor_bytes": 1024
+  }
+}
