@@ -1,10 +1,10 @@
-# GatewayRoutesV1
+# RouteSetV1
 
 **Status:** Draft  
 **Version:** 1  
 **Purpose:** Define a compact, deterministic, signed ruleset that maps **subdomain patterns** under a parent name to **gateway route targets**.
 
-GatewayRoutesV1 is intended to be:
+RouteSetV1 is intended to be:
 - distributed primarily via the decentralized DNS network and edge caches
 - optionally backed up via IPFS (as redundancy)
 - committed on-chain only by **hash** (see `specs/chain/commitments.md`)
@@ -44,7 +44,7 @@ On-chain commits to:
 
 ## 4. High-level Structure
 
-GatewayRoutesV1 contains:
+RouteSetV1 contains:
 
 - namespace id (u32)
 - parent_name_id (32 bytes)
@@ -177,7 +177,7 @@ Recommended flags:
 
 Given a requested full name `child` and known `parent` (by configuration or by walking labels):
 
-1. Verify `GatewayRoutesV1` signature and check `g_exp`.
+1. Verify `RouteSetV1` signature and check `g_exp`.
 2. Extract `child_labels` that are **left of** the parent labels.
    - Example: `api.svc.example` under parent `example` => `child_labels = ["api","svc"]`
 3. For each rule in canonical order:
@@ -211,7 +211,7 @@ Verification succeeds if:
 
 ## 10. Replay Protection & Validity
 
-A GatewayRoutesV1 object is valid only if:
+A RouteSetV1 object is valid only if:
 - `g_exp` is in the future (allow small skew)
 - `g_seq` is >= last accepted `g_seq` for `parent_name_id` (policy; recommended strictly increasing)
 - `gwset_count` and `rule_count` are within safe bounds (policy)
@@ -237,7 +237,7 @@ On-chain stores only:
 - `(g_seq, g_exp, gateway_routes_hash)` for `parent_name_id`
 
 Clients/watchdogs:
-- fetch GatewayRoutesV1 from network (or redundancy storage)
+- fetch RouteSetV1 from network (or redundancy storage)
 - verify signature and hash match the chain commitment
 - apply rules when direct child RouteSets are missing/untrusted
 
