@@ -22,7 +22,7 @@
     });
     const text = await r.text();
     let json = null;
-    try { json = JSON.parse(text); } catch (error) { json = null; }
+    try { json = JSON.parse(text); } catch (_error) { json = null; }
     return { ok: r.ok, status: r.status, json, text };
   }
 
@@ -50,7 +50,9 @@
       input.id = id;
       input.checked = true;
       label.appendChild(input);
-      label.appendChild(document.createTextNode(" " + c));
+      const text = document.createElement("span");
+      text.textContent = c;
+      label.appendChild(text);
       wrap.appendChild(label);
     });
 
