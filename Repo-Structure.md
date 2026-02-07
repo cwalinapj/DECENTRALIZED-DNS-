@@ -71,9 +71,9 @@ The following files/modules are needed to implement the behavior described in ea
 - `receipt-format.md` (proof-of-serving format)
 - `policy-state-machine.md` (state transition rules)
 
-### /adaptors/<adapter-name>/
+### /adaptors/<adaptor-name>/
 - `README.md` (scope/capabilities, already present)
-- `adapter/implementation` (namespace resolution + mapping logic)
+- `implementation/` (namespace resolution + mapping logic)
 - `conformance/` (profile definitions + challenge sets)
 - `config/example` (RPC endpoints, gateway lists, policy knobs)
 - `tests/` (conformance + fallback behavior)
