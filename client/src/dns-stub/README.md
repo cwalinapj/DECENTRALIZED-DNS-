@@ -1,0 +1,3 @@
+# Dns Stub
+
+Placeholder content.
