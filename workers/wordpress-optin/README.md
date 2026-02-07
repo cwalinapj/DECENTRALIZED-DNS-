@@ -29,6 +29,19 @@ Public-facing:
 
 Admin-facing:
 - Configure worker endpoint URL
+
+- ## Configure endpoint (Cloudflare Workers bootstrap)
+
+In WP Admin → Settings → DDNS Opt-in:
+
+- Worker endpoint URL:
+  `https://optin.<yourdomain>/v1/optin/submit`
+- Site ID:
+  `site_123` (must be registered in the Cloudflare Worker via admin API)
+
+Admin API (run from your terminal):
+- POST `https://optin.<yourdomain>/v1/admin/sites`
+  with header `x-ddns-admin-key: <ADMIN_API_KEY>`
 - Configure site_id
 - Optional: data categories (checkboxes)
 
