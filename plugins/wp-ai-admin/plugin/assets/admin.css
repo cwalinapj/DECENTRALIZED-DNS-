@@ -1,0 +1,16 @@
+.ddns-compute-command {
+  margin-top: 24px;
+}
+
+.ddns-compute-status {
+  margin-top: 12px;
+  font-weight: 600;
+}
+
+.ddns-compute-status.is-error {
+  color: #b32d2e;
+}
+
+.ddns-compute-status.is-success {
+  color: #1a7f37;
+}

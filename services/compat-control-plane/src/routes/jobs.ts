@@ -28,12 +28,22 @@ export function buildReportFromBundle(bundle: any, jobId: string): ReportData {
 
   return {
     job_id: jobId,
+    ok: true,
     status: 'completed',
     summary,
     changes,
     report_html,
     report_url: `/v1/jobs/${jobId}/report.html`,
   };
+}
+
+async function writeReportFile(state: CompatState, jobId: string, report: ReportData) {
+  const payload: ReportData = {
+    ...report,
+    ok: report.ok ?? true,
+  };
+  await writeJson(`${state.dataDir}/jobs/${jobId}/report.json`, payload);
+  return payload;
 }
 
 export function createJobsRoutes(state: CompatState): Route[] {
@@ -72,7 +82,7 @@ export function createJobsRoutes(state: CompatState): Route[] {
         }
         if (!job.report && job.bundle_path) {
           const bundle = await readJson<any>(job.bundle_path, {});
-          job.report = buildReportFromBundle(bundle, job.id);
+          job.report = await writeReportFile(state, job.id, buildReportFromBundle(bundle, job.id));
           job.status = 'completed';
           job.completed_at = new Date().toISOString();
           await writeJson(`${state.dataDir}/jobs/${job.id}.json`, job);
@@ -119,10 +129,11 @@ export function createJobsRoutes(state: CompatState): Route[] {
           res.end(JSON.stringify({ error: 'Missing report' }));
           return;
         }
+        const reportWithOk = await writeReportFile(state, jobId, report);
         const updated: JobRecord = {
           ...job,
           status: report.status || 'completed',
-          report,
+          report: reportWithOk,
           completed_at: new Date().toISOString(),
         };
         state.jobs.set(jobId, updated);

@@ -48,6 +48,7 @@ export function createSitesRoutes(state: CompatState): Route[] {
         const jobId = `job_${randomUUID()}`;
         const createdAt = new Date().toISOString();
         const report = buildReportFromBundle(body.bundle, jobId);
+        await writeJson(`${state.dataDir}/jobs/${jobId}/report.json`, report);
         const job = {
           id: jobId,
           site_id: siteId,

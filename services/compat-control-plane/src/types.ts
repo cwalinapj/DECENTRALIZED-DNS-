@@ -8,6 +8,7 @@ export type ReportChange = {
 
 export type ReportData = {
   job_id: string;
+  ok?: boolean;
   status: string;
   summary: string;
   changes?: ReportChange[];

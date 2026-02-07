@@ -1,0 +1,65 @@
+services:
+  db:
+    image: mariadb:10.11
+    environment:
+      MARIADB_ROOT_PASSWORD: rootpass
+      MARIADB_DATABASE: wordpress
+      MARIADB_USER: wordpress
+      MARIADB_PASSWORD: wordpress
+    volumes:
+      - db-data:/var/lib/mysql
+
+  wordpress:
+    image: wordpress:6.4.3-php8.2-apache
+    depends_on:
+      - db
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+      WORDPRESS_DB_NAME: wordpress
+    ports:
+      - "8088:80"
+    volumes:
+      - wp-data:/var/www/html
+      - ../../plugins/wp-compat-orchestrator/plugin:/var/www/html/wp-content/plugins/wp-compat-orchestrator:ro
+
+  wp-cli:
+    image: wordpress:cli
+    depends_on:
+      - db
+      - wordpress
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+      WORDPRESS_DB_NAME: wordpress
+    volumes:
+      - wp-data:/var/www/html
+      - ../../plugins/wp-compat-orchestrator/plugin:/var/www/html/wp-content/plugins/wp-compat-orchestrator:ro
+    entrypoint: wp
+
+  control-plane:
+    image: node:20-alpine
+    working_dir: /app
+    command: ["node", "--experimental-strip-types", "services/compat-control-plane/src/server.ts"]
+    environment:
+      PORT: "8790"
+      DATA_DIR: /var/lib/ddns-compat
+      ADMIN_API_KEY: compat-test
+      ALLOW_UNAUTHENTICATED: "0"
+    volumes:
+      - ../../:/app:ro
+      - ./data:/var/lib/ddns-compat
+    ports:
+      - "8790:8790"
+
+  ddns-compat-runner:
+    build:
+      context: ../../
+      dockerfile: workers/compat-runner/Dockerfile
+    image: ddns-compat-runner
+
+volumes:
+  db-data:
+  wp-data:
