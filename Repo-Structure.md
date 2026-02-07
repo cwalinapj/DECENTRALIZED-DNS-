@@ -11,12 +11,12 @@ PROSPECTUS.md
   07-routing-engine.md
   08-threat-model.md
   09-roadmap.md
-  diagrams.md
+  flow-diagram.md
 /specs
-  backend-interface.md
-  health-report-format.md
-  receipt-format.md
-  policy-state-machine.md
+  Backend-Adaptor-Interface
+  economic-settlement.md
+  health-report-format
+  spam-report-format.md
 /contracts
   README.md
   escrow/
@@ -24,7 +24,7 @@ PROSPECTUS.md
   policy/
   settlement/
   proofs/
-/adapters
+/adaptors
   README.md
   dns-icann/
   dns-upstream-quorum/
@@ -53,6 +53,6 @@ PROSPECTUS.md
   Why this layout
 	•	/docs = narrative “prospectus” (what + why)
 	•	/specs = exact formats + state machines (how)
-	•	/adapters = “we integrate existing networks” in a clean plug-in way
+	•	/adaptors = “we integrate existing networks” in a clean plug-in way
 	•	/watchdogs = the off-chain measurement layer that feeds your immutable on-chain policy
 	•	/contracts = your L2 logic (escrow, registry, policy, settlement, proofs)

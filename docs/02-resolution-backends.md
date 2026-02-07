@@ -131,7 +131,7 @@ Each backend is integrated as an **Adapter** that implements a standard interfac
 
 ### Further Repo Layouts
 ```txt
-/adapters
+/adaptors
   dns-icann/
   dns-upstream-quorum/
   ens/
@@ -142,8 +142,9 @@ Each backend is integrated as an **Adapter** that implements a standard interfac
   ipfs/
   filecoin/
   arweave/
+```
 
-### Further DISCUSION
+### Further DISCUSSION
 ```txt
 Backend Registry (On-Chain)
 
@@ -170,4 +171,4 @@ TollDNS is intended to support third-party gateways and adapters:
 See:
 	•	Watchdogs & fallback: docs/03-watchdogs-and-fallback.md
 	•	Tokenomics: docs/05-tokenomics.md
-
+```
