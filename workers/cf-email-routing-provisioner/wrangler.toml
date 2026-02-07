@@ -1,0 +1,10 @@
+name = "ddns-email-routing-provisioner"
+main = "src/worker.ts"
+compatibility_date = "2026-02-06"
+
+[vars]
+# Optional admin key for provisioning requests
+# ADMIN_API_KEY = "change-me"
+# CF_API_TOKEN = "token-with-dns-edit"
+# EMAIL_MX_TARGETS = "mx.ddns-email.net"
+# EMAIL_MX_PRIORITY = "10"
