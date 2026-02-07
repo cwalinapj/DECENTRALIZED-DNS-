@@ -462,20 +462,30 @@ function ddns_toll_comments_render_form_fields(): void
     $intent_id = ddns_toll_comments_current_intent_id();
     $nonce = wp_create_nonce('ddns_toll_intent_' . $intent_id);
     ?>
+    <input type="hidden" name="ddns_toll_wallet" id="ddns-toll-wallet" value="">
+    <input type="hidden" name="ddns_toll_tx_hash" id="ddns-toll-tx-hash" value="">
+    <input type="hidden" name="ddns_toll_intent_id" id="ddns-toll-intent" value="<?php echo esc_attr($intent_id); ?>">
+    <input type="hidden" name="ddns_toll_intent_nonce" value="<?php echo esc_attr($nonce); ?>">
+    <?php
+}
+add_action('comment_form_after_fields', 'ddns_toll_comments_render_form_fields');
+add_action('comment_form_logged_in_after', 'ddns_toll_comments_render_form_fields');
+
+function ddns_toll_comments_render_form_controls(): void
+{
+    if (!ddns_toll_comments_is_enabled()) {
+        return;
+    }
+    ?>
     <div class="ddns-toll-comments">
         <p><strong>Onchain comment toll</strong></p>
         <button type="button" class="button" id="ddns-toll-connect">Connect Wallet</button>
         <button type="button" class="button" id="ddns-toll-pay">Pay toll</button>
         <span id="ddns-toll-status" class="ddns-toll-status" aria-live="polite"></span>
-        <input type="hidden" name="ddns_toll_wallet" id="ddns-toll-wallet" value="">
-        <input type="hidden" name="ddns_toll_tx_hash" id="ddns-toll-tx-hash" value="">
-        <input type="hidden" name="ddns_toll_intent_id" id="ddns-toll-intent" value="<?php echo esc_attr($intent_id); ?>">
-        <input type="hidden" name="ddns_toll_intent_nonce" value="<?php echo esc_attr($nonce); ?>">
     </div>
     <?php
 }
-add_action('comment_form_after_fields', 'ddns_toll_comments_render_form_fields');
-add_action('comment_form_logged_in_after', 'ddns_toll_comments_render_form_fields');
+add_action('comment_form_after', 'ddns_toll_comments_render_form_controls');
 
 function ddns_toll_comments_wallet_in_list(string $wallet, string $list_type): bool
 {
