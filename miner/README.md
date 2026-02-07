@@ -2,24 +2,89 @@
 
 Repo home: https://github.com/cwalinapj/DECENTRALIZED-DNS-
 
-## Reference Miner Hardware (Phase 1) + Router Firmware (Phase 2)
+# Miner / Operator (Edge, Gateway, Cache, Anycast, Scrubbing)
 
-To bootstrap a real, distributed operator base, TollDNS will ship a **reference “miner firmware”** targeting affordable, widely available hardware:
+Repo home: https://github.com/cwalinapj/DECENTRALIZED-DNS-
 
-**Phase 1 (Reference Miner Hardware)**
-- **Raspberry Pi 5 (8GB)**
-- **NVMe HAT** + active cooling
-- **512GB NVMe** (starter size; scalable)
-- “**plug-and-play**” operator experience (flash, boot, register, serve)
+Miners (operators) provide distributed infrastructure:
+- EDGE-INGRESS (admission + caching)
+- GATEWAY (web3/content retrieval)
+- CACHE (RRsets/routes/content)
+- optional ANYCAST ingress
+- optional SCRUBBING capacity
 
-We plan to:
-- publish the miner firmware and build instructions (open distribution),
-- and optionally offer a **ready-to-run kit** (Pi 5 + case + NVMe HAT + fan + 512GB NVMe) so non-experts can deploy reliable edge/cache/gateway capacity quickly.
+Economic rule:
+- Miners must **stake native token** (time-locked, exit delay).
+- Miners are paid in **native token** based on proof-of-serving and performance.
 
-- ## Next Phase: Router Firmware (Open-Source Router Platforms)
+Related:
+- Tokenomics: `docs/05-tokenomics.md`
+- Resilience tokenomics: `docs/06-resilience-tokenomics.md`
+- Receipt format: `specs/receipt-format.md`
 
-After the Raspberry Pi reference miner, the next phase is to support **routers that already run open-source routing software** (e.g., OpenWrt-class platforms).
+---
 
+## Phase 1 (Beta): Miner Docker Stack (First Release)
+
+The first miner release will be a **Docker-based stack** so operators can participate immediately using:
+- VPS / dedicated servers
+- home labs / NUCs
+- existing Linux hosts
+
+Why Docker first:
+- fastest onboarding for early operators
+- rapid iteration and upgrades during beta
+- easier debugging, logging, rollback, and reproducibility
+- avoids “frozen firmware” too early
+
+The Docker miner stack is expected to include (role-dependent):
+- ingress proxy (DoH/DoT admission + forwarding)
+- caching service (RRsets / validated routes)
+- gateway services (optional: IPFS/Filecoin/Arweave retrieval)
+- operator agent (registration, key management, receipts)
+- metrics exporter (bucketed, privacy-preserving)
+
+---
+
+## Phase 2: Reference Miner Firmware (Raspberry Pi 5 + NVMe)
+
+After the Docker beta stabilizes, TollDNS will provide a **reference miner firmware image** designed for:
+- Raspberry Pi 5 (8GB)
+- NVMe HAT (M.2) + active cooling
+- 512GB NVMe (starter kit default)
+- “plug-and-play” boot experience (flash → boot → register → serve)
+
+(Kit option: Pi 5 + case + NVMe HAT + fan/heatsink + 512GB NVMe, pre-flashed or guided flash.)
+
+---
+
+## Phase 3: Router Firmware (Open-Source Router Platforms)
+
+Next, firmware/packages for **routers that already run open-source routing software** (OpenWrt-class devices):
+- DoH/DoT edge ingress
+- local DNS caching
+- routing policy enforcement
+- receipt signing where applicable
+
+Routers may be constrained, so default roles may focus on ingress + cache.
+
+---
+
+## Phase 4: Purpose-Built “ASIC Router/Home AP” Miner Appliances
+
+Eventually, support purpose-built edge/router appliances optimized for:
+- high-throughput ingress and handshake handling
+- fast policy enforcement and routing
+- large cache performance (NVMe/SSD)
+- sustained operation under Attack Mode conditions
+- power efficiency and predictable performance
+
+Even with specialized hardware, the network remains open to:
+- Docker miners,
+- Pi miners,
+- router firmware miners,
+- and standard server operators,
+with diversity rules preventing domination by any single class.
 ### Goals
 - reduce friction for participation (no extra box required)
 - enable “always-on” neighborhood edge coverage
