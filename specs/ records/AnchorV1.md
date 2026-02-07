@@ -45,9 +45,68 @@ AnchorV1 is intentionally small. The primary authoritative data remains `RouteSe
 
 **Total size:** 217 bytes
 
----
+
+
+payload = encode_anchor_without_sig(anchor)
+sig = ed25519_sign(owner_priv, payload)
+
 
 ## 4. Signature Rules
 
 ### 4.1 Signing payload
 The signing payload is the canonical bytes from `magic` through `owner_pub` inclusive (excluding `sig`).
+
+
+### 4.2 Verification
+Verification succeeds if:
+- `magic == "ANCH"`
+- `version == 1`
+- `ed25519_verify(owner_pub, payload, sig) == true`
+
+---
+
+## 5. Validity Rules (Client/Watchdog)
+
+An AnchorV1 is valid only if:
+- `exp` is in the future relative to verifier clock (allow small skew, e.g. ±120s)
+- `seq` is >= last accepted seq for this `name_id` (recommended strictly increasing policy)
+- `ns_id` and `name_id` match the expected namespace/name
+
+---
+
+## 6. Matching Anchor to RouteSet
+
+Given:
+- AnchorV1 with `routeset_hash = H`
+- A fetched `RouteSetV1` byte string
+
+Compute:
+H’ = BLAKE3_256( canonical_routeset_bytes_including_sig )
+
+Match succeeds if `H' == H`.
+
+If mismatch:
+- treat served RouteSet as **untrusted**
+- refetch from multiple peers and/or require chain confirmation
+- watchdogs should emit an incident report
+
+---
+
+## 7. Storage Policy
+
+**Default policy:** store only AnchorV1 on IPFS (or other redundancy storage).
+
+Storing full RouteSets on IPFS is permitted only in explicit “bootstrap mode” and MUST NOT be required for correctness.
+
+---
+
+## 8. Relationship to Chain Commitments
+
+Chain commitments SHOULD store at minimum:
+
+name_id -> (seq, exp, routeset_hash)
+
+Optionally, the chain MAY also store `anchor_hash = BLAKE3_256(anchor_bytes_including_sig)` if you want to commit to the anchor object itself.
+See `specs/chain/commitments.md`.
+
+
