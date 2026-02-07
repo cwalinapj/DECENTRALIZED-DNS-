@@ -1,3 +1,4 @@
-# Control Plane (Compat, Stub)
+# Control Plane (Compat)
 
-Placeholder for the compatibility control plane service.
+Compatibility control plane service that accepts site bundles, creates jobs,
+and stores reports for the WordPress integrations.
