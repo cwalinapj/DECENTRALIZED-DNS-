@@ -139,7 +139,11 @@ function ddns_accelerator_render_wizard_page(): void
                                 placeholder="cf_***"
                                 required
                             />
-                            <p class="description">Token must allow zone read, cache purge, and Workers routes.</p>
+                            <p class="description">
+                                Requires Zone → Zone → Read, Zone → DNS → Edit,
+                                and Account → Cloudflare Pages → Edit (scope to
+                                this domain + account). You can revoke anytime.
+                            </p>
                         </td>
                     </tr>
                 </table>
