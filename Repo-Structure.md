@@ -71,7 +71,7 @@ The following files/modules are needed to implement the behavior described in ea
 - `receipt-format.md` (proof-of-serving format)
 - `policy-state-machine.md` (state transition rules)
 
-### /adaptors/<adaptor-name>/ (e.g., dns-icann, dns-upstream-quorum)
+### /adaptors/{adaptor-name}/ (e.g., dns-icann, dns-upstream-quorum)
 - `README.md` (scope/capabilities, already present)
 - `implementation/` (namespace resolution + mapping logic)
 - `conformance/` (profile definitions + challenge sets)
@@ -102,7 +102,7 @@ The following files/modules are needed to implement the behavior described in ea
 - `docker-compose.yml` (phase-1 operator stack)
 - `src/ingress/proxy` (edge admission + caching)
 - `src/cache/rrsets` (validated response caching)
-- `src/gateway/<backend>` (IPFS/Filecoin/Arweave handlers)
+- `src/gateway/{backend}` (IPFS/Filecoin/Arweave handlers)
 - `src/operator/agent` (registration + key management)
 - `src/receipts/signer` (batch receipt signing)
 - `config/roles` (edge/gateway/cache role profiles)
