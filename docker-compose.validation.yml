@@ -22,7 +22,7 @@ services:
       - "8080:80"
     volumes:
       - wp-data:/var/www/html
-      - /Users/root1/dev/web3-repos/web3-wp-plugins/ddns-compat-orchestrator:/var/www/html/wp-content/plugins/ddns-compat-orchestrator
+      - ./plugins/wp-compat-orchestrator/plugin:/var/www/html/wp-content/plugins/ddns-compat-orchestrator
 
   wp-cli:
     image: wordpress:cli-2
@@ -40,7 +40,7 @@ services:
       WP_CLI_ALLOW_ROOT: "1"
     volumes:
       - wp-data:/var/www/html
-      - /Users/root1/dev/web3-repos/web3-wp-plugins/ddns-compat-orchestrator:/var/www/html/wp-content/plugins/ddns-compat-orchestrator
+      - ./plugins/wp-compat-orchestrator/plugin:/var/www/html/wp-content/plugins/ddns-compat-orchestrator
 
   control-plane:
     build:
