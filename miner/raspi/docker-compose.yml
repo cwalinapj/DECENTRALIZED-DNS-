@@ -72,7 +72,9 @@ services:
       interval: 60s
       timeout: 5s
       retries: 3
-
+volumes:
+  - /var/run/docker.sock:/var/run/docker.sock
+  - /mnt/nvme/ddns/state:/state
   miner-gui:
     build:
       context: ./gui
