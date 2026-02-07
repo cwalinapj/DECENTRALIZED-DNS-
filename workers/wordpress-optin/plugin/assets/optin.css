@@ -1,0 +1,32 @@
+.ddns-optin-form {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 420px;
+}
+
+.ddns-optin-label {
+  font-weight: 600;
+}
+
+.ddns-optin-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.ddns-optin-input {
+  flex: 1 1 220px;
+  padding: 0.5rem;
+}
+
+.ddns-optin-button {
+  border: none;
+  background: #1f4b99;
+  color: #fff;
+  padding: 0.5rem 1rem;
+}
+
+.ddns-optin-message {
+  color: #1f4b99;
+  font-weight: 600;
+}
