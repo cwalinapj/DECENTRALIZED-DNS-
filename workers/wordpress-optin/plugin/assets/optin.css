@@ -30,3 +30,30 @@
   color: #1f4b99;
   font-weight: 600;
 }
+
+.ddns-optin-message.ddns-good {
+  color: #1b7a3a;
+}
+
+.ddns-optin-message.ddns-warn {
+  color: #8a6d1d;
+}
+
+.ddns-optin-message.ddns-bad {
+  color: #b42318;
+}
+
+.ddns-optin-cats {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.ddns-optin-cats-title {
+  font-weight: 600;
+}
+
+.ddns-optin-cat {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
