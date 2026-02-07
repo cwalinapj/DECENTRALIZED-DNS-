@@ -34,38 +34,43 @@ TollDNS aims to reduce reliance on any single provider by funding **distributed,
 
 ---
 
-## Reference Miner Hardware (Phase 1) + Router Firmware (Phase 2) + ASIC Edge Routers (Phase 3)
+---
 
-To bootstrap a real, distributed operator base, TollDNS will ship operator software/firmware that scales from consumer hardware to purpose-built edge devices.
+## Miner Onboarding Path: Docker (Beta) → Pi Firmware → Router Firmware → ASIC Edge Routers
 
-### Phase 1 — Reference Miner Hardware (Raspberry Pi)
+To bootstrap a real, distributed operator base, TollDNS will roll out miners in stages—starting with the easiest possible deployment.
+
+### Phase 1 (Beta) — Miner Docker Stack (Fastest to Ship)
+The first miner release will be a **Docker-based stack** that operators can run on existing hardware (VPS, home server, NUC, etc.). This enables:
+- rapid iteration during beta,
+- easy upgrades/rollback,
+- faster onboarding for developers and early operators,
+- and real-world performance testing before firmware images are frozen.
+
+### Phase 2 — Reference Miner Firmware (Raspberry Pi + NVMe)
+After the Docker beta stabilizes, TollDNS will ship a **reference miner firmware image** targeting affordable, widely available hardware:
 - **Raspberry Pi 5 (8GB)**
 - **NVMe HAT** + active cooling
 - **512GB NVMe** (starter size; scalable)
 - “**plug-and-play**” operator experience (flash, boot, register, serve)
 
 We plan to:
-- publish the miner firmware and build instructions (open distribution),
-- and optionally offer a **ready-to-run kit** (Pi 5 + case + NVMe HAT + fan + 512GB NVMe) so non-experts can deploy reliable edge/cache/gateway capacity quickly.
+- publish the firmware and build instructions (open distribution),
+- and optionally offer a **ready-to-run kit** (Pi 5 + case + NVMe HAT + fan + 512GB NVMe).
 
-### Phase 2 — Router Firmware (Open-Source Router Platforms)
-Next, we plan to develop firmware/packages for **routers that already run open-source routing software** (e.g., OpenWrt-class devices). The goal is to make it easy for home and small-office networks to contribute:
+### Phase 3 — Router Firmware (Open-Source Router Platforms)
+Next, we plan to develop firmware/packages for **routers that already run open-source routing software** (e.g., OpenWrt-class devices), enabling:
 - **edge ingress (DoH/DoT)**,
 - **local caching**, and
-- **policy-compliant routing** where appropriate,
-
+- **policy-compliant routing**,
 without requiring separate dedicated hardware.
 
-### Phase 3 — Purpose-Built “ASIC Router” Miners (Edge Appliances)
-Longer-term, the network can support miners that are **purpose-built edge/router appliances** designed specifically for TollDNS workloads (ingress, routing, caching, and high-throughput policy enforcement). These devices would optimize:
+### Phase 4 — Purpose-Built “ASIC Router” Miner Appliances (Edge Devices)
+Longer-term, the network can support miners that are **purpose-built edge/router appliances** designed specifically for TollDNS workloads (ingress, routing, caching, and high-throughput policy enforcement), optimizing:
 - packet processing and handshake handling,
 - sustained throughput under load,
 - power efficiency,
 - and predictable edge performance.
-
-This path also aligns with a potential future DePIN ISP/fiber expansion, where specialized edge hardware can be deployed at scale.
-
----
 
 ## Docs (Prospectus)
 
