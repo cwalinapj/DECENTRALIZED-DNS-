@@ -12,6 +12,8 @@ PROSPECTUS.md
   08-threat-model.md
   09-roadmap.md
   diagrams.md
+  bootstrap/
+  ops/
 /specs
   backend-interface.md
   health-report-format.md
@@ -50,6 +52,21 @@ PROSPECTUS.md
 /miner
   README.md
   raspi/ (Raspberry Pi reference stack: NVMe + Docker, integrity checks, GUI worker)
+/plugins
+  wp-compat-orchestrator/
+  wp-ai-admin/
+/services
+  control-plane/
+/workers
+  cf-optin-edge/
+  compat-runner/
+  optin-server/
+  wordpress-optin/
+  cf-site-accelerator/
+  repair-runner/
+  dns-jobs/
+/scripts
+  validate/
 
   Why this layout
  • /docs = narrative “prospectus” (what + why)
