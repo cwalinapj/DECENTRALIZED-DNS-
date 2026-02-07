@@ -1,0 +1,11 @@
+mode: "normal"
+peer: "edge-node:5353"
+
+evm:
+  rpc_url: "${EVM_RPC_URL}"
+  chain_id: "${EVM_CHAIN_ID}"
+  commitments_contract: "${COMMITMENTS_CONTRACT}"
+
+policy:
+  require_chain_match: true
+  max_clock_skew_sec: 120
