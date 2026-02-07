@@ -38,6 +38,7 @@ export type WalletChallenge = {
   address: string;
   message: string;
   issued_at: string;
+  expires_at: string;
 };
 
 export type WalletSession = {
@@ -45,6 +46,7 @@ export type WalletSession = {
   chain: string;
   address: string;
   issued_at: string;
+  expires_at: string;
 };
 
 export type PaymentRecord = {
@@ -59,6 +61,7 @@ export type PaymentRecord = {
 export type CompatState = {
   dataDir: string;
   adminKey: string;
+  allowUnauthenticated: boolean;
   sites: Map<string, SiteRecord>;
   jobs: Map<string, JobRecord>;
   walletChallenges: Map<string, WalletChallenge>;

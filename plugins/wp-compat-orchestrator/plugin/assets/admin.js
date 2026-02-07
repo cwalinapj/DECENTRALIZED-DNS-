@@ -132,6 +132,7 @@
     updateWalletStatus('EVM', address);
   };
 
+  // Chunk conversion to avoid call stack limits for large byte arrays.
   const toBase64 = (bytes) => {
     let binary = '';
     const chunkSize = 0x8000;

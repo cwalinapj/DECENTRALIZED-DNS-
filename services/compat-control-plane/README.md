@@ -18,6 +18,7 @@ creates jobs, and exposes reports for the wp-admin plugin.
 - `PORT=8790`
 - `DATA_DIR=/var/lib/ddns-compat`
 - `ADMIN_API_KEY=change-me`
+- `ALLOW_UNAUTHENTICATED=0`
 - `PAYMENT_ADDRESS=0x...`
 - `PAYMENT_ASSET=USDC`
 - `PAYMENT_AMOUNT=5.00`

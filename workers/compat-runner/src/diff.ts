@@ -9,7 +9,7 @@ export function diffSnapshots(
     if (!upgradedMap.has(base.page)) {
       changes.push({ page: base.page, status: 'missing', notes: 'No upgrade snapshot.' });
     } else {
-      changes.push({ page: base.page, status: 'ok', notes: 'No pixel diff detected.' });
+      changes.push({ page: base.page, status: 'stub', notes: 'Snapshots captured (diff stub).' });
     }
   }
 

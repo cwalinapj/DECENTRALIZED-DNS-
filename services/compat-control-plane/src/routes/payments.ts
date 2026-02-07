@@ -2,21 +2,26 @@ import { randomUUID } from 'node:crypto';
 import type { CompatState, Route, WalletChallenge, WalletSession } from '../types.js';
 import { requireAdmin } from '../auth/index.js';
 
+const CHALLENGE_TTL_MS = 5 * 60 * 1000;
+const SESSION_TTL_MS = 60 * 60 * 1000;
+
 function buildChallenge(chain: string, address: string, siteId: string): WalletChallenge {
-  const issuedAt = new Date().toISOString();
+  const issuedAt = new Date();
+  const expiresAt = new Date(issuedAt.getTime() + CHALLENGE_TTL_MS);
   const message = [
     'DDNS Compat Login',
     `Address: ${address}`,
     `Chain: ${chain}`,
     `Site: ${siteId || 'unknown'}`,
     `Nonce: ${randomUUID()}`,
-    `Issued At: ${issuedAt}`,
+    `Issued At: ${issuedAt.toISOString()}`,
   ].join('\n');
   return {
     chain,
     address,
     message,
-    issued_at: issuedAt,
+    issued_at: issuedAt.toISOString(),
+    expires_at: expiresAt.toISOString(),
   };
 }
 
@@ -65,13 +70,23 @@ export function createPaymentsRoutes(state: CompatState): Route[] {
           res.end(JSON.stringify({ error: 'Challenge mismatch' }));
           return;
         }
+        if (new Date(challenge.expires_at).getTime() < Date.now()) {
+          state.walletChallenges.delete(key);
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Challenge expired' }));
+          return;
+        }
         const sessionToken = `sess_${randomUUID()}`;
+        const issuedAt = new Date();
+        const expiresAt = new Date(issuedAt.getTime() + SESSION_TTL_MS);
         const session: WalletSession = {
           token: sessionToken,
           chain,
           address,
-          issued_at: new Date().toISOString(),
+          issued_at: issuedAt.toISOString(),
+          expires_at: expiresAt.toISOString(),
         };
+        state.walletChallenges.delete(key);
         state.walletSessions.set(sessionToken, session);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ session_token: sessionToken }));
@@ -85,9 +100,16 @@ export function createPaymentsRoutes(state: CompatState): Route[] {
           return;
         }
         const sessionToken = body?.session_token;
-        if (!sessionToken || !state.walletSessions.has(sessionToken)) {
+        const session = sessionToken ? state.walletSessions.get(sessionToken) : undefined;
+        if (!session) {
           res.writeHead(401, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: 'Invalid session' }));
+          return;
+        }
+        if (new Date(session.expires_at).getTime() < Date.now()) {
+          state.walletSessions.delete(sessionToken);
+          res.writeHead(401, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Session expired' }));
           return;
         }
         const asset = body?.asset || state.paymentAsset;

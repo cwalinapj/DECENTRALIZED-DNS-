@@ -1,4 +1,5 @@
 import { createServer } from 'node:http';
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import { URL } from 'node:url';
 import { createJobsRoutes } from './routes/jobs.js';
 import { createSitesRoutes } from './routes/sites.js';
@@ -8,6 +9,7 @@ import type { CompatState, Route } from './types.js';
 
 const dataDir = process.env.DATA_DIR || './data';
 const adminKey = process.env.ADMIN_API_KEY || '';
+const allowUnauthenticated = process.env.ALLOW_UNAUTHENTICATED === '1';
 const paymentAddress = process.env.PAYMENT_ADDRESS || '0x0000000000000000000000000000000000000000';
 const paymentAsset = process.env.PAYMENT_ASSET || 'USDC';
 const paymentAmount = process.env.PAYMENT_AMOUNT || '5.00';
@@ -16,6 +18,7 @@ const maxBodyBytes = Number(process.env.MAX_BODY_BYTES || 2_000_000);
 const state: CompatState = {
   dataDir,
   adminKey,
+  allowUnauthenticated,
   paymentAddress,
   paymentAsset,
   paymentAmount,
@@ -33,12 +36,12 @@ const routes: Route[] = [
   ...createMinerProofRoutes(state),
 ];
 
-function sendJson(res: any, status: number, payload: unknown) {
+function sendJson(res: ServerResponse, status: number, payload: unknown) {
   res.writeHead(status, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(payload));
 }
 
-async function readBody(req: any) {
+async function readBody(req: IncomingMessage) {
   const chunks: Buffer[] = [];
   let size = 0;
   for await (const chunk of req) {
@@ -99,6 +102,14 @@ const server = createServer(async (req, res) => {
 
 const port = Number(process.env.PORT || 8790);
 server.listen(port, () => {
+  if (!adminKey && !allowUnauthenticated) {
+    // eslint-disable-next-line no-console
+    console.warn('ADMIN_API_KEY not set. Requests will be rejected.');
+  }
+  if (!adminKey && allowUnauthenticated) {
+    // eslint-disable-next-line no-console
+    console.warn('ALLOW_UNAUTHENTICATED enabled; control plane is open.');
+  }
   // eslint-disable-next-line no-console
   console.log(`Compat control plane listening on :${port}`);
 });
