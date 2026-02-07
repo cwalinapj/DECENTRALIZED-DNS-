@@ -29,6 +29,41 @@ TollDNS aims to reduce reliance on any single provider by funding **distributed,
 - **Watchdogs + automatic fallback** to centralized services (e.g., Cloudflare/Google) when a backend is unhealthy
 - **Composable backends**: integrate existing networks instead of reinventing them
 - - **Index Unit** is the usage/toll currency; **native token** is staked for business/dev/miner roles and used for incentives, governance, reserves, grants, and burns
+ 
+---
+
+---
+
+## Reference Miner Hardware (Phase 1) + Router Firmware (Phase 2) + ASIC Edge Routers (Phase 3)
+
+To bootstrap a real, distributed operator base, TollDNS will ship operator software/firmware that scales from consumer hardware to purpose-built edge devices.
+
+### Phase 1 — Reference Miner Hardware (Raspberry Pi)
+- **Raspberry Pi 5 (8GB)**
+- **NVMe HAT** + active cooling
+- **512GB NVMe** (starter size; scalable)
+- “**plug-and-play**” operator experience (flash, boot, register, serve)
+
+We plan to:
+- publish the miner firmware and build instructions (open distribution),
+- and optionally offer a **ready-to-run kit** (Pi 5 + case + NVMe HAT + fan + 512GB NVMe) so non-experts can deploy reliable edge/cache/gateway capacity quickly.
+
+### Phase 2 — Router Firmware (Open-Source Router Platforms)
+Next, we plan to develop firmware/packages for **routers that already run open-source routing software** (e.g., OpenWrt-class devices). The goal is to make it easy for home and small-office networks to contribute:
+- **edge ingress (DoH/DoT)**,
+- **local caching**, and
+- **policy-compliant routing** where appropriate,
+
+without requiring separate dedicated hardware.
+
+### Phase 3 — Purpose-Built “ASIC Router” Miners (Edge Appliances)
+Longer-term, the network can support miners that are **purpose-built edge/router appliances** designed specifically for TollDNS workloads (ingress, routing, caching, and high-throughput policy enforcement). These devices would optimize:
+- packet processing and handshake handling,
+- sustained throughput under load,
+- power efficiency,
+- and predictable edge performance.
+
+This path also aligns with a potential future DePIN ISP/fiber expansion, where specialized edge hardware can be deployed at scale.
 
 ---
 
