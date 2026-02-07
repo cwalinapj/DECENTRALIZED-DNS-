@@ -69,7 +69,7 @@
     const categories = Array.isArray(cfg.categories) ? cfg.categories : [];
 
     if (!endpoint || !siteId) {
-      setMsg(msg, "This form is temporarily unavailable. Please try again later.", "ddns-bad");
+      setMsg(msg, "Form configuration incomplete. Please contact the site administrator.", "ddns-bad");
       return;
     }
 
@@ -89,7 +89,7 @@
 
       const nonce = randomNonce();
       if (!nonce) {
-        setMsg(msg, "This form is temporarily unavailable. Please try again later.", "ddns-bad");
+        setMsg(msg, "Your browser does not support required security features.", "ddns-bad");
         return;
       }
 
@@ -98,7 +98,7 @@
         email,
         categories: selected.length ? selected : categories,
         ts: Math.floor(Date.now() / 1000),
-        nonce: nonce + "-" + Date.now(),
+        nonce,
         page_url: location.href
       };
 
