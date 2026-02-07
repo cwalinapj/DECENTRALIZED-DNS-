@@ -39,7 +39,10 @@ function ddns_optin_enqueue_assets(): void
     if (!is_array($cats)) {
         $cats = array('SITE_AVAILABILITY');
     }
-    $cats = array_map('sanitize_text_field', $cats);
+    $cats = array_filter($cats, 'is_scalar');
+    $cats = array_map(static function ($cat) {
+        return sanitize_text_field((string) $cat);
+    }, $cats);
 
     wp_localize_script('ddns-optin', 'DDNS_OPTIN_CFG', array(
         'endpoint' => $endpoint,
