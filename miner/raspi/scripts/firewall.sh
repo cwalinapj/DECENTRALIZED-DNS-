@@ -1,19 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Firewall rules for DECENTRALIZED-DNS RasPi
-# Uses UFW (Debian/Raspberry Pi OS friendly).
-#
+# Firewall rules for DECENTRALIZED-DNS RasPi (UFW)
 # Defaults:
 # - deny incoming
 # - allow outgoing
 # - allow SSH 22/tcp
-# - allow 5353/udp and 5353/tcp from LAN CIDR only
-#
-# Override LAN CIDR:
-#   export DDNS_LAN_CIDR="192.168.1.0/24"
+# - allow wire port from LAN only (udp + tcp)
+# - allow GUI port from LAN only (tcp)
 
 WIRE_PORT="${DDNS_WIRE_PORT:-5353}"
+GUI_PORT="${DDNS_GUI_PORT:-8080}"
 LAN_CIDR="${DDNS_LAN_CIDR:-}"
 
 if [[ $EUID -ne 0 ]]; then
@@ -27,9 +24,8 @@ if ! command -v ufw >/dev/null 2>&1; then
   apt-get install -y ufw
 fi
 
-# Try to auto-detect LAN CIDR if not set
+# Auto-detect LAN CIDR if not set
 if [[ -z "${LAN_CIDR}" ]]; then
-  # Get primary IPv4 on wlan0/eth0 or default route interface
   IFACE="$(ip route | awk '/default/ {print $5; exit}')"
   IP4="$(ip -4 addr show "${IFACE}" | awk '/inet / {print $2; exit}' || true)"  # e.g., 192.168.1.10/24
   if [[ -n "${IP4}" ]]; then
@@ -48,27 +44,19 @@ if [[ -z "${LAN_CIDR}" ]]; then
 fi
 
 echo "Using LAN CIDR: ${LAN_CIDR}"
-echo "Using wire port: ${WIRE_PORT}"
+echo "Wire port: ${WIRE_PORT}"
+echo "GUI port: ${GUI_PORT}"
 
-# Base policy
 ufw --force reset
 ufw default deny incoming
 ufw default allow outgoing
 
-# Allow SSH
 ufw allow 22/tcp
 
-# Allow wire protocol from LAN only
 ufw allow from "${LAN_CIDR}" to any port "${WIRE_PORT}" proto udp
 ufw allow from "${LAN_CIDR}" to any port "${WIRE_PORT}" proto tcp
-
-GUI_PORT="${DDNS_GUI_PORT:-8080}"
-
-# Allow GUI from LAN only
 ufw allow from "${LAN_CIDR}" to any port "${GUI_PORT}" proto tcp
 
-# Enable firewall
 ufw --force enable
-
 echo "Firewall enabled."
 ufw status verbose
