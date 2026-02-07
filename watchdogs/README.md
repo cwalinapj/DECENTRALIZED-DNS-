@@ -2,7 +2,9 @@
 
 Repo home: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 
-The watchdog system continuously measures backend health and correctness and drives the immutable policy state machine that enables **automatic fallback**.
+The watchdog system continuously measures backend health and correctness
+and drives the immutable policy state machine that enables **automatic
+fallback**.
 
 Watchdogs produce:
 
@@ -22,7 +24,10 @@ Related:
 
 - `verifier-node/` -- a watchdog verifier implementation (signs reports)
 - `regional-probers/` -- probes from multiple regions/ASNs
-- `oracle-attesters/` -- optional attesters for Index Unit pricing inputs and other signals
-- `incident-detector/` -- aggregates multi-backend degradation signals to recommend Attack Mode
+- `oracle-attesters/` -- optional attesters for Index Unit pricing inputs
+  and other signals
+- `incident-detector/` -- aggregates multi-backend degradation signals to
+  recommend Attack Mode
 
-The chain remains the source of truth for policy state; watchdogs supply signed inputs.
+The chain remains the source of truth for policy state; watchdogs supply
+signed inputs.

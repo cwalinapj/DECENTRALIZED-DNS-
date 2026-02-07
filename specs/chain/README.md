@@ -1,6 +1,7 @@
 # Chain Commitments (Index)
 
-This directory contains chain-specific specifications for storing the minimal DECENTRALIZED-DNS commitments:
+This directory contains chain-specific specifications for storing the
+minimal DECENTRALIZED-DNS commitments:
 
 - `name_id -> (seq, exp, routeset_hash)`
 - optional delegation: `name_id -> (g_seq, g_exp, gateway_routes_hash)`

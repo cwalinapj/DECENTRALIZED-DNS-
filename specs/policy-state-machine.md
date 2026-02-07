@@ -2,7 +2,9 @@
 
 Repo home: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 
-This spec defines the **immutable policy state machine** that consumes verifier **Health Reports** and produces authoritative backend states and routing policy updates.
+This spec defines the **immutable policy state machine** that consumes
+verifier **Health Reports** and produces authoritative backend states and
+routing policy updates.
 
 The policy state machine is the core mechanism that enables:
 
@@ -157,7 +159,8 @@ If `conformance_required = true`:
 - `CONF_OK` if quorum PASS
 - `CONF_FAIL` if quorum FAIL
 
-If conformance is absent or `UNKNOWN`, policy treats it according to backend parameters (typically "no positive signal").
+If conformance is absent or `UNKNOWN`, policy treats it according to
+backend parameters (typically "no positive signal").
 
 ### 8.3 Hard Failure Conditions
 
@@ -218,7 +221,7 @@ Transition if:
 
 - sustained `PERF_OK` (and `CONF_OK` if required)
 - for `consecutive_windows_to_restore_healthy` windows,
-- AND ramp schedule has completed successfully (see §10.3).
+- and ramp schedule has completed successfully (see §10.3).
 
 ### 9.5 RECOVERING → DEGRADED or DISABLED
 
@@ -293,7 +296,8 @@ Attack Mode entry/exit MUST be auditable.
 Governance MAY define explicit override operations:
 
 - emergency `DISABLE_BACKEND(backend_id)`
-- emergency `ENABLE_BACKEND(backend_id)` (still subject to recovery/ramp rules unless explicitly overridden)
+- emergency `ENABLE_BACKEND(backend_id)` (still subject to recovery/ramp
+  rules unless explicitly overridden)
 - update policy parameters for future windows (timelocked)
 
 Overrides MUST:

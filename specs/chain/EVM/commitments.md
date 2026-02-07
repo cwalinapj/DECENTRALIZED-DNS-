@@ -3,7 +3,8 @@
 **Status:** Draft  
 **Scope:** Ethereum / EVM chains (Solidity-compatible)
 
-This document specifies how DECENTRALIZED-DNS commitments are stored and updated on EVM chains.
+This document specifies how DECENTRALIZED-DNS commitments are stored and
+updated on EVM chains.
 
 ---
 

@@ -1,7 +1,8 @@
 # Chain Commitments (Minimal)
 
 **Status:** Draft  
-**Purpose:** Define the minimal on-chain commitment required to secure DECENTRALIZED-DNS updates while keeping chain storage and fees low.
+**Purpose:** Define the minimal on-chain commitment required to secure
+DECENTRALIZED-DNS updates while keeping chain storage and fees low.
 
 The chain stores only:
 

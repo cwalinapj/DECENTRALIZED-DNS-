@@ -2,7 +2,9 @@
 
 **Status:** Draft  
 **Version:** 1  
-**Purpose:** Define canonical name normalization and `name_id` derivation used across all modules (resolver, registry, watchdogs, adaptors, clients).
+**Purpose:** Define canonical name normalization and `name_id` derivation
+used across all modules (resolver, registry, watchdogs, adaptors,
+clients).
 
 All components MUST implement these rules identically.
 
@@ -40,7 +42,8 @@ After punycode + lowercase:
 - labels SHOULD match: `[a-z0-9-]{1,63}`
 - names SHOULD have total length <= 253 characters
 
-If your system supports underscore labels (e.g., `_service._tcp`), document that exception here.
+If your system supports underscore labels (e.g., `_service._tcp`),
+document that exception here.
 
 ---
 

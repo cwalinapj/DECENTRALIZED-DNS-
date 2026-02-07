@@ -1,7 +1,8 @@
 # Chain Commitments
 
 **Status:** Draft  
-**Purpose:** Define the minimal on-chain commitment required to secure DECENTRALIZED-DNS updates while keeping chain storage and gas/fees low.
+**Purpose:** Define the minimal on-chain commitment required to secure
+DECENTRALIZED-DNS updates while keeping chain storage and gas/fees low.
 
 This document includes a chain-agnostic model and an **EVM implementation profile**.
 
@@ -43,7 +44,8 @@ For each `name_id`, optionally store:
 
 - `g_seq` (u64)
 - `g_exp` (u64)
-- `gateway_routes_hash` (bytes32): commitment to `GatewayRoutesV1` bytes including sig
+- `gateway_routes_hash` (bytes32): commitment to `GatewayRoutesV1`
+  bytes including sig
 
 **Extended mapping:**
 name_id -> (seq, exp, routeset_hash, g_seq?, g_exp?, gateway_routes_hash?)
@@ -58,7 +60,8 @@ A valid update MUST satisfy:
 
 - `new_seq > old_seq` (recommended strict)
 - `new_exp > now`
-- authorization per the chain's ownership model (account-owned or pubkey-owned)
+- authorization per the chain's ownership model (account-owned or
+  pubkey-owned)
 
 Delegation update MUST satisfy:
 
@@ -69,13 +72,15 @@ Delegation update MUST satisfy:
 
 ## 5. EVM Profile (Solidity-Compatible)
 
-This section defines recommended storage types, function shapes, and events for Ethereum/EVM chains.
+This section defines recommended storage types, function shapes, and
+events for Ethereum/EVM chains.
 
 ## 5.1 Storage Layout
 
 Use `bytes32` for `name_id` and `routeset_hash`.
 
-Solidity does not have native `u64` in storage packing the same way as Rust, but `uint64` is supported.
+Solidity does not have native `u64` in storage packing the same way as
+Rust, but `uint64` is supported.
 
 Recommended struct:
 

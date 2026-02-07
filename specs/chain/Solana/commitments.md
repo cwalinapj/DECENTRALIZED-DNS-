@@ -1,10 +1,12 @@
 # 6. Solana / SVM Profile (Anchor-Compatible)
 
-This section defines a recommended account model and instruction set for storing commitments on Solana/SVM chains using **Anchor**.
+This section defines a recommended account model and instruction set for
+storing commitments on Solana/SVM chains using **Anchor**.
 
 ## 6.1 Storage Model
 
-On Solana, commitments are stored in accounts. Each `name_id` maps to a PDA (program-derived address) that holds the latest commitment.
+On Solana, commitments are stored in accounts. Each `name_id` maps to a
+PDA (program-derived address) that holds the latest commitment.
 
 ### 6.1.1 PDA Derivation
 
@@ -14,7 +16,8 @@ On Solana, commitments are stored in accounts. Each `name_id` maps to a PDA (pro
   - `name_id` (32 bytes)
 
 PDA:
-commitment_pda = PDA( seeds=[ "ddns_commitment", LE32(ns_id), name_id ], program_id )
+commitment_pda = PDA( seeds=[ "ddns_commitment", LE32(ns_id),
+  name_id ], program_id )
 
 ### 6.1.2 Commitment Account Layout
 
@@ -40,7 +43,8 @@ Optional delegation fields (either inline or in a separate PDA; see §6.4):
 - `owner` stored in the commitment account (a Solana Pubkey).
 - Updates require `owner` to sign the transaction.
 
-This avoids any on-chain Ed25519 verification complexity (Solana already uses Ed25519 signatures for transaction auth).
+This avoids any on-chain Ed25519 verification complexity (Solana already
+uses Ed25519 signatures for transaction auth).
 
 ## 6.3 Instructions (Recommended)
 

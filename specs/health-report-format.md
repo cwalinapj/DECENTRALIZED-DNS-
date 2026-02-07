@@ -2,7 +2,11 @@
 
 Repo home: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 
-This spec defines the **Health Report** message submitted by verifier/watchdog nodes to the TollDNS policy layer. Health reports drive the immutable circuit-breaker state machine that sets backend states (`HEALTHY`, `DEGRADED`, `DISABLED`, `RECOVERING`) and updates routing policy.
+This spec defines the **Health Report** message submitted by
+verifier/watchdog nodes to the TollDNS policy layer. Health reports drive
+the immutable circuit-breaker state machine that sets backend states
+(`HEALTHY`, `DEGRADED`, `DISABLED`, `RECOVERING`) and updates routing
+policy.
 
 This is a **normative** specification unless stated otherwise.
 
@@ -56,8 +60,10 @@ A health report is an object with these top-level fields:
 
 ### 3.1 `window_id` definition
 
-`window_id` MUST correspond to a fixed window duration defined by governance (e.g., 60s, 300s).  
-Verifiers MUST report using the canonical window boundaries to enable aggregation.
+`window_id` MUST correspond to a fixed window duration defined by
+governance (e.g., 60s, 300s).
+Verifiers MUST report using the canonical window boundaries to enable
+aggregation.
 
 ---
 
@@ -99,8 +105,11 @@ Example bucket strings:
 ### 4.1 Counting rules
 
 - `success_count + timeout_count + error_count` MUST be `<= probe_count`
-- `NXDOMAIN` and `NODATA` MAY be represented in `error_class_counts` for visibility, but do not necessarily indicate backend failure (policy decides).
-- `INVALID_SIG` and `MALFORMED` SHOULD be treated as higher severity signals.
+- `NXDOMAIN` and `NODATA` MAY be represented in `error_class_counts`
+  for visibility, but do not necessarily indicate backend failure (policy
+  decides).
+- `INVALID_SIG` and `MALFORMED` SHOULD be treated as higher severity
+  signals.
 
 ---
 
@@ -119,6 +128,7 @@ If included, `conformance` MUST include:
 - `fail_count` (integer, OPTIONAL)
 - `pass_count` (integer, OPTIONAL)
 - `conformance_reason_bucket` (string, OPTIONAL)
+  Reason for conformance result.
 
 Example conformance reason buckets:
 
@@ -177,7 +187,8 @@ A policy contract (or policy enforcement service) MUST verify:
 1) `verifier_id` is a member of `verifier_set_id` for the relevant epoch/window.
 2) signature is valid for the canonical serialization.
 3) `window_id` matches the expected window boundaries.
-4) `region_id` is valid and matches verifier configuration (or is acceptable via policy).
+4) `region_id` is valid and matches verifier configuration (or is
+   acceptable via policy).
 5) numeric fields are within bounds (sanity checks).
 
 Reports failing verification MUST be ignored.

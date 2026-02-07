@@ -2,7 +2,9 @@
 
 Repo home: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 
-This spec defines the **Proof-of-Serving Receipt** produced by miners/operators (edges, gateways, caches, resolvers where applicable). Receipts are used for:
+This spec defines the **Proof-of-Serving Receipt** produced by
+miners/operators (edges, gateways, caches, resolvers where applicable).
+Receipts are used for:
 
 - **reward accounting** (native token payouts),
 - **auditability** (who served what class of work under which policy),
@@ -39,10 +41,12 @@ Receipts MUST:
 
 ## 2. Terminology
 
-- **Operator**: miner providing EDGE-INGRESS, GATEWAY, CACHE, ANYCAST, SCRUBBING, etc.
+- **Operator**: miner providing EDGE-INGRESS, GATEWAY, CACHE, ANYCAST,
+  SCRUBBING, etc.
 - **Resolver**: entity coordinating query handling and settlement.
 - **Receipt**: signed statement from operator about service provided.
-- **Request Hash**: hash of normalized request fields (no raw name unless policy allows).
+- **Request Hash**: hash of normalized request fields (no raw name
+  unless policy allows).
 - **Response Hash**: hash of normalized response summary.
 
 ---
@@ -74,9 +78,11 @@ A receipt MUST include:
 - `receipt_version` (string, REQUIRED)
 - `receipt_type` (enum, REQUIRED): `PER_REQUEST` | `BATCH`
 - `operator_id` (string, REQUIRED)
-- `operator_role` (enum, REQUIRED): `EDGE_INGRESS` | `GATEWAY` | `CACHE` | `CORE_RESOLVER` | `ANYCAST` | `SCRUBBING`
-- `backend_id` (string, REQUIRED)  
-  (The backend/adaptor context being served; for pure edge ingress this may be `edge-ingress`.)
+- `operator_role` (enum, REQUIRED): `EDGE_INGRESS` | `GATEWAY` | `CACHE` |
+  `CORE_RESOLVER` | `ANYCAST` | `SCRUBBING`
+- `backend_id` (string, REQUIRED)
+  (The backend/adaptor context being served; for pure edge ingress
+  this may be `edge-ingress`.)
 - `policy_version` (string/int, REQUIRED)
 - `window_id` (string/int, REQUIRED)
 - `timestamp_ms` (int, REQUIRED)
@@ -121,7 +127,8 @@ Buckets MUST NOT include raw names/domains by default.
 
 ## 6. Integrity Object (OPTIONAL but RECOMMENDED)
 
-The integrity object binds receipts to the underlying requests without revealing them.
+The integrity object binds receipts to the underlying requests without
+revealing them.
 
 ### 6.1 For PER_REQUEST
 
@@ -144,7 +151,8 @@ Batch receipts SHOULD include one of:
 - `leaf_hash_scheme`
 - `merkle_scheme`
 
-In Option B, the resolver/settlement agent can request Merkle proofs for audit samples.
+In Option B, the resolver/settlement agent can request Merkle proofs for
+audit samples.
 
 ---
 

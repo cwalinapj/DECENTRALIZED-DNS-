@@ -2,7 +2,8 @@
 
 Repo home: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 
-This spec defines the format of a **Spam Report** emitted by TollDNS webmail clients when users mark messages as spam/phishing.
+This spec defines the format of a **Spam Report** emitted by TollDNS
+webmail clients when users mark messages as spam/phishing.
 Reports are designed to be:
 
 - **domain/DNS-first** (domains/URLs are primary signals),
@@ -56,10 +57,13 @@ A Spam Report MUST:
 - `from_domain` (string) -- domain parsed from From address
 - `reply_to_domain` (string|null)
 - `return_path_domain` (string|null)
-- `extracted_link_domains` (array[string]) -- domains from URLs in message (PRIMARY)
-- `extracted_link_urls_hashed` (array[hash]) -- optional hashed URLs for clustering
+- `extracted_link_domains` (array[string]) -- domains from URLs in message
+  (PRIMARY)
+- `extracted_link_urls_hashed` (array[hash]) -- optional hashed URLs for
+  clustering
 - `auth_results` (object):
-  - `spf` (enum): `PASS` | `FAIL` | `SOFTFAIL` | `NEUTRAL` | `NONE` | `TEMPERROR` | `PERMERROR`
+  - `spf` (enum): `PASS` | `FAIL` | `SOFTFAIL` | `NEUTRAL` | `NONE` |
+  `TEMPERROR` | `PERMERROR`
   - `dkim` (enum): `PASS` | `FAIL` | `NONE` | `TEMPERROR` | `PERMERROR`
   - `dmarc` (enum): `PASS` | `FAIL` | `NONE` | `TEMPERROR` | `PERMERROR`
   - `alignment` (enum): `ALIGNED` | `MISALIGNED` | `UNKNOWN`
@@ -76,7 +80,8 @@ A Spam Report MUST:
   - `PHISHING` -- asks for password/OTP/seed or sensitive info
   - `SCAM` -- generic scam classification
   - `OTHER`
-- `reason_text` (string|null) -- optional user text, should be rate-limited and privacy-scrubbed
+- `reason_text` (string|null) -- optional user text, should be
+  rate-limited and privacy-scrubbed
 
 ### 3.3 Optional Fields (Secondary Signals)
 
@@ -87,24 +92,28 @@ A Spam Report MUST:
 - `client_context` (object|null):
   - `client_platform` (enum): `WEB` | `IOS` | `ANDROID` | `DESKTOP`
   - `client_tier` (enum): `END_USER` | `BUSINESS` | `DEVELOPER`
-  - `user_reputation_tier` (enum): `NEW` | `ESTABLISHED` | `TRUSTED` (local classification)
+  - `user_reputation_tier` (enum): `NEW` | `ESTABLISHED` | `TRUSTED`
+  (local classification)
 
 ---
 
 ## 4) Proof-of-View (Anti-Farming Hook)
 
-To prevent reward farming, reports SHOULD include a proof that the reporter saw the message.
+To prevent reward farming, reports SHOULD include a proof that the
+reporter saw the message.
 
 Options (implementation-defined):
 
 - `mailbox_receipt_id` (opaque) -- server-issued token tied to delivery
 - `delivery_event_hash` (hash) -- commitment to delivery metadata
-- `client_attestation` (signature) -- client signs a nonce provided at delivery time
+- `client_attestation` (signature) -- client signs a nonce provided at
+  delivery time
 
 Field:
 
 - `proof_of_view` (object|null):
-  - `type` (enum): `MAILBOX_RECEIPT` | `DELIVERY_EVENT_HASH` | `CLIENT_ATTESTATION`
+  - `type` (enum): `MAILBOX_RECEIPT` | `DELIVERY_EVENT_HASH` |
+  `CLIENT_ATTESTATION`
   - `value` (string/hash)
   - `signature` (string|null)
 
@@ -136,7 +145,8 @@ To ensure consistent hashes:
 - normalize domains to lowercase punycode
 - strip tracking params before hashing URLs (when allowed)
 - canonicalize header ordering for header_hash
-- never hash raw body; hash structural features only (MIME tree, token buckets, etc.)
+- never hash raw body; hash structural features only (MIME tree, token
+  buckets, etc.)
 
 ---
 
@@ -144,6 +154,7 @@ To ensure consistent hashes:
 
 - `report_version` uses semantic versioning.
 - Clients MUST include the version.
-- Servers MUST accept a backward-compatible window as configured by policy.
+- Servers MUST accept a backward-compatible window as configured by
+  policy.
 
 ---

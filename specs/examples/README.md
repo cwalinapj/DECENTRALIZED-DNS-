@@ -1,6 +1,7 @@
 # Adapter Examples
 
-These are **non-normative** examples to help developers implement adapters that conform to:
+These are **non-normative** examples to help developers implement
+adapters that conform to:
 
 - `specs/backend-interface.md`
 
