@@ -62,6 +62,11 @@ ufw allow 22/tcp
 ufw allow from "${LAN_CIDR}" to any port "${WIRE_PORT}" proto udp
 ufw allow from "${LAN_CIDR}" to any port "${WIRE_PORT}" proto tcp
 
+GUI_PORT="${DDNS_GUI_PORT:-8080}"
+
+# Allow GUI from LAN only
+ufw allow from "${LAN_CIDR}" to any port "${GUI_PORT}" proto tcp
+
 # Enable firewall
 ufw --force enable
 
