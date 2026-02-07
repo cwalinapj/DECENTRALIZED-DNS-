@@ -66,7 +66,7 @@ The following files/modules are needed to implement the behavior described in ea
 - `diagrams.md` (system flows and Mermaid diagrams)
 
 ### /specs
-- `backend-interface.md` (adapter interface contract)
+- `backend-interface.md` (adaptor interface contract)
 - `health-report-format.md` (watchdog report schema)
 - `receipt-format.md` (proof-of-serving format)
 - `policy-state-machine.md` (state transition rules)
@@ -112,7 +112,7 @@ The following files/modules are needed to implement the behavior described in ea
 - `tokens/NativeToken.sol`, `tokens/IndexUnit.sol`
 - `escrow/SpendEscrow.sol`, `escrow/VoucherVerifier.sol`
 - `staking/StakePool.sol`, `staking/RoleRegistry.sol`, `staking/{Business,Developer,Operator}Access.sol`
-- `registry/{Adapter,Backend,Operator,FallbackSet}Registry.sol`
+- `registry/{Adaptor,Backend,Operator,FallbackSet}Registry.sol`
 - `watchdog/{VerifierSetRegistry,HealthReportIngestor,PolicyStateMachine,RoutingPolicyRegistry}.sol`
 - `settlement/{SettlementCoordinator,ReceiptIngestor,RewardDistributor}.sol`
 - `treasury/{Treasury,BurnManager,Grants,Subsidies}.sol`
@@ -142,7 +142,7 @@ The following files/modules are needed to implement the behavior described in ea
 
 ### /registry
 - `README.md` (module spec, already present)
-- `AdapterRegistry.sol`
+- `AdaptorRegistry.sol`
 - `BackendRegistry.sol`
 - `OperatorRegistry.sol`
 - `FallbackSetRegistry.sol`
