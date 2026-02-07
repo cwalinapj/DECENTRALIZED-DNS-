@@ -1,0 +1,229 @@
+# 16 — Decentralized Compute Partners (Docker/OCI Hosting Roadmap)
+
+Repo home: https://github.com/cwalinapj/DECENTRALIZED-DNS-
+
+This document describes how TollDNS can accelerate deployment by partnering with existing **Web3 / DePIN compute networks** that already support **Docker/OCI-style workloads**. The goal is to avoid reinventing a compute marketplace while still achieving provider diversity and resilience.
+
+This roadmap focuses on *where decentralized container hosting fits best* in the overall TollDNS build plan, and in what order to adopt it.
+
+Related:
+- Prospectus: `PROSPECTUS.md`
+- Roadmap: `docs/09-roadmap.md`
+- Resilience tokenomics: `docs/06-resilience-tokenomics.md`
+- Workers: `docs/11-workers-and-edge-compute.md`
+- Watchdogs: `docs/03-watchdogs-and-fallback.md`
+
+---
+
+## 1) Why Partner on Decentralized Container Hosting
+
+TollDNS has multiple components with different operational requirements:
+
+- **Latency/SLO-critical, always-on services** (DoH/DoT recursive DNS, edge ingress)
+- **HTTP services that tolerate distribution variance** (gateways, caches)
+- **job-like or scheduled workloads** (watchdogs, probers, crawlers, security checkups, clustering)
+
+Decentralized compute partners can provide immediate benefits:
+- faster global footprint for non-critical workloads
+- early operator diversity (not just one cloud)
+- experimentation and iteration without hardware logistics
+
+---
+
+## 2) Candidate Partner Types (Examples)
+
+TollDNS is compatible with partners that can run Docker/OCI workloads, such as:
+- decentralized cloud marketplaces that accept standard Docker images
+- DePIN compute networks providing long-running services or scheduled jobs
+- hybrid “provider networks” that can guarantee regions and service tiers
+
+Note: the specific partner list can evolve; the requirement is **Docker/OCI workload support** plus predictable networking.
+
+---
+
+## 3) Recommended Adoption Order (Key Principle)
+
+**Do not start by placing core recursive DNS on a compute marketplace.**  
+Start with workloads that are:
+- easier to distribute,
+- less sensitive to jitter and IP stability,
+- and still meaningfully improve resilience.
+
+Recommended order:
+
+1) **Watchdogs and Probers** (best first fit)  
+2) **HTTP Gateways + Regional Cache Nodes** (next fit)  
+3) **Workers Checkups + Crawlers** (fits well)  
+4) **Core Recursive DNS / DoH/DoT Edge** (only after SLO posture is proven)
+
+---
+
+## 4) Phase Roadmap (Partner Compute Integration)
+
+### Phase A — “Watchdogs First” (0 → 1)
+**Goal:** Use decentralized compute partners to run the watchdog layer early.
+
+Deploy:
+- `/watchdogs/regional-probers/` (multi-region measurements)
+- `/watchdogs/incident-detector/` (campaign + outage signals)
+- `/watchdogs/verifier-node/` (health report signing / attestation)
+- optional batch jobs:
+  - spam campaign clustering (email)
+  - phishing template clustering (hosting)
+
+Why this works:
+- watchdog tasks can run as scheduled jobs or semi-long-lived services
+- they add immediate value to policy-driven routing
+- they do not require anycast or stable IP ownership
+
+Deliverables:
+- container images for each watchdog component
+- a deployment manifest template for partner networks
+- signed health report outputs matching:
+  - `specs/health-report-format.md`
+
+Success criteria:
+- consistent multi-region telemetry
+- stable attestation cadence
+- safe fallback triggering behavior
+
+---
+
+### Phase B — “Our Gateway Footprint” (1 → 2)
+**Goal:** Deploy HTTP gateways and caches on partner compute to increase resilience and reduce dependence on centralized gateways.
+
+Deploy:
+- `/services/gateway/` and `/adapters/ipfs/` first
+- optionally `/adapters/filecoin/` and `/adapters/arweave/`
+- cache nodes that store “hot” objects and routes
+
+Why this works:
+- gateway traffic is HTTP-based and easier to expose as endpoints
+- caching proxies are a natural fit for distributed capacity
+- you can route around weak providers using policy
+
+Deliverables:
+- gateway service container image
+- regional cache container image
+- route selection logic that can incorporate partner compute nodes
+
+Success criteria:
+- stable gateway throughput per region
+- measurable latency improvements vs centralized gateways
+- policy-driven disable/degrade and rerouting works
+
+---
+
+### Phase C — “Workers Checkups + Fraud Monitoring” (2 → 3)
+**Goal:** Run Workers-adjacent monitoring and checkups on partner compute for scale and diversity.
+
+Deploy:
+- scheduled security/functionality checkups for hosted sites
+- fraud crawling pipelines (new subdomain scanning)
+- email spam intelligence processing (reason-coded reports clustering)
+
+Why this works:
+- these jobs can be compute-heavy but tolerate distribution variance
+- they create a visible product differentiator (“secure hosting with checkups”)
+
+Deliverables:
+- checkup worker containers + schedules
+- crawler pipelines with bounded egress and safety rules
+- output artifacts fed into policy states
+
+Success criteria:
+- fewer fraudulent hosted subdomains survive
+- faster phishing/spam campaign suppression
+- reduced manual review load
+
+---
+
+### Phase D — “Core DNS on Partner Compute” (3 → 4, optional/conditional)
+**Goal:** Only after trust and SLO posture is proven, consider running parts of core DNS on partner compute.
+
+This requires:
+- predictable networking, stable endpoints, and SLO commitments
+- anti-DDoS posture and/or upstream scrubbing integration
+- strong key management, secure enclaves optional
+
+Possible early subset:
+- upstream forwarding + caching nodes (not authoritative core)
+- non-critical regions / experimental clusters
+
+Deliverables:
+- DoH/DoT resolver containers with strict performance constraints
+- anycast strategy (if supported) or multi-endpoint routing
+- rollback and fallback playbooks
+
+Success criteria:
+- SLO parity with conventional edge deployments
+- safe handling under attack-mode policy
+- no unacceptable correlated failure
+
+---
+
+## 5) Partner Requirements Checklist (What We Ask For)
+
+For each partner network, confirm they can support:
+
+**Networking**
+- long-running services (not only short jobs)
+- stable inbound HTTPS endpoints (for DoH and gateways)
+- predictable egress bandwidth and pricing
+- optional: geo pinning / jurisdiction metadata
+
+**Operations**
+- restart policies and health checks
+- logs/metrics access without raw user data
+- region/provider diversity visibility
+- incident response contact channel (if available)
+
+**Security**
+- secure secret injection (no plaintext env secrets)
+- key rotation support (or external signer integration)
+- sandboxing boundaries (container isolation)
+
+---
+
+## 6) Tokenomics & Incentives for Partner Deployments
+
+Partner compute deployments can be funded via:
+- Index Unit revenue allocated to resilience budgets (gateway capacity, checkups)
+- native token incentives for operators who provide verified service
+- DAO-controlled subsidy pools for “free gateway” tiers
+- Token Exchange Program 
+
+Policy always remains auditable:
+- receipts measure delivered service
+- watchdogs verify health/correctness
+- routing engine can degrade/disable nodes that underperform
+
+---
+
+## 7) Deliverable Checklist (So This Doc Turns Into Code)
+
+To operationalize this roadmap, the repo should include:
+- Dockerfiles for watchdog and gateway services
+- a `docker-compose.yml` for local dev
+- deployment manifest templates for partner networks
+- Make targets:
+  - `make build-images`
+  - `make push-images`
+  - `make test`
+  - `make e2e`
+- health report emitters that match:
+  - `specs/health-report-format.md`
+
+---
+
+## 8) Summary
+
+Decentralized container partners are a fast path to:
+- early provider diversity,
+- stronger gateway footprint,
+- scalable checkups and monitoring,
+without prematurely risking core DNS SLOs.
+
+Start with watchdogs, then gateways, then checkups, and only later consider core DNS on partner compute when operational guarantees are proven.
+
+---
