@@ -103,7 +103,8 @@ export class RateLimiter {
     const fresh = bucket.filter((ts) => now - ts < windowMs);
 
     if (fresh.length >= rateLimitConfig.max) {
-      const retryAfterMs = windowMs - (now - fresh[0]);
+      const oldest = Math.min(...fresh);
+      const retryAfterMs = windowMs - (now - oldest);
       this.hits.set(key, fresh);
       return {
         ok: false,

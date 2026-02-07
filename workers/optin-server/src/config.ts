@@ -18,10 +18,16 @@ const readNumber = (value: string | undefined, fallback: number): number => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const adminKey = process.env.OPTIN_ADMIN_KEY;
+
+if (!adminKey) {
+  throw new Error("OPTIN_ADMIN_KEY is required");
+}
+
 export const config: ServerConfig = {
   port: readNumber(process.env.OPTIN_PORT, 8787),
   stateDir: process.env.OPTIN_STATE_DIR || path.resolve(process.cwd(), "state"),
-  adminKey: process.env.OPTIN_ADMIN_KEY || "change-me",
+  adminKey,
   defaultRateLimit: {
     windowSec: readNumber(process.env.OPTIN_RATE_WINDOW_SEC, 60),
     max: readNumber(process.env.OPTIN_RATE_MAX, 20)

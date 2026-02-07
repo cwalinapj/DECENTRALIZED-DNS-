@@ -15,7 +15,7 @@ import { parseOptinInput } from "./validate.js";
 const router = Router();
 const nonceStore = new NonceStore(config.nonceTtlSec * 1000);
 const rateLimiter = new RateLimiter();
-const MILLISECOND_TIMESTAMP_THRESHOLD = 1_000_000_000_000;
+const UNIX_TIMESTAMP_MS_THRESHOLD = 1_000_000_000_000;
 
 const resolveSiteId = (value: unknown): string | null => {
   if (typeof value !== "string" || value.trim().length === 0) return null;
@@ -92,7 +92,7 @@ router.post("/submit", (req, res) => {
 
   const timestamp = input.timestamp ?? Date.now();
   const createdAt = new Date(
-    timestamp > MILLISECOND_TIMESTAMP_THRESHOLD ? timestamp : timestamp * 1000
+    timestamp > UNIX_TIMESTAMP_MS_THRESHOLD ? timestamp : timestamp * 1000
   ).toISOString();
 
   const record = addOptin({
