@@ -9,11 +9,16 @@ import type { CompatState, Route } from './types.js';
 const dataDir = process.env.DATA_DIR || './data';
 const adminKey = process.env.ADMIN_API_KEY || '';
 const paymentAddress = process.env.PAYMENT_ADDRESS || '0x0000000000000000000000000000000000000000';
+const paymentAsset = process.env.PAYMENT_ASSET || 'USDC';
+const paymentAmount = process.env.PAYMENT_AMOUNT || '5.00';
+const maxBodyBytes = Number(process.env.MAX_BODY_BYTES || 2_000_000);
 
 const state: CompatState = {
   dataDir,
   adminKey,
   paymentAddress,
+  paymentAsset,
+  paymentAmount,
   sites: new Map(),
   jobs: new Map(),
   walletChallenges: new Map(),
@@ -38,7 +43,7 @@ async function readBody(req: any) {
   let size = 0;
   for await (const chunk of req) {
     size += chunk.length;
-    if (size > 2_000_000) {
+    if (size > maxBodyBytes) {
       throw new Error('Payload too large');
     }
     chunks.push(chunk);

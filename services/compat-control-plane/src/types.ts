@@ -65,6 +65,8 @@ export type CompatState = {
   walletSessions: Map<string, WalletSession>;
   payments: Map<string, PaymentRecord>;
   paymentAddress: string;
+  paymentAsset: string;
+  paymentAmount: string;
 };
 
 export type RouteContext = {

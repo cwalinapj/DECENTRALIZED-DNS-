@@ -90,12 +90,14 @@ export function createPaymentsRoutes(state: CompatState): Route[] {
           res.end(JSON.stringify({ error: 'Invalid session' }));
           return;
         }
+        const asset = body?.asset || state.paymentAsset;
+        const amount = body?.amount || state.paymentAmount;
         const paymentId = `pay_${randomUUID()}`;
         const record = {
           id: paymentId,
           address: state.paymentAddress,
-          asset: 'USDC',
-          amount: '5.00',
+          asset,
+          amount,
           status: 'pending',
           created_at: new Date().toISOString(),
         };

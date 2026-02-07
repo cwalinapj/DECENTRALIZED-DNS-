@@ -19,6 +19,9 @@ creates jobs, and exposes reports for the wp-admin plugin.
 - `DATA_DIR=/var/lib/ddns-compat`
 - `ADMIN_API_KEY=change-me`
 - `PAYMENT_ADDRESS=0x...`
+- `PAYMENT_ASSET=USDC`
+- `PAYMENT_AMOUNT=5.00`
+- `MAX_BODY_BYTES=2000000`
 
 ## Notes
 - Bundles are stored as JSON in `DATA_DIR/sites/<siteId>/bundles`.

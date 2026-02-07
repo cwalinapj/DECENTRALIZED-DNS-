@@ -132,7 +132,14 @@
     updateWalletStatus('EVM', address);
   };
 
-  const toBase64 = (bytes) => btoa(String.fromCharCode(...bytes));
+  const toBase64 = (bytes) => {
+    let binary = '';
+    const chunkSize = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode(...bytes.slice(i, i + chunkSize));
+    }
+    return btoa(binary);
+  };
 
   const connectSolana = async () => {
     const provider = window.solana;
