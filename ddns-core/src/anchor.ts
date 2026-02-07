@@ -15,7 +15,7 @@ export interface AnchorV1 {
 
 const MAGIC = ascii("ANCH");
 const VERSION = 1;
-export const ANCHOR_V1_LEN = 217;
+export const ANCHOR_V1_LEN = 185;
 
 export function encodeAnchorV1(a: AnchorV1): Uint8Array {
   if (!Number.isInteger(a.ns_id) || a.ns_id < 0 || a.ns_id > 0xffffffff) throw new Error("ns_id out of range");

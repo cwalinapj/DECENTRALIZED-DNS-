@@ -6,3 +6,6 @@ export * from "./anchor.js";
 export * from "./bytes.js";
 export * from "./wire_limits.js";
 export * from "./wire_safe.js";
+export * from "./dns_name.js";
+export * from "./gateway_routes.js";
+export * from "./rr_helpers.js";
