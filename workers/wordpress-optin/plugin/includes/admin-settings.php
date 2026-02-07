@@ -6,6 +6,7 @@ if (!defined('ABSPATH')) {
 
 function ddns_optin_register_settings(): void
 {
+    // ----- Form copy settings -----
     register_setting(
         'ddns_optin',
         'ddns_optin_heading',
@@ -39,6 +40,10 @@ function ddns_optin_register_settings(): void
     register_setting(
         'ddns_optin',
         'ddns_optin_endpoint',
+    // ----- Worker destination (admin controlled) -----
+    register_setting(
+        'ddns_optin',
+        'ddns_optin_worker_endpoint',
         array(
             'type' => 'string',
             'sanitize_callback' => 'esc_url_raw',
@@ -125,9 +130,49 @@ add_action('admin_init', 'ddns_optin_register_settings');
 
 function ddns_optin_add_settings_page(): void
 {
-    add_options_page('DDNS Opt-in', 'DDNS Opt-in', 'manage_options', 'ddns-optin', 'ddns_optin_render_settings_page');
+    add_options_page(
+        'DDNS Opt-in',
+        'DDNS Opt-in',
+        'manage_options',
+        'ddns-optin',
+        'ddns_optin_render_settings_page'
+    );
 }
 add_action('admin_menu', 'ddns_optin_add_settings_page');
+
+// ----- Sanitizers -----
+
+function ddns_optin_sanitize_categories($value)
+{
+    $allowed = array(
+        'SITE_AVAILABILITY',
+        'DNS_COMPAT',
+        'ROUTING_HINTS',
+        'SECURITY_HEADERS',
+        'PERF_LIGHT'
+    );
+
+    if (!is_array($value)) {
+        return array('SITE_AVAILABILITY');
+    }
+
+    $out = array();
+    foreach ($value as $v) {
+        $v = sanitize_text_field($v);
+        if (in_array($v, $allowed, true)) {
+            $out[] = $v;
+        }
+    }
+
+    if (empty($out)) {
+        $out[] = 'SITE_AVAILABILITY';
+    }
+
+    // Deduplicate
+    return array_values(array_unique($out));
+}
+
+// ----- Field renderers -----
 
 function ddns_optin_render_heading_field(): void
 {
@@ -155,6 +200,11 @@ function ddns_optin_render_endpoint_field(): void
         esc_attr($value),
         esc_attr('https://example.com/v1/optin/submit')
     );
+function ddns_optin_render_worker_endpoint_field(): void
+{
+    $value = esc_attr(get_option('ddns_optin_worker_endpoint', ''));
+    echo '<input class="regular-text" type="url" name="ddns_optin_worker_endpoint" value="' . $value . '" placeholder="https://worker.yourdomain.tld/v1/optin/submit">';
+    echo '<p class="description">The public DDNS server endpoint that receives opt-in submissions. WordPress exposes no public API endpoints.</p>';
 }
 
 function ddns_optin_render_site_id_field(): void
@@ -164,16 +214,32 @@ function ddns_optin_render_site_id_field(): void
         '<input class="regular-text" type="text" name="ddns_optin_site_id" value="%s">',
         esc_attr($value)
     );
+    $value = esc_attr(get_option('ddns_optin_site_id', ''));
+    echo '<input class="regular-text" type="text" name="ddns_optin_site_id" value="' . $value . '" placeholder="site_123">';
+    echo '<p class="description">Identifier assigned on your DDNS server. Used to map submissions to the correct site.</p>';
 }
 
 function ddns_optin_render_categories_field(): void
 {
-    $value = get_option('ddns_optin_categories', '');
-    printf(
-        '<textarea class="large-text" rows="4" name="ddns_optin_categories">%s</textarea>',
-        esc_textarea($value)
+    $all = array(
+        'SITE_AVAILABILITY' => 'SITE_AVAILABILITY (uptime/latency)',
+        'DNS_COMPAT' => 'DNS_COMPAT (public DNS record compatibility)',
+        'ROUTING_HINTS' => 'ROUTING_HINTS (subdomain routing hints)',
+        'SECURITY_HEADERS' => 'SECURITY_HEADERS (public response headers)',
+        'PERF_LIGHT' => 'PERF_LIGHT (TTFB/caching headers)'
     );
-    echo '<p class="description">Comma or newline separated categories shown as checkboxes.</p>';
+
+    $selected = get_option('ddns_optin_categories', array('SITE_AVAILABILITY'));
+    if (!is_array($selected)) $selected = array('SITE_AVAILABILITY');
+
+    foreach ($all as $k => $label) {
+        $checked = in_array($k, $selected, true) ? 'checked' : '';
+        echo '<label style="display:block; margin:4px 0;">';
+        echo '<input type="checkbox" name="ddns_optin_categories[]" value="' . esc_attr($k) . '" ' . $checked . '> ';
+        echo esc_html($label);
+        echo '</label>';
+    }
+    echo '<p class="description">These categories appear on the public opt-in form. Users can uncheck them before submitting.</p>';
 }
 
 function ddns_optin_render_settings_page(): void
@@ -189,6 +255,11 @@ function ddns_optin_render_settings_page(): void
             <?php do_settings_sections('ddns-optin'); ?>
             <?php submit_button(); ?>
         </form>
+
+        <hr />
+        <h2>Shortcode</h2>
+        <p>Place this in any page/post:</p>
+        <code>[ddns_optin]</code>
     </div>
     <?php
 }
