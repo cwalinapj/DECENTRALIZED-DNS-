@@ -5,6 +5,7 @@ import { createJobsRoutes } from './routes/jobs.js';
 import { createSitesRoutes } from './routes/sites.js';
 import { createPaymentsRoutes } from './routes/payments.js';
 import { createMinerProofRoutes } from './routes/minerProof.js';
+import { createTollCommentsRoutes } from './routes/toll-comments.js';
 import type { CompatState, Route } from './types.js';
 
 const dataDir = process.env.DATA_DIR || './data';
@@ -14,6 +15,10 @@ const paymentAddress = process.env.PAYMENT_ADDRESS || '0x00000000000000000000000
 const paymentAsset = process.env.PAYMENT_ASSET || 'USDC';
 const paymentAmount = process.env.PAYMENT_AMOUNT || '5.00';
 const minerProofSecret = process.env.MINER_PROOF_SECRET || '';
+const tollSiteToken = process.env.TOLL_SITE_TOKEN || '';
+const tollRpcUrl = process.env.TOLL_RPC_URL || '';
+const tollEscrowContract = process.env.TOLL_ESCROW_CONTRACT || '';
+const tollOperatorKey = process.env.TOLL_OPERATOR_KEY || '';
 const maxBodyBytes = Number(process.env.MAX_BODY_BYTES || 2_000_000);
 
 const state: CompatState = {
@@ -24,6 +29,10 @@ const state: CompatState = {
   paymentAsset,
   paymentAmount,
   minerProofSecret,
+  tollSiteToken,
+  tollRpcUrl,
+  tollEscrowContract,
+  tollOperatorKey,
   sites: new Map(),
   jobs: new Map(),
   walletChallenges: new Map(),
@@ -36,6 +45,7 @@ const routes: Route[] = [
   ...createJobsRoutes(state),
   ...createPaymentsRoutes(state),
   ...createMinerProofRoutes(state),
+  ...createTollCommentsRoutes(state),
 ];
 
 function sendJson(res: ServerResponse, status: number, payload: unknown) {
@@ -72,7 +82,7 @@ const server = createServer(async (req, res) => {
     res.writeHead(204, {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type,x-ddns-compat-key',
+      'Access-Control-Allow-Headers': 'Content-Type,x-ddns-compat-key,x-ddns-site-token',
     });
     res.end();
     return;
