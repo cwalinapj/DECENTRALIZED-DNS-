@@ -7,8 +7,26 @@ import path from "node:path";
 export function uploadsRouter(store: Storage) {
   const r = Router();
   const upload = multer({ dest: store.uploadsDir });
+  const rateWindowMs = 60_000;
+  const rateMax = 20;
+  const rateBuckets = new Map<string, { count: number; resetAt: number }>();
 
-  r.post("/:site_id", upload.single("bundle"), (req: Request, res: Response) => {
+  function rateLimit(req: Request, res: Response, next: () => void) {
+    const key = String(req.ip || "unknown");
+    const now = Date.now();
+    const bucket = rateBuckets.get(key);
+    if (!bucket || bucket.resetAt <= now) {
+      rateBuckets.set(key, { count: 1, resetAt: now + rateWindowMs });
+      return next();
+    }
+    if (bucket.count >= rateMax) {
+      return res.status(429).json({ ok: false, error: "rate_limited" });
+    }
+    bucket.count += 1;
+    return next();
+  }
+
+  r.post("/:site_id", rateLimit, upload.single("bundle"), (req: Request, res: Response) => {
     const site_id = String(req.params.site_id || "").trim();
     const token = String(req.headers["x-ddns-site-token"] || "");
 

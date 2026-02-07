@@ -43,7 +43,7 @@ if ! db_ready >/dev/null 2>&1; then
   exit 1
 fi
 
-if ! timeout 5s wp_cli core is-installed >/dev/null 2>&1; then
+if ! timeout 15s wp_cli core is-installed >/dev/null 2>&1; then
   wp_cli core install \
     --url=http://localhost:8080 \
     --title="DDNS Compat MVP" \
