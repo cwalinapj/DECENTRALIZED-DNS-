@@ -1,10 +1,11 @@
 # Contracts (L2 Control Plane)
 
-Repo home: https://github.com/cwalinapj/DECENTRALIZED-DNS-
+Repo home: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 
 This README describes the **`contracts/`** directory: the on-chain (L2) control plane for TollDNS.
 
 TollDNS keeps the blockchain **out of the hot path**. Contracts govern:
+
 - roles & permissions (who can do what),
 - staking requirements (miners/devs/business users),
 - spend escrow for **Index Units** (tolls),
@@ -16,6 +17,7 @@ TollDNS keeps the blockchain **out of the hot path**. Contracts govern:
 **Key principle:** usage is priced and paid in **Index Units**. The **native token** is used for governance, staking, rewards, reserves, grants, burns, and integration fees.
 
 See:
+
 - Tokenomics: `docs/05-tokenomics.md`
 - Watchdogs & fallback: `docs/03-watchdogs-and-fallback.md`
 - Policy state machine: `specs/policy-state-machine.md`
@@ -27,18 +29,21 @@ See:
 ## Contract Modules (High-Level)
 
 ### A) Tokens
+
 - `NativeToken`: utility/governance token (NOT the toll)
 - `IndexUnit`: stable usage unit used for tolls and “Cloudflare-like” features
 
 ---
 
 ### B) Spend Escrow (Index Units)
+
 - `SpendEscrow`: holds Index Units for users (no per-query prompts)
 - `VoucherVerifier`: verifies signed vouchers and supports batch settlement
 
 ---
 
 ### C) Staking & Roles (Native Token)
+
 - `StakePool`: time-locked staking with exit delay (no instant withdrawal)
 - `RoleRegistry`: maps addresses to roles and tier permissions
 - `BusinessAccess`: business users must stake + also pay Index tolls
@@ -48,6 +53,7 @@ See:
 ---
 
 ### D) Registries (Backends, Adapters, Operators)
+
 - `BackendRegistry`: enabled backends and immutable metadata pointers (hashes / NFT-like pointers)
 - `AdapterRegistry`: adapter listings + conformance profile references
 - `OperatorRegistry`: miners/operators, capabilities, coarse region/ASN metadata, stake status
@@ -55,6 +61,7 @@ See:
 ---
 
 ### E) Watchdogs & Policy (Automatic Fallback)
+
 - `VerifierSetRegistry`: authorized verifiers per epoch
 - `HealthReportIngestor`: validates/verifies health reports
 - `PolicyStateMachine`: updates backend states and routing policy (circuit breaker)
@@ -63,6 +70,7 @@ See:
 ---
 
 ### F) Settlement & Rewards (Native Token)
+
 - `ReceiptIngestor`: validates proof-of-serving receipts (or receipt roots)
 - `RewardDistributor`: pays rewards based on receipts, multipliers, and policy
 - `Treasury`: DAO-owned reserves (grants, subsidies, incident response)
@@ -71,6 +79,7 @@ See:
 ---
 
 ### G) Governance (DAO)
+
 - `Governor`: proposal + voting mechanisms
 - `Timelock`: delayed execution for sensitive actions
 - `ParameterStore`: versioned policy parameters referenced by registries/state machine

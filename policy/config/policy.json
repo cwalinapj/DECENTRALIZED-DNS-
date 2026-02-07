@@ -1,0 +1,10 @@
+{
+  "state": "HEALTHY",
+  "mode": {
+    "cache_first": true,
+    "quorum_mode": true
+  },
+  "backend_weights": {
+    "upstream-quorum": 1.0
+  }
+}

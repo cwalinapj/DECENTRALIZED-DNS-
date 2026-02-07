@@ -1,8 +1,9 @@
 # 07 — Routing Engine (Selection, Quotas, Diversity, Health States)
 
-Repo home: https://github.com/cwalinapj/DECENTRALIZED-DNS-
+Repo home: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 
 This document describes how TollDNS routes queries across:
+
 - core resolvers,
 - edge ingress nodes,
 - gateway operators,
@@ -10,6 +11,7 @@ This document describes how TollDNS routes queries across:
 - and (optionally) anycast/scrubbing providers,
 
 while enforcing:
+
 - health-state policy (Healthy/Degraded/Disabled/Recovering),
 - regional quotas,
 - multi-provider/ASN diversity,
@@ -35,6 +37,7 @@ The routing engine must be fast, deterministic enough to audit, and robust under
 Routing decisions are made using:
 
 ### 1) Query Classification
+
 - `namespace` (ICANN DNS, ENS, SNS, Handshake, PKDNS/PKARR, IPFS, etc.)
 - `qtype` (A/AAAA/CNAME/TXT/HTTPS/SVCB/etc.)
 - `is_gateway_required` (yes/no)
@@ -42,13 +45,16 @@ Routing decisions are made using:
 - `is_high_cost` (e.g., deep recursion, large responses, expensive upstream fetch)
 
 ### 2) Client Context (Minimal / Privacy-Preserving)
+
 - coarse region hint (optional)
 - transport (DoH/DoT)
 - permission tier (end user vs business vs dev) if applicable
 - session state (keepalive, session token)
 
 ### 3) Backend Registry & Capabilities
+
 From the on-chain / signed registry:
+
 - backend/operator capabilities (EDGE-INGRESS, GATEWAY, CACHE, ANYCAST, SCRUBBING)
 - supported namespaces/features
 - operator stake status (active/locked/penalized)
@@ -56,7 +62,9 @@ From the on-chain / signed registry:
 - advertised limits and pricing classes (policy-controlled)
 
 ### 4) Health & Conformance Policy
+
 From the Policy Contract (watchdogs):
+
 - backend state: `HEALTHY`, `DEGRADED`, `DISABLED`, `RECOVERING`
 - routing weights / max shares
 - attack mode flag (optional)
@@ -65,6 +73,7 @@ From the Policy Contract (watchdogs):
 See: `docs/03-watchdogs-and-fallback.md` and `docs/04-functional-equivalence-proofs.md`
 
 ### 5) Performance Telemetry (Measured)
+
 - rolling success rate
 - latency distribution (p50/p95 buckets)
 - error classes
@@ -77,6 +86,7 @@ Telemetry should be aggregated and privacy-preserving.
 ## Routing Outputs
 
 The router outputs:
+
 - a selected primary target set:
   - resolver / edge ingress / gateway / cache
 - optional fallback chain:
@@ -90,12 +100,15 @@ The router outputs:
 ## Routing Stages
 
 ### Stage A: Select Ingress Path (Edge / Anycast / Direct)
+
 Depending on deployment:
+
 - prefer anycast VIP → nearest healthy edge ingress (when available)
 - else select from regional edge ingress list
 - else direct to core resolver (fallback/simple mode)
 
 Ingress selection is constrained by:
+
 - health state
 - ASN/operator caps (diversity)
 - region quotas (scarcity incentives)
@@ -103,23 +116,29 @@ Ingress selection is constrained by:
 ---
 
 ### Stage B: Determine Backend Type
+
 Based on query classification:
 
 1) **ICANN DNS recursion**
+
 - native recursion or upstream forwarding/quorum
 
-2) **Web3 naming**
+1) **Web3 naming**
+
 - chain adapter (ENS/SNS/Unstoppable/etc.)
 
-3) **Alt-root / DHT naming**
+1) **Alt-root / DHT naming**
+
 - Handshake, PKDNS/PKARR, etc.
 
-4) **Content retrieval**
+1) **Content retrieval**
+
 - gateway selection (IPFS/Filecoin/Arweave) if needed
 
 ---
 
 ### Stage C: Select Cache vs Compute vs Upstream
+
 For each backend type, decide:
 
 - **Cache hit path** (preferred)
@@ -127,6 +146,7 @@ For each backend type, decide:
 - **Upstream/quorum path** (bootstrapping/fallback/cross-check)
 
 Under incident/attack mode:
+
 - increase cache preference
 - reduce expensive “miss” work
 - tighten admission gating
@@ -134,9 +154,11 @@ Under incident/attack mode:
 ---
 
 ### Stage D: Select Specific Operator(s)
+
 Choose one or more operators using weighted scoring under constraints.
 
 **Scoring factors (example):**
+
 - health state (hard filter first)
 - conformance status (hard filter for “correctness-required” paths)
 - measured performance (latency/success)
@@ -146,6 +168,7 @@ Choose one or more operators using weighted scoring under constraints.
 - regional scarcity bonus (if needed)
 
 Selection can be:
+
 - single primary + ordered fallbacks
 - or small fanout for critical paths (hedged requests), with strict caps to avoid amplification
 
@@ -169,15 +192,19 @@ Policy state comes from watchdog quorum attestations.
 To prevent routing capture and correlated failure:
 
 ### ASN Caps
+
 - limit share of requests routed to a single ASN within a region/time window
 
 ### Operator Caps
+
 - limit share routed to a single operator within a region/time window
 
 ### Optional Subnet Caps
+
 - /24 or similar caps to avoid concentration in a single network block
 
 ### Settlement-Time Reward Caps
+
 Even if routing is temporarily biased, rewards are capped per ASN/operator per epoch.
 
 See: `docs/06-resilience-tokenomics.md`
@@ -187,6 +214,7 @@ See: `docs/06-resilience-tokenomics.md`
 ## Regional Quotas / Scarcity
 
 Each region has target capacity per role:
+
 - EDGE-INGRESS
 - GATEWAY
 - CACHE
@@ -194,6 +222,7 @@ Each region has target capacity per role:
 - SCRUBBING (optional)
 
 Routing should:
+
 - prefer underfilled regions when feasible (within latency bounds)
 - avoid overfilling a region with too many operators from the same provider
 
@@ -209,6 +238,7 @@ Role-based constraints (from `docs/05-tokenomics.md`):
 - Miners/operators: required stake
 
 Routing can optionally apply tier logic:
+
 - business tiers may receive higher ceilings or priority queues (governance-defined)
 - end users remain accessible and affordable (index-priced tolls)
 
@@ -217,14 +247,17 @@ Routing can optionally apply tier logic:
 ## Bootstrapping and Upstream Quorum Mode
 
 Early-phase:
+
 - forward recursion to upstream DNS providers for reliability and route discovery
 
 Quorum mode:
+
 - query N upstreams and require agreement for correctness-sensitive paths
 - use quorum results to populate safe caches
 - reduce dependence over time as native recursion matures
 
 Fallback:
+
 - if internal systems degrade, revert to upstream-forwarded resolution temporarily
 
 ---
@@ -232,6 +265,7 @@ Fallback:
 ## Attack Mode Strategies (Degradation Without Collapse)
 
 When Attack Mode is active:
+
 - enforce “toll booth” gating (stateless challenges / retry tokens)
 - switch to cache-first or cache-only for certain patterns
 - reduce expensive recursion for randomized/unpopular names

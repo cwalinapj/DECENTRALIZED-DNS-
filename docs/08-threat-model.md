@@ -1,16 +1,18 @@
 # 08 — Threat Model (Abuse, DDoS, Censorship, Economic Attacks)
 
-Repo home: https://github.com/cwalinapj/DECENTRALIZED-DNS-
+Repo home: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 
 This document outlines the primary threats against TollDNS and the mitigations built into the design. TollDNS aims to be a resilient “decentralized Cloudflare-like” network, so the threat model covers both **technical** and **economic/governance** attacks.
 
 TollDNS uses:
+
 - **Index Units** for tolls (stable usage pricing),
 - a **native token** for staking, governance, incentives, reserves, and burns,
 - **watchdogs + immutable policy** for automatic fallback,
 - **regional quotas + diversity constraints** to prevent correlated failure.
 
 See also:
+
 - Watchdogs & fallback: `docs/03-watchdogs-and-fallback.md`
 - Tokenomics: `docs/05-tokenomics.md`
 - Resilience tokenomics: `docs/06-resilience-tokenomics.md`
@@ -37,6 +39,7 @@ See also:
 - Centralized fallbacks exist but are only used when policy dictates (not as default).
 
 Non-goals / constraints:
+
 - Toll pricing cannot stop pure volumetric bandwidth floods by itself.
 - On-chain contracts cannot directly observe the outside world without verifiers/oracles.
 
@@ -45,10 +48,12 @@ Non-goals / constraints:
 ## Threat Categories
 
 ### 1) Volumetric DDoS (Bandwidth Saturation)
+
 **Threat:** attackers saturate links or POPs with raw traffic (paid or unpaid).  
 **Why tolls alone don’t solve it:** attackers can flood without completing valid queries.
 
 **Mitigations:**
+
 - many edges (“lots of ingress points”)
 - multi-provider / multi-ASN distribution
 - anycast ingress where possible
@@ -60,9 +65,11 @@ See: `docs/06-resilience-tokenomics.md`
 ---
 
 ### 2) Handshake/Connection Floods (CPU Exhaustion)
+
 **Threat:** attackers overwhelm DoH/DoT endpoints with handshakes and expensive setup.
 
 **Mitigations (“toll booth” gating):**
+
 - prefer cheap rejection paths
 - stateless challenge tokens / retries (e.g., QUIC retry patterns)
 - session resumption / keep-alives
@@ -72,9 +79,11 @@ See: `docs/06-resilience-tokenomics.md`
 ---
 
 ### 3) DNS Amplification / Reflection Abuse
+
 **Threat:** attackers use resolvers to amplify traffic to victims.
 
 **Mitigations:**
+
 - default to DoH/DoT (TCP-based) reduces classic UDP reflection
 - strict limits on response size and suspicious patterns
 - require vouchers for service beyond minimal unauthenticated responses (policy-defined)
@@ -83,9 +92,11 @@ See: `docs/06-resilience-tokenomics.md`
 ---
 
 ### 4) Cache Poisoning / Incorrect Resolution
+
 **Threat:** injecting wrong answers into caches or tricking resolvers into storing incorrect routes.
 
 **Mitigations:**
+
 - DNSSEC validation where applicable (policy-defined)
 - upstream quorum checks for non-DNSSEC domains (during bootstrapping and optionally ongoing)
 - bounded TTL and conservative caching
@@ -97,9 +108,11 @@ See: `docs/04-functional-equivalence-proofs.md`
 ---
 
 ### 5) Sybil Attacks on Miner/Operator Set
+
 **Threat:** attacker spins up many fake operators to capture routing share or rewards.
 
 **Mitigations:**
+
 - **required native token stake** for miners/operators (time-locked)
 - registry admission rules (cap per operator, cap per ASN/region)
 - routing-time diversity constraints + settlement-time reward caps
@@ -110,9 +123,11 @@ See: `docs/05-tokenomics.md` and `docs/07-routing-engine.md`
 ---
 
 ### 6) Economic Attacks on Tolls / Index Unit
+
 **Threat:** manipulate the Index Unit oracle or pricing model to make tolls unfair or unstable.
 
 **Mitigations:**
+
 - multiple independent oracle sources (quorum)
 - slow-moving update cadence + bounds (rate-of-change limits)
 - emergency governance pause / fallback pricing mechanism
@@ -121,9 +136,11 @@ See: `docs/05-tokenomics.md` and `docs/07-routing-engine.md`
 ---
 
 ### 7) Governance Capture / Malicious Proposals
+
 **Threat:** attackers accumulate influence and approve malicious gateways, delist good ones, or change parameters to centralize control.
 
 **Mitigations:**
+
 - time-locked governance stake with exit delays
 - proposal timelocks (delayed execution)
 - multi-stage approval for sensitive changes (e.g., gateway delisting, oracle changes)
@@ -133,9 +150,11 @@ See: `docs/05-tokenomics.md` and `docs/07-routing-engine.md`
 ---
 
 ### 8) Malicious Gateways / Policy Violations
+
 **Threat:** gateways route or cache content that violates policy (e.g., piracy, malware distribution).
 
 **Mitigations:**
+
 - DAO-curated gateway listings
 - watchdog monitoring + delisting mechanisms
 - hosted gateway infrastructure (early phases) to enforce policy reliably
@@ -149,9 +168,11 @@ Note: privacy-preserving access methods may be allowed where lawful (e.g., Tor g
 ---
 
 ### 9) Centralized Fallback Dependency Risk
+
 **Threat:** fallback to Cloudflare/Google becomes the default, undermining decentralization.
 
 **Mitigations:**
+
 - fallbacks only enabled when policy triggers DEGRADED/DISABLED states
 - automatic recovery back to decentralized backends
 - transparency: publish fallback activation metrics
@@ -160,9 +181,11 @@ Note: privacy-preserving access methods may be allowed where lawful (e.g., Tor g
 ---
 
 ### 10) Data Privacy & Query Metadata Leakage
+
 **Threat:** operators learn user browsing patterns.
 
 **Mitigations (design options):**
+
 - minimize client metadata (coarse region only)
 - support privacy-preserving transports and policies where feasible
 - separate roles (ingress vs resolver) to reduce full visibility
@@ -173,6 +196,7 @@ Note: privacy-preserving access methods may be allowed where lawful (e.g., Tor g
 ## Incident Response Model
 
 When verifiers detect widespread degradation:
+
 - Policy contract enters DEGRADED/DISABLED states for affected backends
 - Routing engine shifts to:
   - cache-first/cache-only where possible
@@ -188,6 +212,7 @@ All state changes should be auditable on-chain.
 ## Summary
 
 TollDNS assumes it will be attacked both technically and economically. The design defends by combining:
+
 - stable Index Unit pricing for usage
 - role-based staking for accountability
 - watchdog-driven automatic fallback

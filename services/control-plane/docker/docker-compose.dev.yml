@@ -1,0 +1,6 @@
+services:
+  control-plane:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    command: ["node", "-e", "console.log('control-plane dev')"]
