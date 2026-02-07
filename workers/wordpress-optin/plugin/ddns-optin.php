@@ -32,6 +32,19 @@ function ddns_optin_enqueue_assets(): void
         DDNS_OPTIN_VERSION,
         true
     );
+
+    $endpoint = get_option('ddns_optin_worker_endpoint', '');
+    $site_id = get_option('ddns_optin_site_id', '');
+    $cats = get_option('ddns_optin_categories', array('SITE_AVAILABILITY'));
+    if (!is_array($cats)) {
+        $cats = array('SITE_AVAILABILITY');
+    }
+
+    wp_localize_script('ddns-optin', 'DDNS_OPTIN_CFG', array(
+        'endpoint' => $endpoint,
+        'site_id' => $site_id,
+        'categories' => array_values($cats),
+    ));
 }
 add_action('wp_enqueue_scripts', 'ddns_optin_enqueue_assets');
 
