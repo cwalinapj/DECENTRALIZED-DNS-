@@ -35,9 +35,10 @@ function ddns_optin_enqueue_assets(): void
 
     $endpoint = esc_url_raw((string) get_option('ddns_optin_worker_endpoint', ''));
     $site_id = sanitize_text_field((string) get_option('ddns_optin_site_id', ''));
-    $cats = get_option('ddns_optin_categories', array('SITE_AVAILABILITY'));
+    $default_cats = array('SITE_AVAILABILITY');
+    $cats = get_option('ddns_optin_categories', $default_cats);
     if (!is_array($cats)) {
-        $cats = array('SITE_AVAILABILITY');
+        $cats = $default_cats;
     }
     $cats = array_filter($cats, 'is_scalar');
     $cats = array_map(static function ($cat) {
