@@ -20,13 +20,13 @@ Top-level folders and purpose:
 - `resolver/` – name gateway MVP (/resolve, DoH).
 - `scripts/` – dev + validation scripts.
 - `security/` – security tooling and release integrity checks.
-- `services/` – control-plane services and vault (stubs).
+- `services/` – control-plane services and vault (stubs). Includes `services/control-plane/credits-coordinator` for credits + receipts.
 - `settlement/` – settlement processor scaffolds (stubs).
 - `solana/` – Solana program scaffolds (not devnet-ready).
 - `specs/` – protocol specs and formats.
 - `tests/` – repo-level smoke + conformance tests.
 - `watchdogs/` – watchdog agents (stubs).
-- `workers/` – background workers (stubs).
+- `workers/` – background workers (stubs). Includes `workers/node-agent` for receipts + cache.
 
 Other notable top-level items:
 
