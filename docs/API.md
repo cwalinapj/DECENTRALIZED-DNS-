@@ -91,8 +91,10 @@ Timeouts:
 
 Configuration:
 - `PORT` (default `8054`)
+- `HOST` (default `0.0.0.0`)
 - `UPSTREAM_DOH_URL` (default `https://cloudflare-dns.com/dns-query`)
-- `REQUEST_TIMEOUT_MS` (default `2000`)
+- `REQUEST_TIMEOUT_MS` (default `5000`)
+- `CACHE_TTL_MAX_S` (default `3600`)
 - `LOG_LEVEL` (`quiet` by default, `verbose` when `NODE_ENV=development`)
 - `GATED_SUFFIXES` (default `.premium`, comma-separated)
 - `VOUCHER_MODE` (`stub` by default, set to `memory` to enable in-process verifier)

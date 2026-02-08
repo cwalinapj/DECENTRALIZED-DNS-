@@ -7,4 +7,4 @@ cd "$ROOT/resolver"
 
 npm install
 npm run build
-NODE_ENV=development PORT="${PORT:-8054}" npm start
+NODE_ENV=development HOST="${HOST:-0.0.0.0}" PORT="${PORT:-8054}" npm start

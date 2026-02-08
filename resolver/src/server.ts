@@ -9,8 +9,10 @@ import { resolveSns, supportsSns } from "./adaptors/sns.js";
 import { anchorRoot, loadAnchorStore, type AnchorRecord } from "./anchor.js";
 
 const PORT = Number(process.env.PORT || "8054");
+const HOST = process.env.HOST || "0.0.0.0";
 const UPSTREAM_DOH_URL = process.env.UPSTREAM_DOH_URL || "https://cloudflare-dns.com/dns-query";
-const REQUEST_TIMEOUT_MS = Number(process.env.REQUEST_TIMEOUT_MS || "2000");
+const REQUEST_TIMEOUT_MS = Number(process.env.REQUEST_TIMEOUT_MS || "5000");
+const CACHE_TTL_MAX_S = Number(process.env.CACHE_TTL_MAX_S || "3600");
 const LOG_LEVEL = process.env.LOG_LEVEL || (process.env.NODE_ENV === "development" ? "verbose" : "quiet");
 const GATED_SUFFIXES = (process.env.GATED_SUFFIXES || ".premium")
   .split(",")
@@ -94,7 +96,7 @@ async function resolveViaDoh(name: string): Promise<{ records: ResolveRecord[]; 
       .map((a: any) => ({ type: String(a.type), value: String(a.data), ttl: a.ttl }));
 
     const ttl = records.length > 0
-      ? Math.max(30, Math.min(3600, Number(records[0].ttl || 60)))
+      ? Math.max(30, Math.min(CACHE_TTL_MAX_S, Number(records[0].ttl || 60)))
       : 60;
 
     return { records, ttl };
@@ -349,7 +351,7 @@ const modulePath = fileURLToPath(import.meta.url);
 const entryPath = process.argv[1] ? path.resolve(process.argv[1]) : "";
 
 if (modulePath === entryPath) {
-  app.listen(PORT, () => {
-    logInfo(`Listening on port ${PORT}`);
+  app.listen(PORT, HOST, () => {
+    logInfo(`Listening on ${HOST}:${PORT}`);
   });
 }

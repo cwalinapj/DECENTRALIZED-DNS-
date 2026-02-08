@@ -8,6 +8,7 @@ Run from repo root.
 
 ## What it starts
 - Name gateway on port `8054` (override with `PORT=...`)
+- Bind address via `HOST` (default `0.0.0.0`)
 - Startup log (dev): `Listening on port 8054`
 
 Logging:
