@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "npm --prefix ../core run build && tsc -p tsconfig.json && rm -rf dist/core && mkdir -p dist/core/dist && cp -R ../core/dist/* dist/core/ && cp -R ../core/dist/* dist/core/dist/ && node dist/tests/credits.test.js && node dist/tests/passport.test.js && node dist/tests/comments.test.js && node dist/tests/node-verify.test.js"
+    "test": "npm --prefix ../core run build && tsc -p tsconfig.json && rm -rf dist/core && mkdir -p dist/core/dist && cp -R ../core/dist/* dist/core/ && cp -R ../core/dist/* dist/core/dist/ && node dist/tests/credits.test.js && node dist/tests/passport.test.js && node dist/tests/comments.test.js && node dist/tests/node-verify.test.js && node dist/tests/node-verify-endpoint.test.js"
   },
   "dependencies": {
     "@noble/ed25519": "^2.1.0",
