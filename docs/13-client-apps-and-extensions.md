@@ -34,7 +34,7 @@ Optional later:
 
 ### 2.1 DNS Integration (DoH/DoT)
 - configure system-level secure DNS where possible
-- provide “always-on” resolver selection (policy-aware)
+- provide “always-on” gateway selection (policy-aware)
 - support automatic fallback behavior as signaled by policy
 
 ### 2.2 Wallet + Spend Escrow (Index Units)

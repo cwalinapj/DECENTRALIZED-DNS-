@@ -5,7 +5,7 @@ Resolves `.sol` names via the Solana Name Service. Returns at minimum:
 - `OWNER` (base58 public key)
 
 ## Config
-- `ENABLE_SNS=1` to enable resolver routing.
+- `ENABLE_SNS=1` to enable gateway routing.
 - `SOLANA_RPC_URL` (default `https://api.devnet.solana.com`).
 - `SNS_CLUSTER` (`devnet` by default, informational metadata only).
 - `REQUEST_TIMEOUT_MS` (default `2000`).

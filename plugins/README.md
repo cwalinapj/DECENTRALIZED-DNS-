@@ -1,6 +1,7 @@
-# Plugins (Moved)
+# Plugins
 
-All WordPress plugins were moved to:
+Canonical WordPress plugins live in:
 `/Users/root1/dev/web3-repos/web3-wp-plugins`
 
-See `docs/MOVED_PLUGINS.md`.
+This repo vendors the **MVP** plugin:
+- `plugins/toll-comments/` (kept in sync with the canonical repo)

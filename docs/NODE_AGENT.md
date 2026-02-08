@@ -31,5 +31,5 @@ Receipts are Ed25519‑signed by the wallet key.
 
 ## Files
 - Worker: `workers/node-agent/`
-- Coordinator: `services/control-plane/credits-coordinator/`
-- Shared types: `ddns-core/credits/`
+- Coordinator: `coordinator/`
+- Shared types: `core/credits/`

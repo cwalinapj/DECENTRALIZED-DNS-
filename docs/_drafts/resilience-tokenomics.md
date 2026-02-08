@@ -91,7 +91,7 @@ To avoid centralizing into one hosting provider, the protocol applies diversity 
 
 ### A) Traffic Steering Constraints (routing-time)
 
-Resolvers must apply diversity constraints when selecting edges:
+Gateways must apply diversity constraints when selecting edges:
 
 - cap selection share per ASN per region per window
 - cap selection share per operator per region per window

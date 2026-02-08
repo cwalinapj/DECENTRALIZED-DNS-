@@ -5,7 +5,7 @@ MVP supports gated namespaces (default: `*.premium`) that require a voucher head
 Voucher verification defaults to stubbed mode with a clear `VOUCHER_NOT_IMPLEMENTED` error until wired to escrow/settlement.
 
 ## Gated namespace behavior
-- If the name ends with a gated suffix (default `.premium`), resolver requires `x-ddns-voucher`.
+- If the name ends with a gated suffix (default `.premium`), gateway requires `x-ddns-voucher`.
 - Missing voucher: `402` with `VOUCHER_REQUIRED`.
 - Stub mode (default): `501` with `VOUCHER_NOT_IMPLEMENTED`.
 - Memory mode: HMAC verification using `VOUCHER_SECRET`.

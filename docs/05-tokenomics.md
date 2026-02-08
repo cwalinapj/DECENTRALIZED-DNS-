@@ -197,7 +197,7 @@ ISPs can participate as **ISP_RECURSOR_PARTNER** operators. They already run rec
 **What ISPs can operate:**
 
 - DoH/DoT ingress endpoints
-- recursive resolver + caching
+- recursive gateway + caching
 - upstream quorum validation
 - optional gateway routing + caching for Web3 content networks
 

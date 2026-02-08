@@ -8,7 +8,7 @@ This document describes:
 
 - which backends can be integrated,
 - what they contribute to resilience,
-- where they run (client / resolver / miner),
+- where they run (client / gateway / miner),
 - how TollDNS fails over safely,
 - and how **gateway tolling** works when a partner does not want “subdomain routing cache” usage.
 
@@ -42,7 +42,7 @@ Backends may execute in three places:
 - **Client (apps / extensions)**  
   Best for UX, privacy, and direct integration with browsers and user agents.
 
-- **Resolver (DoH/DoT edge)**  
+- **Gateway (DoH/DoT edge)**  
   Best for performance, caching, policy enforcement, and consistent behavior.
 
 - **Miner / Edge Operator (gateway + cache + ingress)**  
@@ -58,7 +58,7 @@ A single backend may be supported in multiple places.
 
 **Purpose:** Resolve traditional Web2 domains.
 
-**Implementation:** Recursive resolver over DoH/DoT with aggressive caching.
+**Implementation:** Recursive gateway over DoH/DoT with aggressive caching.
 
 **Bootstrapping strategy**
 
@@ -73,7 +73,7 @@ A single backend may be supported in multiple places.
 
 Where it runs:
 
-- Resolver (primary)
+- Gateway (primary)
 - Miner edges (optional, as ingress/caching expands)
 
 Adapter(s):
@@ -97,7 +97,7 @@ Examples (integrations via adapters):
 Where it runs:
 
 - Client app/extension (best UX path)
-- Resolver backend (server-side lookup)
+- Gateway backend (server-side lookup)
 - Miner gateways (content fetch + serving)
 
 Fallbacks:
@@ -125,7 +125,7 @@ Examples:
 
 Where it runs:
 
-- Resolver and/or miner edge nodes (primary)
+- Gateway and/or miner edge nodes (primary)
 - Client optional (advanced mode)
 
 Fallbacks:
@@ -150,7 +150,7 @@ Example:
 
 Where it runs:
 
-- Resolver layer (and optionally miner edges)
+- Gateway layer (and optionally miner edges)
 
 Fallback:
 
@@ -175,7 +175,7 @@ Examples:
 Where it runs:
 
 - Miner gateways (primary)
-- Resolver-owned gateway capacity (secondary)
+- Gateway-owned gateway capacity (secondary)
 - Client optional (direct retrieval in advanced mode)
 
 Fallbacks:

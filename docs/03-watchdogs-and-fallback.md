@@ -89,9 +89,9 @@ The Policy Contract:
 - defines the allowed fallback targets per backend
 - emits the current backend health state and routing policy version
 
-### Resolvers / Edges (Policy Enforcers)
+### Gateways / Edges (Policy Enforcers)
 
-Resolvers and edge ingress operators:
+Gateways and edge ingress operators:
 
 - periodically fetch policy state (or subscribe)
 - route traffic only according to the policy record

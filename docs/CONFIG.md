@@ -1,6 +1,6 @@
 # Configuration
 
-## Resolver
+## Gateway
 - `HOST`: bind address (default `0.0.0.0`)
 - `PORT`: listen port (default `8054`)
 - `UPSTREAM_DOH_URL`: DoH upstream (default Cloudflare)

@@ -1,0 +1,9 @@
+core/
+  README.md
+  src/
+    normalize.*
+    name_id.*
+    routeset.*
+    anchor.*
+    crypto_ed25519.*
+  tests/

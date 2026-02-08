@@ -24,7 +24,7 @@ Expected response includes:
 - This is a stubbed pipeline for MVP demos.
 - Real voucher validation and receipts are wired. Escrow settlement can be enabled via ESCROW_URL.
 
-## Real resolver (DoH + vouchers)
+## Real gateway (DoH + vouchers)
 ```bash
 /Users/root1/scripts/DECENTRALIZED-DNS-/scripts/run-resolver.sh
 ```
@@ -34,7 +34,7 @@ Test:
 curl "http://localhost:8054/dns-query?name=example.com&json=1"
 ```
 
-Receipts match `specs/receipt-format.md` and are written to `resolver/receipts`.
+Receipts match `specs/receipt-format.md` and are written to `gateway/receipts`.
 
 ### Toll policy gate (optional)
 Set env and add headers:

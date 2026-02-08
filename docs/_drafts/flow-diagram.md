@@ -3,7 +3,7 @@
 ```mermaid
 flowchart LR
   U[User Device] -->|DNS query| S[Local Stub + Wallet]
-  S -->|DoH/DoT + Signed Voucher| R[Paid Recursive Resolver]
+  S -->|DoH/DoT + Signed Voucher| R[Paid Recursive Gateway]
 
   R -->|Web2 recursion or forward| UP[Upstream DNS\n(Cloudflare/Google/etc.)]
   UP --> R
@@ -37,7 +37,7 @@ flowchart TB
     SB[SCRUBBING-BACKEND\nDDoS Filtering Capacity]
   end
 
-  subgraph Core[Core Resolver Layer]
+  subgraph Core[Core Gateway Layer]
     R1[CORE-RESOLVER\nRecursion + Routing]
     R2[CORE-RESOLVER\nRecursion + Routing]
   end
@@ -63,7 +63,7 @@ flowchart TB
   U1 -->|Attack traffic hits VIP/Ingress| SB
   SB -->|Clean traffic| EA
 
-  %% Core resolver fallback path
+  %% Core gateway fallback path
   R1 -->|Web2 recursion or forward| CF
   CF --> R1
 

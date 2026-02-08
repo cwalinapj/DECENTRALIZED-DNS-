@@ -88,7 +88,7 @@ Telemetry should be aggregated and privacy-preserving.
 The router outputs:
 
 - a selected primary target set:
-  - resolver / edge ingress / gateway / cache
+  - gateway / edge ingress / gateway / cache
 - optional fallback chain:
   - secondary targets
   - centralized fallback providers
@@ -105,7 +105,7 @@ Depending on deployment:
 
 - prefer anycast VIP → nearest healthy edge ingress (when available)
 - else select from regional edge ingress list
-- else direct to core resolver (fallback/simple mode)
+- else direct to core gateway (fallback/simple mode)
 
 Ingress selection is constrained by:
 

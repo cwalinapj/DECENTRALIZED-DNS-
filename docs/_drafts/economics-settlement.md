@@ -12,7 +12,7 @@ This document describes how TollDNS charges per-query tolls and pays miners with
 ## Roles
 
 - **Client**: phone/desktop/router app that runs a local DNS stub + wallet.
-- **Resolver**: paid recursive DoH/DoT service that validates payment vouchers and performs recursion/routing.
+- **Gateway**: paid recursive DoH/DoT service that validates payment vouchers and performs recursion/routing.
 - **Miner**: provides gateway/caching/edge capacity; gets paid based on delivered service.
 - **L2 Chain**: accounting + control plane (escrow, registry, rewards/payouts).
 
@@ -26,18 +26,18 @@ Client-side spend protections (enforced locally):
 
 - Max spend per day/week/month
 - Max spend per domain/category
-- Resolver allowlist / denylist
+- Gateway allowlist / denylist
 - Minimum balance threshold + emergency stop
 - Optional “surge pricing” caps
 
 ### Off-Chain Vouchers (Per Query)
 
-Each request includes a signed voucher authorizing payment. The resolver verifies it instantly (signature + sequence checks).
+Each request includes a signed voucher authorizing payment. The gateway verifies it instantly (signature + sequence checks).
 
 **Key design choice (recommended initially):**
 
-- **Users pay the Resolver**
-- The resolver **pays Miners** during batch settlement
+- **Users pay the Gateway**
+- The gateway **pays Miners** during batch settlement
 
 This keeps the client trust model simple and makes failover easy.
 
@@ -56,18 +56,18 @@ A voucher is a signed message containing:
 
 ### Why a Sequence Number?
 
-To prevent replay and double-spend. The resolver tracks the last accepted `seq` (or a small window).
+To prevent replay and double-spend. The gateway tracks the last accepted `seq` (or a small window).
 
 ## Settlement (Batch, On-Chain)
 
-Resolvers aggregate vouchers off-chain and periodically settle in batches:
+Gateways aggregate vouchers off-chain and periodically settle in batches:
 
-1. Resolver submits a batch settlement transaction to escrow:
+1. Gateway submits a batch settlement transaction to escrow:
    - identifies users
    - claims total amounts for accepted vouchers
    - provides a compact proof (implementation-dependent)
 2. Escrow releases funds to:
-   - resolver fee
+   - gateway fee
    - miner payout pool (or direct miner payouts)
    - optional protocol/insurance fee
 
@@ -76,7 +76,7 @@ Resolvers aggregate vouchers off-chain and periodically settle in batches:
 Configurable, but a common split is:
 
 - **Miner service share:** 70–85%
-- **Resolver share:** 10–20%
+- **Gateway share:** 10–20%
 - **Protocol/insurance:** 0–10%
 
 ## Miner Receipts (Proof-of-Serving)
@@ -84,7 +84,7 @@ Configurable, but a common split is:
 To ensure miners get paid only for real work:
 
 - A miner returns a response plus a **receipt** proving service occurred.
-- The resolver validates correctness + SLO and records a “payable unit.”
+- The gateway validates correctness + SLO and records a “payable unit.”
 
 Receipt can include:
 
@@ -95,13 +95,13 @@ Receipt can include:
 - `latency_class` (bucketed)
 - `sig_miner` (miner signature)
 
-The resolver may also sign an acknowledgement (useful if disputes exist later).
+The gateway may also sign an acknowledgement (useful if disputes exist later).
 
 ## Disputes & Fraud (Optional Early, Stronger Later)
 
 Early-phase (simpler):
 
-- Rely on `seq` monotonicity + short expiry + resolver reputation.
+- Rely on `seq` monotonicity + short expiry + gateway reputation.
 - Keep disputes off-chain; settle conservatively.
 
 Later (stronger):

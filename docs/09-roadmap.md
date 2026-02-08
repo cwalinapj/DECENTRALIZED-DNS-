@@ -63,7 +63,7 @@ we want to talk.
   - receipts: `specs/receipt-format.md`
   - policy state machine: `specs/policy-state-machine.md`
 - Minimal runnable prototype plan:
-  - DoH/DoT resolver scaffold
+  - DoH/DoT gateway scaffold
   - voucher verification scaffold
   - policy read + routing stub
 
@@ -76,11 +76,11 @@ we want to talk.
 
 ## Phase 1 — MVP: Paid Recursive DNS with Index Unit Tolls (1 → 2)
 
-**Goal:** a working paid resolver that users can point devices at.
+**Goal:** a working paid gateway that users can point devices at.
 
 **Deliverables**
 
-- DoH/DoT recursive resolver with:
+- DoH/DoT recursive gateway with:
   - query handling
   - caching
   - basic abuse limits
@@ -92,7 +92,7 @@ we want to talk.
   - deposit/withdraw
   - per-query toll decrement via vouchers (off-chain)
 - Batch settlement MVP:
-  - resolver aggregates vouchers
+  - gateway aggregates vouchers
   - periodic settlement transaction to L2 mock or test chain
 - Bootstrapping recursion mode:
   - upstream-forwarded resolution for reliability initially (optionally quorum-based)
@@ -261,7 +261,7 @@ we want to talk.
 
 ## Phase 8 — Nameserver Mode + “Cloudflare-Like” Features (8 → 9)
 
-**Goal:** expand from recursive resolver into more edge features while keeping Index Unit usage pricing.
+**Goal:** expand from recursive gateway into more edge features while keeping Index Unit usage pricing.
 
 **Deliverables**
 

@@ -46,7 +46,7 @@ Start with: `docs/WORK_BREAKDOWN.md`
 
 High-impact early modules:
 
-- Resolver (DoH) + caching
+- Gateway (DoH) + caching
 - Upstream quorum adapter
 - Policy engine (config-first)
 - Gateway routing + IPFS adapter

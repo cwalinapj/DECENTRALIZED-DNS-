@@ -1,7 +1,7 @@
 # client
 
 ## PURPOSE
-The client section contains wallet-based apps (mobile, desktop, browser extension) plus gateway and storage agents. It is the user-facing layer that signs vouchers, manages keys, and interfaces with resolver/escrow.
+The client section contains wallet-based apps (mobile, desktop, browser extension) plus gateway and storage agents. It is the user-facing layer that signs vouchers, manages keys, and interfaces with gateway/escrow.
 
 ## INVENTORY
 - `apps/` – mobile/desktop/browser scaffolds
@@ -42,4 +42,4 @@ Adapters should use unified resolve outputs: `docs/sections/ADAPTER_INTERFACE.md
 ## TODO (priority)
 1. Add real app scaffolds (React Native, Tauri, extension build system).
 2. Implement voucher signing + session management SDK.
-3. Add end-to-end wallet → resolver demo.
+3. Add end-to-end wallet → gateway demo.

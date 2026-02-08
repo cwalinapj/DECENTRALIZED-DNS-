@@ -6,9 +6,9 @@ paying tolls from escrow.
 ## Model
 - Client performs a one-time wallet signature to obtain a short-lived token.
 - Token is bound to wallet address + rate limit + TTL.
-- Resolver/toll gate validates token and debits escrow in batches.
+- Gateway/toll gate validates token and debits escrow in batches.
 
-## Resolver API (MVP)
+## Gateway API (MVP)
 `POST /session` with JSON:
 ```json
 {

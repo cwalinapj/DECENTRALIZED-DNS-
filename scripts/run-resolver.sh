@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd /Users/root1/scripts/DECENTRALIZED-DNS-/resolver
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT/gateway"
 npm install
 npm run build
 

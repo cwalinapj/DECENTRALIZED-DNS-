@@ -6,7 +6,7 @@ Resolves `.eth` names via Ethereum JSON-RPC. Uses the ENS registry to discover t
 - `contenthash` (if set)
 
 ## Config
-- `ENABLE_ENS=1` to enable resolver routing.
+- `ENABLE_ENS=1` to enable gateway routing.
 - `ETH_RPC_URL` (required when enabled).
 - `ENS_NETWORK` (default `mainnet`, informational metadata only).
 - `REQUEST_TIMEOUT_MS` (default `2000`).

@@ -168,7 +168,7 @@ If served through our gateway/hosting stack:
 
 Only for severe, high-confidence campaigns:
 
-- TollDNS resolver returns `POLICY_BLOCKED` for a limited window
+- TollDNS gateway returns `POLICY_BLOCKED` for a limited window
 - requires continued confirmation to extend
 - always provides an appeal path
 

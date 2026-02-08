@@ -28,7 +28,7 @@ anchor build
 ## INTERFACE CONTRACT
 - PDAs: config, toll pass, name record, lock vault.
 - Inputs: admin signer, mint accounts, metadata accounts.
-- Outputs: on-chain accounts and program IDs for resolver and registry.
+- Outputs: on-chain accounts and program IDs for gateway and registry.
 
 ## SECURITY + RELIABILITY PASS
 - Program not buildable yet; cannot audit runtime behavior.

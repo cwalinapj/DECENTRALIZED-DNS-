@@ -1,7 +1,7 @@
 # escrow
 
 ## PURPOSE
-Escrow manages Index Unit balances and voucher-based spend authorization so the resolver can charge usage without per-request wallet prompts. It backs toll settlement and provides a batch-friendly ledger interface for usage debits.
+Escrow manages Index Unit balances and voucher-based spend authorization so the gateway can charge usage without per-request wallet prompts. It backs toll settlement and provides a batch-friendly ledger interface for usage debits.
 
 ## INVENTORY
 - `escrow/README.md` – module overview + run/test.

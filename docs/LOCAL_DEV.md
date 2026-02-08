@@ -37,7 +37,7 @@ ENABLE_SNS=1 SOLANA_RPC_URL=https://api.devnet.solana.com ./scripts/dev.sh
 ```
 
 ## Anchoring demo
-Start resolver with registry + admin token:
+Start gateway with registry + admin token:
 ```bash
 REGISTRY_ENABLED=1 REGISTRY_ADMIN_TOKEN=devtoken ./scripts/dev.sh
 ```
@@ -75,7 +75,7 @@ Expected JSON shape:
 
 ## Manual run
 ```bash
-cd resolver
+cd gateway
 npm install
 npm run build
 NODE_ENV=development PORT=8054 npm start

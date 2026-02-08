@@ -55,7 +55,7 @@ curl "http://localhost:8054/registry/root"
 ```bash
 curl "http://localhost:8054/registry/proof?name=alice.dns"
 ```
-3. Verify with `ddns-core/src/registry_merkle.ts` using `verifyProof(root, leaf, proof)`.
+3. Verify with `core/src/registry_merkle.ts` using `verifyProof(root, leaf, proof)`.
 
 ## Future tie-in
 In later phases, the anchor record will be persisted on-chain or in settlement/escrow windows to prove the registry state at a given time.

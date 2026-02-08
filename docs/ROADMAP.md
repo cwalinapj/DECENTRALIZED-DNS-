@@ -12,13 +12,13 @@
 ## Good first issues (with DoD)
 1. ENS adapter integration test
    - DoD: integration test with `RUN_INTEGRATION=1` passes against a live RPC.
-   - Tests: `resolver/tests/ens.test.ts` integration block.
+   - Tests: `gateway/tests/ens.test.ts` integration block.
 2. SNS adapter integration test
    - DoD: integration test with `RUN_INTEGRATION=1` passes against devnet.
-   - Tests: `resolver/tests/sns.test.ts` integration block.
-3. Handshake adapter (`adaptors/handshake`)
+   - Tests: `gateway/tests/sns.test.ts` integration block.
+3. Handshake adapter (`adapters/handshake`)
    - DoD: implement adapter with mocked tests, update conformance.
-4. Redis cache backend (`ddns-core` or `resolver/cache`)
+4. Redis cache backend (`core` or `gateway/cache`)
    - DoD: optional Redis cache with TTL, fallback to in-memory on failure.
 5. Internal `.dns` CLI improvements
    - DoD: add optional signed update verifier for different wallet types.

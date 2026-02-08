@@ -1,10 +1,10 @@
-# Quickstart (Local Resolver + Gateway Stack)
+# Quickstart (Local Gateway + Gateway Stack)
 
 Repo: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 
 This quickstart spins up a **local development stack** for:
 
-- Resolver (DoH/DoT)
+- Gateway (DoH/DoT)
 - Gateway (IPFS adapter first)
 - Optional: local policy config + receipt logging
 
@@ -28,7 +28,7 @@ From repo root:
 docker compose up --build
 ```
 
-## 2) Test the resolver stub
+## 2) Test the gateway stub
 
 ```bash
 curl "http://localhost:8053/resolve?name=example.com"

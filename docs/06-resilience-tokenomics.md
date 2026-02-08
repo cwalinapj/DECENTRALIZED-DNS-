@@ -119,7 +119,7 @@ To prevent centralization into a few hosting providers and ASNs, TollDNS enforce
 
 ### A) Routing-Time (Selection Constraints)
 
-Resolvers must apply constraints when selecting edges:
+Gateways must apply constraints when selecting edges:
 
 - **ASN caps**: limit routing share per ASN in a region per time window
 - **Operator caps**: limit routing share per operator in a region per time window

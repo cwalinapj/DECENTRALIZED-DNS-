@@ -17,7 +17,7 @@ Guiding principles:
 **MVP v0.1 must:**
 
 1) Run locally: `docker compose up --build`
-2) Provide a working resolver endpoint:
+2) Provide a working gateway endpoint:
    - DoH (HTTP) with cache
    - upstream forwarding + quorum option
 3) Provide a working gateway endpoint:
@@ -36,9 +36,9 @@ Guiding principles:
 
 ## 1) Module Map (Owners Wanted)
 
-### A) Resolver Service (DoH/DoT + Cache)
+### A) Gateway Service (DoH/DoT + Cache)
 
-**Path:** `/services/resolver/`  
+**Path:** `/services/gateway/`  
 **Priority:** P0  
 **Definition of Done**
 
@@ -50,9 +50,9 @@ Guiding principles:
 
 **Issues to open**
 
-- “Resolver: DoH JSON endpoint + cache”
-- “Resolver: wireformat DoH (RFC8484) support”
-- “Resolver: DoT endpoint (optional v0.2)”
+- “Gateway: DoH JSON endpoint + cache”
+- “Gateway: wireformat DoH (RFC8484) support”
+- “Gateway: DoT endpoint (optional v0.2)”
 
 ---
 
@@ -77,7 +77,7 @@ Guiding principles:
 
 - Reads a local policy config (YAML/JSON)
 - Produces effective backend states (HEALTHY/DEGRADED/DISABLED)
-- Exposes a simple API to resolver/gateway: “is backend allowed?” “preferred fallback set?”
+- Exposes a simple API to gateway/gateway: “is backend allowed?” “preferred fallback set?”
 - Unit tests for state transitions
 
 ---
@@ -91,7 +91,7 @@ Guiding principles:
 - Implements receipt struct matching `specs/receipt-format.md`
 - Deterministic request hash + response hash
 - Operator signature generation + verification test
-- Resolver attaches receipt to response metadata (behind config flag)
+- Gateway attaches receipt to response metadata (behind config flag)
 
 ---
 
@@ -119,7 +119,7 @@ Guiding principles:
 **Priority:** P1  
 **Definition of Done**
 
-- A small prober that checks resolver/gateway availability and emits a health report
+- A small prober that checks gateway/gateway availability and emits a health report
 - Output matches `specs/health-report-format.md`
 - Can be run in Docker as a separate container
 
@@ -151,7 +151,7 @@ Guiding principles:
 
 ## 2) Suggested PR Order (Fastest to “usable”)
 
-1) Resolver skeleton + DoH JSON endpoint + health
+1) Gateway skeleton + DoH JSON endpoint + health
 2) Upstream forwarding + cache
 3) Upstream quorum adapter
 4) Policy engine (config-first) and fallback wiring
@@ -164,7 +164,7 @@ Guiding principles:
 
 ## 3) “Good First Issues” (1–2 hour tasks)
 
-- Add a `docker compose` healthcheck block for resolver/gateway
+- Add a `docker compose` healthcheck block for gateway/gateway
 - Add a minimal config loader (YAML/JSON) for policy module
 - Add adapter example docs for a new namespace
 - Add curl-based e2e smoke test script (`scripts/smoke.sh`)

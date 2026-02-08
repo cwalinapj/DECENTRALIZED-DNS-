@@ -59,7 +59,7 @@ Miners provide always-on infrastructure such as:
 
 ---
 
-### 3) Core Resolver Layer (Paid Recursive DoH/DoT)
+### 3) Core Gateway Layer (Paid Recursive DoH/DoT)
 
 Core resolvers are responsible for:
 
@@ -124,7 +124,7 @@ The L2 is the **accounting and policy layer**, not the data plane. It provides:
 ### Control Plane (Slow Path)
 
 - escrow deposits/withdrawals (users)
-- batch settlements (resolver pays miners)
+- batch settlements (gateway pays miners)
 - registry updates (miners/gateways/backends)
 - policy updates driven by watchdog attestations
 
@@ -133,14 +133,14 @@ The L2 is the **accounting and policy layer**, not the data plane. It provides:
 ## End-to-End Flow (High-Level)
 
 1) **User device** asks local stub for DNS resolution.
-2) **Client stub** forwards query via DoH/DoT to a resolver (or edge ingress) with a **signed voucher**.
+2) **Client stub** forwards query via DoH/DoT to a gateway (or edge ingress) with a **signed voucher**.
 3) **Ingress / resolver** validates admission (toll booth) and voucher.
-4) Resolver performs:
+4) Gateway performs:
    - web2 recursion (native or upstream-forwarded), OR
    - routes to a miner gateway/cache for web3/pointer resolution
 5) Miner returns response + a **service receipt**.
-6) Resolver returns DNS response to client.
-7) Resolver periodically **batch settles** voucher totals and miner payouts on the L2.
+6) Gateway returns DNS response to client.
+7) Gateway periodically **batch settles** voucher totals and miner payouts on the L2.
 
 ---
 

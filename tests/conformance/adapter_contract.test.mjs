@@ -3,7 +3,7 @@ import path from "node:path";
 import assert from "node:assert";
 
 const root = path.resolve(process.cwd());
-const adaptorsDir = path.join(root, "adaptors");
+const adaptorsDir = path.join(root, "adapters");
 
 const entries = fs.readdirSync(adaptorsDir, { withFileTypes: true })
   .filter((entry) => entry.isDirectory())

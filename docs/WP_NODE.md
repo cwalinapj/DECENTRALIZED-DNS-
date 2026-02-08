@@ -1,7 +1,7 @@
 # WordPress Node (Cache/Witness)
 
 ## Purpose
-WP nodes provide cache/witness endpoints for resolver results in safe mode. They do not store secrets or private keys.
+WP nodes provide cache/witness endpoints for gateway results in safe mode. They do not store secrets or private keys.
 
 ## Plugin
 Repository: `web3-wp-plugins/ddns-node`.
@@ -16,7 +16,7 @@ Repository: `web3-wp-plugins/ddns-node`.
 - No private keys or signing in WordPress.
 
 ## Safe mode
-Resolver can query N nodes + authoritative resolver, verify integrity, and accept by quorum.
+Gateway can query N nodes + authoritative resolver, verify integrity, and accept by quorum.
 
 ## Config
 - `config/example/nodes.json` lists node URLs.

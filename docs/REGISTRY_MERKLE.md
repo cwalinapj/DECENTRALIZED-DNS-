@@ -51,4 +51,4 @@ node scripts/registry-build-root.js --input registry/snapshots/registry.json --n
 - `GET /registry/proof?name=alice.dns`
 
 ## Verification
-Use `ddns-core/src/registry_merkle.ts` for proof verification.
+Use `core/src/registry_merkle.ts` for proof verification.

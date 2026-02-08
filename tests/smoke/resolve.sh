@@ -4,7 +4,7 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 port=8056
 
-cd "$root/resolver"
+cd "$root/gateway"
 
 LOG_LEVEL=verbose PORT="$port" node dist/server.js > /tmp/ddns-smoke.log 2>&1 &
 server_pid=$!
@@ -17,7 +17,7 @@ trap cleanup EXIT
 ready=0
 for _ in {1..20}; do
   if ! kill -0 "$server_pid" >/dev/null 2>&1; then
-    echo "resolver process exited early"
+    echo "gateway process exited early"
     cat /tmp/ddns-smoke.log
     exit 1
   fi
@@ -29,14 +29,14 @@ for _ in {1..20}; do
 done
 
 if [ "$ready" -ne 1 ]; then
-  echo "resolver did not become ready"
+  echo "gateway did not become ready"
   cat /tmp/ddns-smoke.log
   exit 1
 fi
 
 response=$(curl -sSf "http://localhost:${port}/resolve?name=example.com" || true)
 if [ -z "$response" ]; then
-  echo "resolver did not return a response"
+  echo "gateway did not return a response"
   cat /tmp/ddns-smoke.log
   exit 1
 fi

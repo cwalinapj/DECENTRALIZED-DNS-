@@ -1,7 +1,7 @@
 # services
 
 ## PURPOSE
-Services provide the HTTP control planes and registries that orchestrate DDNS sites, jobs, email routing, name resolution, and secret storage. They act as the management layer around the resolver and escrow components.
+Services provide the HTTP control planes and registries that orchestrate DDNS sites, jobs, email routing, name resolution, and secret storage. They act as the management layer around the gateway and escrow components.
 
 ## INVENTORY
 - `services/compat-control-plane/` – WordPress compatibility control plane.
