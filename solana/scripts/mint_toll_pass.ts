@@ -3,7 +3,13 @@ import path from "node:path";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import * as anchor from "@coral-xyz/anchor";
-import { Keypair, PublicKey, Connection } from "@solana/web3.js";
+import {
+  Keypair,
+  PublicKey,
+  Connection,
+  Transaction,
+  TransactionInstruction,
+} from "@solana/web3.js";
 import {
   createMint,
   getAssociatedTokenAddress,
@@ -38,7 +44,22 @@ function loadIdl() {
       `IDL not found at ${idlPath}. Run 'anchor build' in /solana first.`
     );
   }
-  return JSON.parse(fs.readFileSync(idlPath, "utf8"));
+  const idl = JSON.parse(fs.readFileSync(idlPath, "utf8"));
+  // Patch missing account sizes if not present in IDL (Anchor JS expects size).
+  const sizeMap: Record<string, number> = {
+    Config: 8 + 36,
+    TollPass: 8 + 138,
+    TokenLock: 8 + 123,
+    NameRecord: 8 + 171,
+  };
+  if (Array.isArray(idl.accounts)) {
+    for (const acct of idl.accounts) {
+      if (acct && typeof acct === "object" && !acct.size && sizeMap[acct.name]) {
+        acct.size = sizeMap[acct.name];
+      }
+    }
+  }
+  return idl;
 }
 
 async function main() {
@@ -95,9 +116,11 @@ async function main() {
 
   const idl = loadIdl();
   const programId = new PublicKey(
-    idl.metadata?.address ?? idl.address ?? "2kE76PBfDwKvSsfBW9xMBxaor8AoEooVDA7DkGd8WVR1"
+    idl.metadata?.address ??
+      idl.address ??
+      "2kE76PBfDwKvSsfBW9xMBxaor8AoEooVDA7DkGd8WVR1"
   );
-  const program = new anchor.Program(idl, programId, provider);
+  const ixCoder = new anchor.BorshInstructionCoder(idl);
 
   const owner = payer.publicKey;
 
@@ -156,18 +179,60 @@ async function main() {
   );
   tokenAccount = ata.address;
 
-  const tx = await program.methods
-    .issueTollPass(argv.name, pageCidHash, metadataHash)
-    .accounts({
-      tollPass: tollPassPda,
-      record: recordPda,
-      nftMint: mint,
-      nftTokenAccount: tokenAccount,
-      owner,
-      systemProgram: anchor.web3.SystemProgram.programId,
-      tokenProgram: TOKEN_PROGRAM_ID,
-    })
-    .rpc();
+  const ixDef = idl.instructions?.find(
+    (i: { name: string }) => i.name === "issue_toll_pass"
+  );
+  if (!ixDef) {
+    throw new Error("IDL missing issue_toll_pass instruction");
+  }
+  const accountMap: Record<string, PublicKey> = {
+    toll_pass: tollPassPda,
+    record: recordPda,
+    nft_mint: mint,
+    nft_token_account: tokenAccount,
+    owner: owner,
+    system_program: anchor.web3.SystemProgram.programId,
+    token_program: TOKEN_PROGRAM_ID,
+  };
+  const keys = ixDef.accounts.map(
+    (a: {
+      name: string;
+      isMut?: boolean;
+      isSigner?: boolean;
+      writable?: boolean;
+      signer?: boolean;
+      address?: string;
+    }) => {
+      const pubkey = accountMap[a.name];
+      if (!pubkey) {
+        if (a.address) {
+          return {
+            pubkey: new PublicKey(a.address),
+            isSigner: Boolean(a.signer),
+            isWritable: Boolean(a.writable),
+          };
+        }
+        throw new Error(`Missing account pubkey for ${a.name}`);
+      }
+      return {
+        pubkey,
+        isSigner: Boolean(a.isSigner ?? a.signer),
+        isWritable: Boolean(a.isMut ?? a.writable),
+      };
+    }
+  );
+  const data = ixCoder.encode("issue_toll_pass", {
+    name: argv.name,
+    pageCidHash,
+    metadataHash,
+  });
+  const ix = new TransactionInstruction({
+    programId,
+    keys,
+    data,
+  });
+
+  const tx = await provider.sendAndConfirm(new Transaction().add(ix), []);
 
   console.log("mint:", mint.toBase58());
   console.log("token_account:", tokenAccount.toBase58());
@@ -179,15 +244,22 @@ async function main() {
   const ataInfo = await getAccount(provider.connection, tokenAccount, "confirmed");
   console.log("ata_amount:", ataInfo.amount.toString());
 
+  // Best-effort fetch/decode of the toll_pass account.
   try {
-    const pass = (await program.account.tollPass.fetch(tollPassPda)) as {
-      owner: PublicKey;
-      issuedAt: anchor.BN;
-      nameHash: number[] | Uint8Array;
-    };
-    console.log("toll_pass_owner:", pass.owner.toBase58());
-    console.log("toll_pass_issued_at:", pass.issuedAt.toString());
-    console.log("toll_pass_name_hash:", Buffer.from(pass.nameHash).toString("hex"));
+    const info = await provider.connection.getAccountInfo(tollPassPda, "confirmed");
+    if (!info) {
+      console.warn("toll_pass_fetch_failed: account not found");
+    } else {
+      // Skip Anchor account coder; decode manually from layout.
+      // Layout: discriminator(8) + owner(32) + issued_at(i64) + name_hash(32) + page_cid_hash(32) + metadata_hash(32) + bump(u8) + initialized(u8)
+      const data = info.data;
+      const ownerPk = new PublicKey(data.slice(8, 40));
+      const issuedAt = Number(data.readBigInt64LE(40));
+      const nameHash = data.slice(48, 80);
+      console.log("toll_pass_owner:", ownerPk.toBase58());
+      console.log("toll_pass_issued_at:", issuedAt.toString());
+      console.log("toll_pass_name_hash:", Buffer.from(nameHash).toString("hex"));
+    }
   } catch (err) {
     console.warn("toll_pass_fetch_failed:", (err as Error).message);
   }

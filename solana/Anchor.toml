@@ -9,8 +9,8 @@ ddns_anchor = "2kE76PBfDwKvSsfBW9xMBxaor8AoEooVDA7DkGd8WVR1"
 ddns_anchor = "2kE76PBfDwKvSsfBW9xMBxaor8AoEooVDA7DkGd8WVR1"
 
 [provider]
-cluster = "devnet"
-wallet = "./devnet-wallet.json"
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
 
 [scripts]
 test = "anchor test"

@@ -117,6 +117,26 @@ solana airdrop 2
 ANCHOR_PROVIDER_URL=https://api.devnet.solana.com ANCHOR_WALLET=~/.config/solana/id.json npm -C solana run mint-toll-pass
 ```
 
+## Store a Route
+
+Devnet:
+```bash
+solana config set --url https://api.devnet.solana.com
+solana airdrop 2
+ANCHOR_PROVIDER_URL=https://api.devnet.solana.com ANCHOR_WALLET=~/.config/solana/id.json npm -C solana run set-route -- --name "example.dns" --dest "ipfs://bafy..."
+```
+
+Localnet (Docker validator):
+```bash
+docker run --rm -p 8899:8899 -p 8900:8900 solanalabs/solana:v1.18.20 solana-test-validator --reset --ledger /tmp/ledger
+export ANCHOR_PROVIDER_URL=http://127.0.0.1:8899
+export ANCHOR_WALLET=$HOME/.config/solana/id.json
+solana config set --url http://127.0.0.1:8899
+solana airdrop 5
+anchor deploy
+npm -C solana run set-route -- --name "local.dns" --dest "https://example.com"
+```
+
 ## Deploy (devnet)
 ```bash
 anchor deploy --provider.cluster devnet --provider.wallet ./devnet-wallet.json

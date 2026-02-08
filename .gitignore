@@ -17,6 +17,8 @@ solana/devnet-wallet.json
 
 # local ignores
 **/target/
+solana/test-ledger/
+**/test-ledger/
 **/node_modules/
 **/.DS_Store
 **/.env
