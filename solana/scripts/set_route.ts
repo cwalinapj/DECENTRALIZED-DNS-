@@ -76,6 +76,11 @@ async function main() {
       default: false,
       describe: "Only update an existing record; do not create",
     })
+    .option("create-only", {
+      type: "boolean",
+      default: false,
+      describe: "Only create a new record; do not update",
+    })
     .option("rpc", { type: "string" })
     .option("wallet", { type: "string" })
     .option("dry-run", { type: "boolean", default: false })
@@ -155,6 +160,9 @@ async function main() {
   const recordInfo = await connection.getAccountInfo(recordPda, "confirmed");
   if (!recordInfo && argv["update-only"]) {
     throw new Error("record does not exist; use create or omit --update-only");
+  }
+  if (recordInfo && argv["create-only"]) {
+    throw new Error("record already exists; use update or omit --create-only");
   }
   const ixName = recordInfo ? "update_name_record" : "create_name_record";
   const ixDef = idl.instructions?.find(

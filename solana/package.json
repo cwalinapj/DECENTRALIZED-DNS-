@@ -11,7 +11,8 @@
     "set-route": "tsx scripts/set_route.ts",
     "route:create": "tsx scripts/route_create.ts",
     "route:sign-witness": "tsx scripts/route_sign_witness.ts",
-    "route:status": "tsx scripts/route_status.ts"
+    "route:status": "tsx scripts/route_status.ts",
+    "route:list": "tsx scripts/route_list.ts"
   },
   "devDependencies": {
     "@coral-xyz/anchor": "^0.32.1",

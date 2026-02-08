@@ -176,6 +176,7 @@ Edit `services/toll-booth/config/trusted_witnesses.json` to include witness pubk
 5) Create route locally + gather witnesses:
 ```bash
 npm -C solana run route:create -- --name "example.dns" --dest "https://example.com" --ttl 300
+npm -C solana run route:list
 npm -C solana run route:sign-witness -- --route-id <ROUTE_ID> --keypair <witness1>
 npm -C solana run route:sign-witness -- --route-id <ROUTE_ID> --keypair <witness2>
 ```
@@ -190,6 +191,7 @@ Notes:
 - Wallet cache is the source of truth; chain record is the public checkpoint.
 - Mining credits are recorded by the toll booth (stub).
 - Set `TOLL_BOOTH_URL` if your booth is not on `http://localhost:8787`.
+- Use `--create-only` or `--update-only` to control record creation behavior.
 
 ## Deploy (devnet)
 ```bash
