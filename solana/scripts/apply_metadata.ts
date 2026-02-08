@@ -14,13 +14,8 @@ import {
   createCreateMasterEditionV3Instruction,
   createUpdateMetadataAccountV2Instruction,
 } from "@metaplex-foundation/mpl-token-metadata";
+import type { Creator } from "@metaplex-foundation/mpl-token-metadata";
 import * as mpl from "@metaplex-foundation/mpl-token-metadata";
-
-type CreatorInput = {
-  address: PublicKey;
-  verified: boolean;
-  share: number;
-};
 
 function loadKeypair(filePath: string): Keypair {
   const data = fs.readFileSync(filePath, "utf8");
@@ -28,7 +23,7 @@ function loadKeypair(filePath: string): Keypair {
   return Keypair.fromSecretKey(secret);
 }
 
-function parseCreators(input?: string): CreatorInput[] | null {
+function parseCreators(input?: string): Creator[] | null {
   if (!input) return null;
   const parts = input.split(",").map((s) => s.trim()).filter(Boolean);
   if (parts.length === 0) return null;
