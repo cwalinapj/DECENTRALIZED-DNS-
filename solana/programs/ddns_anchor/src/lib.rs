@@ -639,6 +639,7 @@ fn write_name(name: &str, out: &mut [u8; 32], len_out: &mut u8) -> Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "metaplex")]
 fn record_name(record: &Account<NameRecord>) -> Result<String> {
     let len = record.name_len as usize;
     let name_bytes = &record.name_bytes[..len];
