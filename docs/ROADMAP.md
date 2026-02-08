@@ -6,6 +6,9 @@
 - Registry + Merkle proofs (done for `.dns`)
 - ENS + SNS adapters (implemented behind flags)
 
+## Release tag
+- `v0.1.0-mvp`: dev.sh + `/resolve` + docker dev harness + ENS/SNS + `.dns` registry/proofs.
+
 ## Good first issues (with DoD)
 1. ENS adapter integration test
    - DoD: integration test with `RUN_INTEGRATION=1` passes against a live RPC.
