@@ -62,6 +62,7 @@ async function main() {
     .option("creators", { type: "string" })
     .option("master-edition", { type: "boolean", default: false })
     .option("mutable", { type: "boolean", default: true })
+    .option("new-update-authority", { type: "string" })
     .option("allow-non-mint-authority", { type: "boolean", default: false })
     .option("dry-run", { type: "boolean", default: false })
     .option("force", { type: "boolean", default: false })
@@ -87,12 +88,16 @@ async function main() {
   const connection = new Connection(rpcUrl, "confirmed");
   const payer = loadKeypair(keypairPath);
 
+  const mplIds = mpl as unknown as {
+    MPL_TOKEN_METADATA_PROGRAM_ID?: PublicKey;
+    PROGRAM_ID?: PublicKey;
+  };
   const MPL_PROGRAM_ID =
-    (mpl as Record<string, PublicKey>).MPL_TOKEN_METADATA_PROGRAM_ID ||
-    (mpl as Record<string, PublicKey>).PROGRAM_ID;
+    mplIds.MPL_TOKEN_METADATA_PROGRAM_ID ?? mplIds.PROGRAM_ID;
   if (!MPL_PROGRAM_ID) {
     throw new Error("Unable to resolve Metaplex program id from mpl-token-metadata package.");
   }
+  console.log("mpl_program_id:", MPL_PROGRAM_ID.toBase58());
 
   const [metadataPda] = PublicKey.findProgramAddressSync(
     [Buffer.from("metadata"), MPL_PROGRAM_ID.toBuffer(), mint.toBuffer()],
@@ -158,6 +163,9 @@ async function main() {
       )
     );
   } else if (argv.force) {
+    const newUpdateAuthority = argv["new-update-authority"]
+      ? new PublicKey(argv["new-update-authority"])
+      : null;
     tx.add(
       createUpdateMetadataAccountV2Instruction(
         {
@@ -175,7 +183,7 @@ async function main() {
               collection: null,
               uses: null,
             },
-            updateAuthority: null,
+            updateAuthority: newUpdateAuthority,
             primarySaleHappened: null,
             isMutable,
           },

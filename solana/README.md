@@ -17,7 +17,7 @@ cd /Users/root1/scripts/DECENTRALIZED-DNS-/solana
 anchor build
 ```
 
-## Client-side Metadata (one command)
+## Apply Metadata (off-chain)
 The program does **not** CPI into Metaplex. Use the helper script instead:
 ```bash
 cd /Users/root1/scripts/DECENTRALIZED-DNS-/solana
@@ -35,7 +35,24 @@ Notes:
 - The mint authority must still be the wallet running the script.
 - If you revoke mint authority, do it **after** metadata is created.
 
-### Force update (update authority required)
+### Dry-run
+```bash
+npm -C solana run apply-metadata -- \
+  --dry-run \
+  --mint <MINT_PUBKEY> \
+  --name "DDNS Toll Pass" \
+  --uri "https://example.com/metadata.json"
+```
+
+### Real apply
+```bash
+npm -C solana run apply-metadata -- \
+  --mint <MINT_PUBKEY> \
+  --name "DDNS Toll Pass" \
+  --uri "https://example.com/metadata.json"
+```
+
+### Update existing metadata
 ```bash
 npm -C solana run apply-metadata -- \
   --force \
@@ -44,6 +61,34 @@ npm -C solana run apply-metadata -- \
   --uri "https://example.com/metadata.json"
 ```
 `--force` uses `UpdateMetadataAccounts`; it will fail unless your keypair is the update authority.
+
+### Immutable metadata
+```bash
+npm -C solana run apply-metadata -- \
+  --mutable=false \
+  --mint <MINT_PUBKEY> \
+  --name "DDNS Toll Pass" \
+  --uri "https://example.com/metadata.json"
+```
+
+### Rotate update authority (optional)
+```bash
+npm -C solana run apply-metadata -- \
+  --force \
+  --new-update-authority <PUBKEY> \
+  --mint <MINT_PUBKEY> \
+  --name "DDNS Toll Pass" \
+  --uri "https://example.com/metadata.json"
+```
+
+### Non-mint-authority override (optional)
+```bash
+npm -C solana run apply-metadata -- \
+  --allow-non-mint-authority \
+  --mint <MINT_PUBKEY> \
+  --name "DDNS Toll Pass" \
+  --uri "https://example.com/metadata.json"
+```
 
 ### Master edition (optional)
 ```bash
@@ -54,6 +99,8 @@ npm -C solana run apply-metadata -- \
   --uri "https://example.com/metadata.json"
 ```
 This creates the master edition PDA and adds an additional instruction.
+
+Note: Creating metadata usually requires the mint authority to sign; use `--allow-non-mint-authority` only if you know your mint setup supports it.
 
 ## Deploy (devnet)
 ```bash
