@@ -10,11 +10,11 @@ import {
   sendAndConfirmTransaction,
 } from "@solana/web3.js";
 import {
-  PROGRAM_ID as MPL_PROGRAM_ID,
   createCreateMetadataAccountV3Instruction,
   createCreateMasterEditionV3Instruction,
   createUpdateMetadataAccountV2Instruction,
 } from "@metaplex-foundation/mpl-token-metadata";
+import * as mpl from "@metaplex-foundation/mpl-token-metadata";
 
 type CreatorInput = {
   address: PublicKey;
@@ -88,6 +88,13 @@ async function main() {
 
   const connection = new Connection(rpcUrl, "confirmed");
   const payer = loadKeypair(keypairPath);
+
+  const MPL_PROGRAM_ID =
+    (mpl as Record<string, PublicKey>).MPL_TOKEN_METADATA_PROGRAM_ID ||
+    (mpl as Record<string, PublicKey>).PROGRAM_ID;
+  if (!MPL_PROGRAM_ID) {
+    throw new Error("Unable to resolve Metaplex program id from mpl-token-metadata package.");
+  }
 
   const [metadataPda] = PublicKey.findProgramAddressSync(
     [Buffer.from("metadata"), MPL_PROGRAM_ID.toBuffer(), mint.toBuffer()],
