@@ -23,6 +23,12 @@ const passportAllowlist = (process.env.PASSPORT_ALLOWLIST || "")
   .split(",")
   .map((entry) => entry.trim())
   .filter(Boolean);
+const passportEnabled = process.env.PASSPORT_ENABLED === "1";
+const passportChain = process.env.PASSPORT_CHAIN || "base";
+const passportRpc = process.env.ETH_RPC_URL || "";
+const passportContract = process.env.PASSPORT_CONTRACT || "";
+const passportTokenType = process.env.PASSPORT_TOKEN_TYPE || "erc721";
+const dailyCreditCap = Number(process.env.DAILY_CREDIT_CAP || 100);
 
 const state: CreditsState = {
   receipts: new Map(),
@@ -34,6 +40,8 @@ const state: CreditsState = {
 
 const sessions = new Map<string, { wallet: string; expiresAt: number }>();
 const challenges = new Map<string, { wallet: string; challenge: string; expiresAt: number }>();
+const passportCache = new Map<string, { ok: boolean; expiresAt: number }>();
+const creditWindows = new Map<string, { date: string; credited: number }>();
 
 function sendJson(res: ServerResponse, status: number, payload: unknown) {
   res.writeHead(status, { "Content-Type": "application/json" });
@@ -77,11 +85,13 @@ function saveState() {
   persistJson("credits/ledger.json", ledger);
   persistJson("credits/passports.json", Array.from(state.passports));
   persistJson("credits/receipts.json", Array.from(state.receipts.values()));
+  persistJson("credits/windows.json", Array.from(creditWindows.entries()));
 }
 
 loadState();
 
-const server = createServer(async (req, res) => {
+export function createCreditsServer() {
+  return createServer(async (req, res) => {
   const url = new URL(req.url || "/", "http://localhost");
   if (req.method === "GET" && url.pathname === "/healthz") {
     return sendJson(res, 200, { ok: true });
@@ -104,7 +114,12 @@ const server = createServer(async (req, res) => {
     const msg = `login\n${challenge.challenge}`;
     const ok = await verifyEd25519Message(body.wallet, msg, body.signature);
     if (!ok) return sendJson(res, 403, { error: "invalid_signature" });
-    if (!state.passports.has(body.wallet)) return sendJson(res, 403, { error: "passport_required" });
+    if (passportEnabled) {
+      const owns = await passportOwns(body.wallet);
+      if (!owns) return sendJson(res, 403, { error: "passport_required" });
+    } else if (!state.passports.has(body.wallet)) {
+      return sendJson(res, 403, { error: "passport_required" });
+    }
     const token = crypto.randomBytes(16).toString("hex");
     sessions.set(token, { wallet: body.wallet, expiresAt: Date.now() + sessionTtlMs });
     return sendJson(res, 200, { token, expiresAt: Date.now() + sessionTtlMs });
@@ -143,6 +158,9 @@ const server = createServer(async (req, res) => {
       maxPerMinute
     });
     if (!result.ok) return sendJson(res, 400, { error: result.error });
+    if (!applyDailyCap(receipt.wallet, result.ok ? creditDelta(receipt.type) : 0)) {
+      return sendJson(res, 400, { error: "credit_cap_exceeded" });
+    }
     saveState();
     return sendJson(res, 200, { ok: true, balance: getBalance(state, receipt.wallet) });
   }
@@ -157,8 +175,61 @@ const server = createServer(async (req, res) => {
   }
 
   sendJson(res, 404, { error: "not_found" });
-});
+  });
+}
 
-server.listen(port, () => {
-  console.log(`credits coordinator listening on ${port}`);
-});
+const server = createCreditsServer();
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  server.listen(port, () => {
+    console.log(`credits coordinator listening on ${port}`);
+  });
+}
+
+function creditDelta(type: string) {
+  if (type === "SERVE") return serveCredits;
+  if (type === "VERIFY") return verifyCredits;
+  if (type === "STORE") return storeCredits;
+  return 0;
+}
+
+function applyDailyCap(wallet: string, delta: number): boolean {
+  const today = new Date().toISOString().slice(0, 10);
+  const entry = creditWindows.get(wallet) || { date: today, credited: 0 };
+  if (entry.date !== today) {
+    entry.date = today;
+    entry.credited = 0;
+  }
+  if (entry.credited + delta > dailyCreditCap) {
+    return false;
+  }
+  entry.credited += delta;
+  creditWindows.set(wallet, entry);
+  return true;
+}
+
+export async function passportOwns(wallet: string): Promise<boolean> {
+  if (!passportEnabled) return true;
+  if (!passportRpc || !passportContract) {
+    throw new Error("passport_env_missing");
+  }
+  if (passportTokenType !== "erc721") {
+    throw new Error("unsupported_token_type");
+  }
+  const cached = passportCache.get(wallet);
+  if (cached && cached.expiresAt > Date.now()) return cached.ok;
+  const result = await balanceOf(wallet);
+  passportCache.set(wallet, { ok: result, expiresAt: Date.now() + 90_000 });
+  return result;
+}
+
+export async function balanceOf(wallet: string): Promise<boolean> {
+  const data = "0x70a08231" + wallet.replace(/^0x/, "").padStart(64, "0");
+  const payload = { jsonrpc: "2.0", id: 1, method: "eth_call", params: [{ to: passportContract, data }, "latest"] };
+  const res = await fetch(passportRpc, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
+  if (!res.ok) return false;
+  const body = await res.json();
+  if (!body.result) return false;
+  const balance = parseInt(body.result, 16);
+  return balance > 0;
+}

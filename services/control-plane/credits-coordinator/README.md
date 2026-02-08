@@ -21,7 +21,14 @@ Provides wallet auth, receipt validation, and credit accounting for node agents.
 - `RESOLVER_PUBKEY_HEX` (required to enforce authority signatures)
 - `ALLOW_UNVERIFIED_SERVE=1` (dev only)
 - `MAX_RECEIPTS_PER_MIN` (default 60)
-- `PASSPORT_ALLOWLIST` (comma-separated wallet pubkeys)
+- `PASSPORT_ALLOWLIST` (comma-separated wallet pubkeys, used when passport disabled)
+- `PASSPORT_ENABLED=1` (enable on-chain lookup)
+- `PASSPORT_CHAIN=base`
+- `ETH_RPC_URL` (Base RPC, required when enabled)
+- `PASSPORT_CONTRACT` (ERC-721)
+- `PASSPORT_TOKEN_TYPE=erc721`
+- `PASSPORT_TOKEN_ID` (unused)
+- `DAILY_CREDIT_CAP` (default 100)
 
 ## Run
 ```bash
