@@ -11,7 +11,6 @@ no-entrypoint = []
 no-idl = []
 no-log-ix-name = []
 idl-build = ["anchor-lang/idl-build"]
-metaplex = ["mpl-token-metadata"]
 cpi = []
 custom-heap = []
 custom-panic = []
@@ -22,4 +21,3 @@ sha2 = "0.10"
 
 anchor-lang = "0.32.1"
 anchor-spl = { version = "0.32.1", default-features = false, features = ["token"] }
-mpl-token-metadata = { version = "4.1.2", optional = true }

@@ -1,14 +1,37 @@
 # Solana Anchor Scaffold
 
-This is a minimal Anchor program that initializes a config PDA and stores:
-- admin pubkey
-- version
+This program:
+- Initializes a config PDA
+- Creates/updates `.dns` name records
+- Mints + freezes a “toll pass” NFT via minimal SPL token CPI
+
+**Metaplex metadata is applied client-side**, not by the program, to avoid BPF stack overflow.
+
+## Minting Requirements
+- The NFT mint must be created client-side with **owner as mint authority**.
+- The program mints 1 token and freezes the token account.
 
 ## Build
 ```bash
 cd /Users/root1/scripts/DECENTRALIZED-DNS-/solana
 anchor build
 ```
+
+## Apply Metadata (Client-Side)
+The program does **not** CPI into Metaplex. Use the helper script instead:
+```bash
+cd /Users/root1/scripts/DECENTRALIZED-DNS-/solana
+npm install
+ts-node scripts/apply_metadata.ts \
+  --mint <MINT_PUBKEY> \
+  --name "alice.dns" \
+  --uri "https://example.com/metadata.json" \
+  --symbol "DDNS"
+```
+
+Notes:
+- The mint authority must still be the wallet running the script.
+- If you revoke mint authority, do it **after** metadata is created.
 
 ## Deploy (devnet)
 ```bash
@@ -25,4 +48,4 @@ anchor test --provider.cluster devnet --provider.wallet ./devnet-wallet.json
 ```
 
 ## Build status
-Current build fails due to Anchor CLI mismatch and spl-token-2022 dependency errors. See `docs/sections/solana.md`.
+Default build passes (no Metaplex CPI in-program).
