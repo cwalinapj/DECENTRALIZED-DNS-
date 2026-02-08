@@ -1,0 +1,9 @@
+{
+  "nodes": [
+    "https://wp-node-1.example.com",
+    "https://wp-node-2.example.com",
+    "https://wp-node-3.example.com",
+    "https://wp-node-4.example.com",
+    "https://wp-node-5.example.com"
+  ]
+}

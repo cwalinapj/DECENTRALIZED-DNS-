@@ -2,7 +2,8 @@ import assert from "node:assert";
 import { applyReceipt, type CreditsState } from "../routes/receipts.js";
 import type { ReceiptCore } from "../../../../../ddns-core/credits/types.d.ts";
 import { computeReceiptId, signReceipt } from "../../../../../ddns-core/credits/receipts.js";
-import { ed25519KeypairFromSeed } from "../../../../../ddns-core/src/crypto_ed25519.js";
+import * as ed from "@noble/ed25519";
+import { sha512 } from "@noble/hashes/sha512";
 
 const seedHex = "a".repeat(64);
 let wallet = "";
@@ -32,9 +33,10 @@ async function makeReceipt(type: "SERVE" | "VERIFY" | "STORE") {
 }
 
 (async () => {
+  ed.etc.sha512Sync = (...m) => sha512(ed.etc.concatBytes(...m));
   const seed = new Uint8Array(seedHex.match(/.{1,2}/g)!.map((b) => parseInt(b, 16)));
-  const keys = await ed25519KeypairFromSeed(seed);
-  wallet = Buffer.from(keys.pub).toString("hex");
+  const pub = await ed.getPublicKeyAsync(seed);
+  wallet = Buffer.from(pub).toString("hex");
   const state = createState();
   const receipt = await makeReceipt("STORE");
   const result = await applyReceipt(state, receipt as any, {

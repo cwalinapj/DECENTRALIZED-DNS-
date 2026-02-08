@@ -26,6 +26,9 @@ const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.
 const SNS_CLUSTER = process.env.SNS_CLUSTER || "devnet";
 const ANCHOR_STORE_PATH = process.env.ANCHOR_STORE_PATH || "settlement/anchors/anchors.json";
 const REGISTRY_ADMIN_TOKEN = process.env.REGISTRY_ADMIN_TOKEN || "";
+const NODE_AGGREGATOR_ENABLED = process.env.NODE_AGGREGATOR_ENABLED === "1";
+const NODE_LIST_PATH = process.env.NODE_LIST_PATH || "config/example/nodes.json";
+const NODE_QUORUM = Number(process.env.NODE_QUORUM || 3);
 
 function logInfo(message: string) {
   if (LOG_LEVEL !== "quiet") {
@@ -270,6 +273,13 @@ export function createApp() {
           cache: "miss"
         }
       };
+      if (NODE_AGGREGATOR_ENABLED) {
+        const nodeResult = await verifyWithNodes(name, payload);
+        if (!nodeResult.ok) {
+          return res.status(502).json({ error: { code: "NODE_QUORUM_FAILED", message: nodeResult.message, retryable: true } });
+        }
+        payload.metadata = { ...payload.metadata, nodeQuorum: nodeResult.quorum, nodeMatches: nodeResult.matches };
+      }
       cacheSet(cacheKey, ttl * 1000, payload);
       return res.json(payload);
     } catch (err: any) {
@@ -280,6 +290,57 @@ export function createApp() {
   });
 
   return app;
+}
+
+async function verifyWithNodes(name: string, authoritative: ResolveResponse): Promise<{ ok: boolean; message?: string; quorum?: number; matches?: number }> {
+  const nodes = await loadNodeList();
+  if (!nodes.length) return { ok: true, quorum: 0, matches: 0 };
+  const responses = await Promise.all(nodes.map((node) => fetchNodeResolve(node, name)));
+  const normalizedAuth = normalizeRecords(authoritative.records);
+  let matches = 0;
+  for (const res of responses) {
+    if (!res) continue;
+    const normalized = normalizeRecords(res.records || []);
+    if (normalized === normalizedAuth) matches += 1;
+  }
+  const quorum = Math.min(NODE_QUORUM, nodes.length);
+  if (matches < quorum) {
+    return { ok: false, message: `quorum_failed:${matches}/${quorum}` };
+  }
+  return { ok: true, quorum, matches };
+}
+
+async function loadNodeList(): Promise<string[]> {
+  try {
+    const raw = await import("node:fs").then((mod) => mod.readFileSync(NODE_LIST_PATH, "utf8"));
+    const parsed = JSON.parse(raw) as { nodes?: string[] };
+    return Array.isArray(parsed.nodes) ? parsed.nodes : [];
+  } catch {
+    return [];
+  }
+}
+
+async function fetchNodeResolve(baseUrl: string, name: string): Promise<ResolveResponse | null> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const normalizedBase = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
+    const url = `${normalizedBase}/wp-json/ddns/v1/resolve?name=${encodeURIComponent(name)}`;
+    const res = await fetch(url, { signal: controller.signal });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function normalizeRecords(records: ResolveRecord[]): string {
+  const normalized = [...records]
+    .map((r) => ({ type: r.type, value: r.value, ttl: r.ttl }))
+    .sort((a, b) => `${a.type}:${a.value}`.localeCompare(`${b.type}:${b.value}`));
+  return JSON.stringify(normalized);
 }
 
 const app = createApp();

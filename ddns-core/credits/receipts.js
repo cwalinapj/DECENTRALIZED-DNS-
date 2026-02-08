@@ -1,6 +1,7 @@
 import { sha256 } from "@noble/hashes/sha256";
 import { bytesToHex, utf8ToBytes } from "@noble/hashes/utils";
-import { ed25519Sign, ed25519Verify } from "../src/crypto_ed25519.js";
+import * as ed from "@noble/ed25519";
+import { sha512 } from "@noble/hashes/sha512";
 function stableStringify(value) {
     if (value === null || typeof value !== "object")
         return JSON.stringify(value);
@@ -17,11 +18,13 @@ export function computeReceiptId(core) {
     return bytesToHex(sha256(utf8ToBytes(payload)));
 }
 export async function signReceipt(privKeyHex, core) {
+    ed.etc.sha512Sync = (...m) => sha512(ed.etc.concatBytes(...m));
     const msg = utf8ToBytes(receiptMessage(core));
-    const sig = await ed25519Sign(hexToBytes(privKeyHex), msg);
+    const sig = await ed.signAsync(msg, hexToBytes(privKeyHex));
     return bytesToHex(sig);
 }
 export async function verifyReceiptSignature(pubKeyHex, receipt) {
+    ed.etc.sha512Sync = (...m) => sha512(ed.etc.concatBytes(...m));
     const msg = utf8ToBytes(receiptMessage({
         id: receipt.id,
         type: receipt.type,
@@ -29,7 +32,7 @@ export async function verifyReceiptSignature(pubKeyHex, receipt) {
         timestamp: receipt.timestamp,
         payload: receipt.payload
     }));
-    return await ed25519Verify(hexToBytes(pubKeyHex), msg, hexToBytes(receipt.signature));
+    return await ed.verifyAsync(hexToBytes(receipt.signature), msg, hexToBytes(pubKeyHex));
 }
 export function validateReceiptShape(receipt) {
     if (!receipt?.id || !receipt?.type || !receipt?.wallet || !receipt?.timestamp || !receipt?.payload) {

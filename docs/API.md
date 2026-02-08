@@ -107,3 +107,6 @@ Configuration:
 - `ENABLE_SNS` (`1` to enable `.sol`)
 - `SOLANA_RPC_URL` (default devnet)
 - `SNS_CLUSTER` (default `devnet`)
+- `NODE_AGGREGATOR_ENABLED` (`1` to enable WP node quorum)
+- `NODE_LIST_PATH` (default `config/example/nodes.json`)
+- `NODE_QUORUM` (default `3`)

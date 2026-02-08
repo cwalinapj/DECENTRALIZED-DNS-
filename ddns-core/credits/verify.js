@@ -1,4 +1,5 @@
-import { ed25519Verify } from "../src/crypto_ed25519.js";
+import * as ed from "@noble/ed25519";
+import { sha512 } from "@noble/hashes/sha512";
 import { utf8ToBytes } from "@noble/hashes/utils";
 import { validateReceiptShape, verifyReceiptSignature } from "./receipts.js";
 export async function verifyReceipt(pubKeyHex, receipt) {
@@ -9,9 +10,10 @@ export async function verifyReceipt(pubKeyHex, receipt) {
     return ok ? { ok: true } : { ok: false, error: "INVALID_SIGNATURE" };
 }
 export async function verifyEd25519Message(pubKeyHex, message, signatureHex) {
+    ed.etc.sha512Sync = (...m) => sha512(ed.etc.concatBytes(...m));
     const pub = hexToBytes(pubKeyHex);
     const sig = hexToBytes(signatureHex);
-    return await ed25519Verify(pub, utf8ToBytes(message), sig);
+    return await ed.verifyAsync(sig, utf8ToBytes(message), pub);
 }
 function hexToBytes(hex) {
     const clean = hex.startsWith("0x") ? hex.slice(2) : hex;

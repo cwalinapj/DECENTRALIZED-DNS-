@@ -21,12 +21,15 @@ Top-level folders and purpose:
 - `scripts/` – dev + validation scripts.
 - `security/` – security tooling and release integrity checks.
 - `services/` – control-plane services and vault (stubs). Includes `services/control-plane/credits-coordinator` for credits + receipts.
+- `services/builder-api/` – create/update/publish 5-page sites (MVP).
+- `services/pages-hosting/` – Cloudflare Pages routing Worker (MVP).
 - `settlement/` – settlement processor scaffolds (stubs).
 - `solana/` – Solana program scaffolds (not devnet-ready).
 - `specs/` – protocol specs and formats.
 - `tests/` – repo-level smoke + conformance tests.
 - `watchdogs/` – watchdog agents (stubs).
 - `workers/` – background workers (stubs). Includes `workers/node-agent` for receipts + cache.
+- `workers/site-builder/` – builds static HTML for Pages (MVP).
 
 Other notable top-level items:
 
