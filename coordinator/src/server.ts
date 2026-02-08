@@ -23,6 +23,7 @@ import {
 import type { ReceiptEnvelope } from "../../core/dist/credits/types.d.ts";
 import { verifyEd25519Message } from "../../core/dist/credits/verify.js";
 import { hashLeaf, verifyProof, normalizeRegistryName } from "../../core/dist/src/registry_merkle.js";
+import { computeResolveResultHash } from "../../core/dist/src/resolve_hash.js";
 
 const port = Number(process.env.PORT || 8822);
 const dataDir = process.env.DATA_DIR || "./data";
@@ -67,6 +68,7 @@ const state: CreditsState = {
   receipts: new Map(),
   credits: new Map(),
   passports: new Set(passportAllowlist),
+  nodePubkeys: new Set(),
   challenges: new Map(),
   rate: new Map()
 };
@@ -92,6 +94,8 @@ const nodeVerifications = new Map<string, { siteId: string; expiresAt: number }>
 let treasuryBalance = 0;
 let treasuryPolicy: any = null;
 let governancePolicy: any = null;
+let nodeRegistryLoadedAt = 0;
+const nodeRegistryCacheTtlMs = 60_000;
 const treasuryAllocations: Array<{ ts: number; allocations: Record<string, number> }> = [];
 const governanceQueue: Array<{ id: string; action: string; payload: any; executeAfter: number }> = [];
 const siteReceipts = new Map<string, Array<{ ts: number; type: string; payload: any }>>();
@@ -204,6 +208,7 @@ function saveState() {
 }
 
 loadState();
+refreshNodePubkeys(true);
 validatePassportEnv();
 
 export function createCreditsServer() {
@@ -319,6 +324,7 @@ export function createCreditsServer() {
     const envelope = body as ReceiptEnvelope;
     const nodeId = envelope?.receipt?.node_id;
     if (!nodeId) return sendJson(res, 400, { error: "missing_node_id" });
+    refreshNodePubkeys();
     const before = getBalance(state, nodeId);
     const receiptId = receiptIdFromEnvelope(envelope);
     const result = await applyReceipt(state, envelope, {
@@ -497,6 +503,14 @@ export function createCreditsServer() {
     if (resolverPubkeyHex) {
       if (!authoritySig || !resultHash) {
         return sendJson(res, 400, { error: "authority_sig_required" });
+      }
+      const expectedHash = computeResolveResultHash({
+        name: entry.name,
+        network: "dns",
+        records: entry.records || []
+      });
+      if (resultHash !== expectedHash) {
+        return sendJson(res, 400, { error: "result_hash_mismatch" });
       }
       const msg = `resolve\n${resultHash}`;
       const verified = await verifyEd25519Message(resolverPubkeyHex, msg, authoritySig);
@@ -787,6 +801,33 @@ function loadRegistrySnapshot(): any | null {
   }
 }
 
+function refreshNodePubkeys(force = false) {
+  if (!force && Date.now() - nodeRegistryLoadedAt < nodeRegistryCacheTtlMs) {
+    return;
+  }
+  nodeRegistryLoadedAt = Date.now();
+  state.nodePubkeys.clear();
+  const snapshot = loadRegistrySnapshot();
+  if (!snapshot?.records) return;
+  for (const entry of snapshot.records) {
+    const record = (entry.records || []).find((r: any) => String(r.type).toUpperCase() === "NODE_PUBKEY");
+    if (!record?.value) continue;
+    const normalized = normalizeNodePubkey(String(record.value));
+    if (normalized) state.nodePubkeys.add(normalized);
+  }
+}
+
+function normalizeNodePubkey(value: string): string | null {
+  const cleaned = value.startsWith("ed25519:") ? value.slice("ed25519:".length) : value;
+  try {
+    const buf = Buffer.from(cleaned, "base64");
+    if (buf.length !== 32) return null;
+    return cleaned;
+  } catch {
+    return null;
+  }
+}
+
 function getRegistryNodePubkey(nodeName: string): string | null {
   const snapshot = loadRegistrySnapshot();
   if (!snapshot?.records) return null;
@@ -798,9 +839,9 @@ function getRegistryNodePubkey(nodeName: string): string | null {
 }
 
 function matchesRegistryPubkey(receiptPubkey: string, registryPubkey: string): boolean {
-  const a = receiptPubkey.startsWith("ed25519:") ? receiptPubkey : `ed25519:${receiptPubkey}`;
-  const b = registryPubkey.startsWith("ed25519:") ? registryPubkey : `ed25519:${registryPubkey}`;
-  return a === b;
+  const a = normalizeNodePubkey(receiptPubkey);
+  const b = normalizeNodePubkey(registryPubkey);
+  return !!a && !!b && a === b;
 }
 
 export async function passportOwns(wallet: string): Promise<boolean> {

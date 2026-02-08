@@ -370,7 +370,7 @@ function computeResultHash(payload: ResolveResponse): string {
     network: payload.network,
     records: payload.records
   });
-  return bytesToHex(blake3(new TextEncoder().encode(data)));
+  return Buffer.from(blake3(new TextEncoder().encode(data))).toString("base64");
 }
 
 function signAuthority(resultHash: string): string {

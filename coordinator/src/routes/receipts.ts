@@ -7,6 +7,7 @@ export type CreditsState = {
   receipts: Map<string, ReceiptEnvelope>;
   credits: Map<string, number>;
   passports: Set<string>;
+  nodePubkeys: Set<string>;
   challenges: Map<string, { wallet: string; chunkHash: string; expiresAt: number }>;
   rate: Map<string, { count: number; windowStart: number }>;
 };
@@ -30,7 +31,9 @@ export function validateAndApplyReceipt(
   const shapeErr = validateReceiptShape(envelope);
   if (shapeErr) return { ok: false, error: shapeErr };
   const receipt = envelope.receipt;
-  if (!state.passports.has(receipt.node_id)) return { ok: false, error: "PASSPORT_REQUIRED" };
+  if (!state.passports.has(receipt.node_id) && !state.nodePubkeys.has(receipt.node_id)) {
+    return { ok: false, error: "PASSPORT_REQUIRED" };
+  }
 
   const receiptId = receiptIdFromEnvelope(envelope);
   if (state.receipts.has(receiptId)) {

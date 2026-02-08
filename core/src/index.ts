@@ -11,6 +11,7 @@ export * from "./gateway_routes.js";
 export * from "./rr_helpers.js";
 export * from "./error_codes.js";
 export * from "./resolve_schema.js";
+export * from "./resolve_hash.js";
 export * from "./registry_merkle.js";
 export * from "../credits/types.js";
 export * from "../credits/receipts.js";

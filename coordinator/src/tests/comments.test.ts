@@ -7,6 +7,7 @@ function createState(): CreditsState {
     receipts: new Map(),
     credits: new Map(),
     passports: new Set(),
+    nodePubkeys: new Set(),
     challenges: new Map(),
     rate: new Map()
   };
