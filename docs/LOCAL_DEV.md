@@ -35,6 +35,27 @@ ENABLE_ENS=1 ETH_RPC_URL=https://eth-mainnet.example.com ./scripts/dev.sh
 ENABLE_SNS=1 SOLANA_RPC_URL=https://api.devnet.solana.com ./scripts/dev.sh
 ```
 
+## Anchoring demo
+Start resolver with registry + admin token:
+```bash
+REGISTRY_ENABLED=1 REGISTRY_ADMIN_TOKEN=devtoken ./scripts/dev.sh
+```
+
+Build root + anchor:
+```bash
+node scripts/registry-build-root.js --input registry/snapshots/registry.json --name alice.dns > /tmp/root.json
+ROOT=$(node -e 'const r=require("/tmp/root.json"); console.log(r.root)')
+curl -X POST "http://localhost:8054/registry/anchor" \
+  -H "content-type: application/json" \
+  -H "x-admin-token: devtoken" \
+  -d "{\"root\":\"${ROOT}\",\"version\":1,\"timestamp\":\"2026-02-08T00:00:00Z\",\"source\":\"local\"}"
+```
+
+Fetch anchored root:
+```bash
+curl "http://localhost:8054/registry/root"
+```
+
 Expected JSON shape:
 ```json
 {
