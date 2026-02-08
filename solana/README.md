@@ -17,12 +17,14 @@ cd /Users/root1/scripts/DECENTRALIZED-DNS-/solana
 anchor build
 ```
 
-## Apply Metadata (Client-Side)
+## Client-side Metadata (one command)
 The program does **not** CPI into Metaplex. Use the helper script instead:
 ```bash
 cd /Users/root1/scripts/DECENTRALIZED-DNS-/solana
 npm install
-ts-node scripts/apply_metadata.ts \
+node scripts/write_sample_metadata.mjs
+# upload scripts/sample-metadata.json somewhere (https://... or ipfs://...)
+npm run apply-metadata -- \
   --mint <MINT_PUBKEY> \
   --name "alice.dns" \
   --uri "https://example.com/metadata.json" \

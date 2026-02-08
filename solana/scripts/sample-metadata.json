@@ -1,0 +1,15 @@
+{
+  "name": "DDNS Toll Pass",
+  "symbol": "DDNS",
+  "description": "Toll Pass NFT for ddns.",
+  "image": "https://example.com/image.png",
+  "attributes": [
+    { "trait_type": "type", "value": "toll-pass" }
+  ],
+  "properties": {
+    "files": [
+      { "uri": "https://example.com/image.png", "type": "image/png" }
+    ],
+    "category": "image"
+  }
+}

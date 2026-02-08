@@ -1,19 +1,26 @@
 import fs from "node:fs";
 import path from "node:path";
-import { Connection, Keypair, PublicKey, Transaction, sendAndConfirmTransaction } from "@solana/web3.js";
+import yargs from "yargs";
+import { hideBin } from "yargs/helpers";
+import {
+  Connection,
+  Keypair,
+  PublicKey,
+  Transaction,
+  sendAndConfirmTransaction,
+} from "@solana/web3.js";
 import {
   PROGRAM_ID as MPL_PROGRAM_ID,
   createCreateMetadataAccountV3Instruction,
   createCreateMasterEditionV3Instruction,
+  createUpdateMetadataAccountV2Instruction,
 } from "@metaplex-foundation/mpl-token-metadata";
 
-function argValue(flag: string): string | undefined {
-  const idx = process.argv.indexOf(flag);
-  if (idx === -1 || idx + 1 >= process.argv.length) {
-    return undefined;
-  }
-  return process.argv[idx + 1];
-}
+type CreatorInput = {
+  address: PublicKey;
+  verified: boolean;
+  share: number;
+};
 
 function loadKeypair(filePath: string): Keypair {
   const data = fs.readFileSync(filePath, "utf8");
@@ -21,24 +28,66 @@ function loadKeypair(filePath: string): Keypair {
   return Keypair.fromSecretKey(secret);
 }
 
-async function main() {
-  const rpcUrl = argValue("--rpc") || "https://api.devnet.solana.com";
-  const keypairPath =
-    argValue("--keypair") || path.join(process.env.HOME || ".", ".config/solana/id.json");
-  const mintStr = argValue("--mint");
-  const name = argValue("--name");
-  const symbol = argValue("--symbol") || "DDNS";
-  const uri = argValue("--uri");
-  const sellerFeeBps = Number(argValue("--seller-fee-bps") || "0");
+function parseCreators(input?: string): CreatorInput[] | null {
+  if (!input) return null;
+  const parts = input.split(",").map((s) => s.trim()).filter(Boolean);
+  if (parts.length === 0) return null;
+  return parts.map((part) => {
+    const [pubkeyStr, shareStr, verifiedStr] = part.split(":");
+    if (!pubkeyStr || !shareStr) {
+      throw new Error(`Invalid creators entry: ${part}`);
+    }
+    const share = Number(shareStr);
+    if (!Number.isFinite(share) || share < 0 || share > 100) {
+      throw new Error(`Invalid share for creator: ${part}`);
+    }
+    const verified = verifiedStr ? verifiedStr === "true" || verifiedStr === "1" : false;
+    return {
+      address: new PublicKey(pubkeyStr),
+      verified,
+      share,
+    };
+  });
+}
 
-  if (!mintStr || !name || !uri) {
-    console.error("Usage: ts-node scripts/apply_metadata.ts --mint <MINT> --name <NAME> --uri <URI> [--symbol DDNS] [--seller-fee-bps 0] [--rpc URL] [--keypair PATH]");
-    process.exit(1);
+function isValidUri(uri: string): boolean {
+  return uri.startsWith("http://") || uri.startsWith("https://") || uri.startsWith("ipfs://");
+}
+
+async function main() {
+  const argv = await yargs(hideBin(process.argv))
+    .option("rpc", { type: "string" })
+    .option("keypair", { type: "string" })
+    .option("mint", { type: "string", demandOption: true })
+    .option("name", { type: "string", demandOption: true })
+    .option("symbol", { type: "string", default: "DDNS" })
+    .option("uri", { type: "string", demandOption: true })
+    .option("seller-fee-bps", { type: "number", default: 0 })
+    .option("creators", { type: "string" })
+    .option("master-edition", { type: "boolean", default: false })
+    .option("dry-run", { type: "boolean", default: false })
+    .option("force", { type: "boolean", default: false })
+    .strict()
+    .parse();
+
+  const rpcUrl =
+    argv.rpc ||
+    process.env.ANCHOR_PROVIDER_URL ||
+    "https://api.devnet.solana.com";
+  const keypairPath =
+    argv.keypair || path.join(process.env.HOME || ".", ".config/solana/id.json");
+  const mint = new PublicKey(argv.mint);
+  const name = argv.name;
+  const symbol = argv.symbol;
+  const uri = argv.uri;
+  const sellerFeeBps = Number(argv["seller-fee-bps"]);
+
+  if (!isValidUri(uri)) {
+    throw new Error("Invalid uri: must start with http(s):// or ipfs://");
   }
 
   const connection = new Connection(rpcUrl, "confirmed");
   const payer = loadKeypair(keypairPath);
-  const mint = new PublicKey(mintStr);
 
   const [metadataPda] = PublicKey.findProgramAddressSync(
     [Buffer.from("metadata"), MPL_PROGRAM_ID.toBuffer(), mint.toBuffer()],
@@ -49,48 +98,104 @@ async function main() {
     MPL_PROGRAM_ID
   );
 
-  const metadataIx = createCreateMetadataAccountV3Instruction(
-    {
-      metadata: metadataPda,
-      mint,
-      mintAuthority: payer.publicKey,
-      payer: payer.publicKey,
-      updateAuthority: payer.publicKey,
-    },
-    {
-      createMetadataAccountArgsV3: {
-        data: {
-          name,
-          symbol,
-          uri,
-          sellerFeeBasisPoints: sellerFeeBps,
-          creators: null,
-          collection: null,
-          uses: null,
+  const creators = parseCreators(argv.creators);
+  const metadataAccount = await connection.getAccountInfo(metadataPda);
+
+  if (metadataAccount && !argv.force) {
+    console.log("Metadata already exists. Use --force to update.");
+    console.log(`metadata_pda: ${metadataPda.toBase58()}`);
+    return;
+  }
+
+  const tx = new Transaction();
+
+  if (!metadataAccount) {
+    tx.add(
+      createCreateMetadataAccountV3Instruction(
+        {
+          metadata: metadataPda,
+          mint,
+          mintAuthority: payer.publicKey,
+          payer: payer.publicKey,
+          updateAuthority: payer.publicKey,
         },
-        isMutable: true,
-        collectionDetails: null,
-      },
-    }
-  );
+        {
+          createMetadataAccountArgsV3: {
+            data: {
+              name,
+              symbol,
+              uri,
+              sellerFeeBasisPoints: sellerFeeBps,
+              creators,
+              collection: null,
+              uses: null,
+            },
+            isMutable: true,
+            collectionDetails: null,
+          },
+        }
+      )
+    );
+  } else {
+    tx.add(
+      createUpdateMetadataAccountV2Instruction(
+        {
+          metadata: metadataPda,
+          updateAuthority: payer.publicKey,
+        },
+        {
+          updateMetadataAccountArgsV2: {
+            data: {
+              name,
+              symbol,
+              uri,
+              sellerFeeBasisPoints: sellerFeeBps,
+              creators,
+              collection: null,
+              uses: null,
+            },
+            updateAuthority: payer.publicKey,
+            primarySaleHappened: null,
+            isMutable: true,
+          },
+        }
+      )
+    );
+  }
 
-  const editionIx = createCreateMasterEditionV3Instruction(
-    {
-      edition: masterEditionPda,
-      mint,
-      updateAuthority: payer.publicKey,
-      mintAuthority: payer.publicKey,
-      payer: payer.publicKey,
-      metadata: metadataPda,
-    },
-    {
-      createMasterEditionArgs: {
-        maxSupply: 0,
-      },
-    }
-  );
+  if (argv["master-edition"]) {
+    tx.add(
+      createCreateMasterEditionV3Instruction(
+        {
+          edition: masterEditionPda,
+          mint,
+          updateAuthority: payer.publicKey,
+          mintAuthority: payer.publicKey,
+          payer: payer.publicKey,
+          metadata: metadataPda,
+        },
+        { createMasterEditionArgs: { maxSupply: 0 } }
+      )
+    );
+  }
 
-  const tx = new Transaction().add(metadataIx, editionIx);
+  console.log("metadata_pda:", metadataPda.toBase58());
+  console.log("master_edition_pda:", masterEditionPda.toBase58());
+  console.log("instructions:", tx.instructions.map((ix) => ({
+    programId: ix.programId.toBase58(),
+    keys: ix.keys.map((k) => ({
+      pubkey: k.pubkey.toBase58(),
+      isSigner: k.isSigner,
+      isWritable: k.isWritable,
+    })),
+    dataLength: ix.data.length,
+  })));
+
+  if (argv["dry-run"]) {
+    console.log("Dry run: not sending transaction.");
+    return;
+  }
+
   const sig = await sendAndConfirmTransaction(connection, tx, [payer], {
     commitment: "confirmed",
   });
