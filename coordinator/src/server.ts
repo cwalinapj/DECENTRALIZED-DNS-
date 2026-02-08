@@ -29,7 +29,7 @@ const port = Number(process.env.PORT || 8822);
 const dataDir = process.env.DATA_DIR || "./data";
 const adminToken = process.env.ADMIN_TOKEN || "";
 const sessionTtlMs = Number(process.env.SESSION_TTL_MS || 10 * 60 * 1000);
-const authChain = process.env.AUTH_CHAIN || "auto";
+const authChain = process.env.AUTH_CHAIN || "solana";
 const maxBodyBytes = Number(process.env.MAX_BODY_BYTES || 1_000_000);
 const allowCors = process.env.ALLOW_CORS === "1";
 const serveCredits = Number(process.env.CREDITS_SERVE || 1);
@@ -296,7 +296,7 @@ export function createCreditsServer() {
   if (req.method === "GET" && url.pathname === "/credits") {
     const wallet = url.searchParams.get("wallet") || "";
     if (!wallet) return sendJson(res, 400, { error: "missing_wallet" });
-    if (!isEvmAddress(wallet) && !isSolPubkey(wallet)) {
+    if (!walletAllowedForChain(wallet)) {
       return sendJson(res, 400, { error: "invalid_wallet_format" });
     }
     return sendJson(res, 200, { wallet, balance: getBalance(state, wallet) });
@@ -372,7 +372,7 @@ export function createCreditsServer() {
     if (!commentsSiteToken || token !== commentsSiteToken) {
       return sendJson(res, 403, { error: "unauthorized" });
     }
-    if (body?.wallet && !isEvmAddress(body.wallet) && !isSolPubkey(body.wallet)) {
+    if (body?.wallet && !walletAllowedForChain(body.wallet)) {
       return sendJson(res, 400, { error: "invalid_wallet_format" });
     }
     const result = createHold(state, comments, body || {}, {
@@ -738,6 +738,15 @@ function inferChain(value: string): "evm" | "solana" | null {
   if (isEvmAddress(value)) return "evm";
   if (isSolPubkey(value)) return "solana";
   return null;
+}
+
+function walletAllowedForChain(wallet: string): boolean {
+  if (authChain === "auto") {
+    return isEvmAddress(wallet) || isSolPubkey(wallet);
+  }
+  if (authChain === "evm") return isEvmAddress(wallet);
+  if (authChain === "solana") return isSolPubkey(wallet);
+  return false;
 }
 
 function decodeBase64OrBase58(input: string): Uint8Array | null {

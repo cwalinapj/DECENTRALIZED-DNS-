@@ -30,7 +30,7 @@
 - `NODE_QUORUM`: integer quorum
 
 ## Credits Coordinator
-- `AUTH_CHAIN`: `auto|solana|evm`
+- `AUTH_CHAIN` (default `solana`): `solana|evm|auto`
 - `MAX_BODY_BYTES`: request body limit (default 1,000,000)
 - `ALLOW_CORS`: `1` to enable permissive CORS
 - `ADMIN_TOKEN`: admin token for protected endpoints
