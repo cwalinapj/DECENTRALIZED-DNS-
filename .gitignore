@@ -20,8 +20,25 @@ solana/devnet-wallet.json
 **/node_modules/
 **/.DS_Store
 **/.env
+!**/.env.example
 **/.env.*
-/Users/root1/scripts/DECENTRALIZED-DNS-
-git status --porcelain
-ls -d services labs/services 2>/dev/null*/.env.example
+**/*wallet*.json
+
+# build artifacts
+solana/target/
+labs/solana/target/
+**/target/
+**/node_modules/
+# Solana
+solana/target/
+solana/devnet-wallet.json
+labs/solana/target/
+
+# local ignores
+**/target/
+**/node_modules/
+**/.DS_Store
+**/.env
+**/.env.*
+!**/.env.example
 **/*wallet*.json
