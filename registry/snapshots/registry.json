@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "updatedAt": "2026-02-01T00:00:00Z",
+  "records": [
+    {
+      "name": "alice.dns",
+      "owner": "owner1",
+      "version": 1,
+      "updatedAt": "2026-02-01T00:00:00Z",
+      "records": [
+        { "type": "TXT", "value": "ipfs://example", "ttl": 300 }
+      ]
+    }
+  ]
+}

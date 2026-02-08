@@ -3,6 +3,9 @@ import dnsPacket from "dns-packet";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { verifyVoucherHeader } from "./voucher.js";
+import { buildMerkleRoot, buildProof, loadSnapshot, normalizeName } from "./registry.js";
+import { resolveEns, supportsEns } from "./adaptors/ens.js";
+import { resolveSns, supportsSns } from "./adaptors/sns.js";
 
 const PORT = Number(process.env.PORT || "8054");
 const UPSTREAM_DOH_URL = process.env.UPSTREAM_DOH_URL || "https://cloudflare-dns.com/dns-query";
@@ -12,6 +15,14 @@ const GATED_SUFFIXES = (process.env.GATED_SUFFIXES || ".premium")
   .split(",")
   .map((entry) => entry.trim().toLowerCase())
   .filter(Boolean);
+const REGISTRY_ENABLED = process.env.REGISTRY_ENABLED === "1";
+const REGISTRY_PATH = process.env.REGISTRY_PATH || "registry/snapshots/registry.json";
+const ENABLE_ENS = process.env.ENABLE_ENS === "1";
+const ENABLE_SNS = process.env.ENABLE_SNS === "1";
+const ETH_RPC_URL = process.env.ETH_RPC_URL || "";
+const ENS_NETWORK = process.env.ENS_NETWORK || "mainnet";
+const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
+const SNS_CLUSTER = process.env.SNS_CLUSTER || "devnet";
 
 function logInfo(message: string) {
   if (LOG_LEVEL !== "quiet") {
@@ -94,9 +105,30 @@ export function createApp() {
 
   app.get("/healthz", (_req, res) => res.json({ status: "ok" }));
 
+  app.get("/registry/root", (_req, res) => {
+    if (!REGISTRY_ENABLED) {
+      return res.status(501).json({ error: { code: "REGISTRY_DISABLED", message: "registry not enabled" } });
+    }
+    const snapshot = loadSnapshot(REGISTRY_PATH);
+    const root = buildMerkleRoot(snapshot.records);
+    return res.json({ root, version: snapshot.version, updatedAt: snapshot.updatedAt });
+  });
+
+  app.get("/registry/proof", (req, res) => {
+    if (!REGISTRY_ENABLED) {
+      return res.status(501).json({ error: { code: "REGISTRY_DISABLED", message: "registry not enabled" } });
+    }
+    const name = typeof req.query.name === "string" ? req.query.name : "";
+    if (!name) return res.status(400).json({ error: "missing_name" });
+    const snapshot = loadSnapshot(REGISTRY_PATH);
+    const proof = buildProof(snapshot.records, name);
+    return res.json({ root: proof.root, leaf: proof.leaf, proof: proof.proof, version: snapshot.version, updatedAt: snapshot.updatedAt });
+  });
+
   app.get("/resolve", async (req, res) => {
     const name = typeof req.query.name === "string" ? req.query.name : "";
     if (!name) return res.status(400).json({ error: "missing_name" });
+    const proofRequested = req.query.proof === "1" || req.query.proof === "true";
 
     const lowered = name.toLowerCase();
     const gated = GATED_SUFFIXES.some((suffix) => lowered.endsWith(suffix));
@@ -118,6 +150,80 @@ export function createApp() {
             retryable: voucherCheck.retryable
           }
         });
+      }
+    }
+
+    if (lowered.endsWith(".dns") && !REGISTRY_ENABLED) {
+      return res.status(501).json({
+        error: { code: "REGISTRY_DISABLED", message: "registry not enabled", retryable: false }
+      });
+    }
+
+    if (REGISTRY_ENABLED && lowered.endsWith(".dns")) {
+      const snapshot = loadSnapshot(REGISTRY_PATH);
+      const normalized = normalizeName(name);
+      const entry = snapshot.records.find((record) => normalizeName(record.name) === normalized);
+      if (!entry) {
+        return res.status(404).json({ error: { code: "NOT_FOUND", message: "record not found", retryable: false } });
+      }
+      const root = buildMerkleRoot(snapshot.records);
+      const proof = proofRequested ? buildProof(snapshot.records, name) : null;
+      const payload: ResolveResponse = {
+        name,
+        network: "dns",
+        records: entry.records,
+        metadata: {
+          source: "registry",
+          registryVersion: snapshot.version,
+          registryUpdatedAt: snapshot.updatedAt,
+          root,
+          ...(proofRequested ? { proof } : {})
+        }
+      };
+      return res.json(payload);
+    }
+
+    if (ENABLE_ENS && supportsEns(name)) {
+      try {
+        const records = await resolveEns(name, { rpcUrl: ETH_RPC_URL, timeoutMs: REQUEST_TIMEOUT_MS });
+        if (!records.length) {
+          return res.status(404).json({ error: { code: "NOT_FOUND", message: "ENS record not found", retryable: false } });
+        }
+        return res.json({
+          name,
+          network: "ens",
+          records,
+          metadata: {
+            source: "ens",
+            network: ENS_NETWORK
+          }
+        });
+      } catch (err: any) {
+        const msg = String(err?.message || err);
+        const code = msg === "ENS_TIMEOUT" ? "UPSTREAM_TIMEOUT" : "UPSTREAM_ERROR";
+        return res.status(502).json({ error: { code, message: msg, retryable: true } });
+      }
+    }
+
+    if (ENABLE_SNS && supportsSns(name)) {
+      try {
+        const records = await resolveSns(name, { rpcUrl: SOLANA_RPC_URL, timeoutMs: REQUEST_TIMEOUT_MS });
+        if (!records.length) {
+          return res.status(404).json({ error: { code: "NOT_FOUND", message: "SNS record not found", retryable: false } });
+        }
+        return res.json({
+          name,
+          network: "sns",
+          records,
+          metadata: {
+            source: "sns",
+            cluster: SNS_CLUSTER
+          }
+        });
+      } catch (err: any) {
+        const msg = String(err?.message || err);
+        const code = msg === "SNS_TIMEOUT" ? "UPSTREAM_TIMEOUT" : "UPSTREAM_ERROR";
+        return res.status(502).json({ error: { code, message: msg, retryable: true } });
       }
     }
 

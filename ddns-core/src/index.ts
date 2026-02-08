@@ -11,3 +11,4 @@ export * from "./gateway_routes.js";
 export * from "./rr_helpers.js";
 export * from "./error_codes.js";
 export * from "./resolve_schema.js";
+export * from "./registry_merkle.js";

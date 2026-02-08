@@ -21,6 +21,7 @@
     }
   },
   "errorCodes": [
+    "NOT_FOUND",
     "UPSTREAM_TIMEOUT",
     "UPSTREAM_ERROR",
     "VOUCHER_REQUIRED",

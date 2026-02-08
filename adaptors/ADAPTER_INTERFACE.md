@@ -23,6 +23,7 @@ type ResolveResponse = {
 ## Error codes
 Standard error codes (see `ddns-core/src/error_codes.ts`):
 - `missing_name`
+- `NOT_FOUND`
 - `UPSTREAM_TIMEOUT`
 - `UPSTREAM_ERROR`
 - `VOUCHER_REQUIRED`

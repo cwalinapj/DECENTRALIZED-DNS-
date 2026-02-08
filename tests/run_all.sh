@@ -11,6 +11,7 @@ run_pkg() {
 }
 
 run_pkg "$root/resolver" "npm ci && npm run lint && npm run build && npm test"
+run_pkg "$root/ddns-core" "npm ci && npm run build && npm test"
 
 echo "==> tests/smoke: /resolve"
 (cd "$root" && bash tests/smoke/resolve.sh)

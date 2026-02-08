@@ -16,7 +16,7 @@ Top-level folders and purpose:
 - `packages/` – shared package scaffolds.
 - `plugins/` – integration plugins; WordPress plugins migrated to `web3-wp-plugins` (see `docs/MOVED_PLUGINS.md`).
 - `policy/` – policy specs (stubs).
-- `registry/` – name registry scaffolds (stubs).
+- `registry/` – registry snapshot + EVM scaffolds; `.dns` records live under `registry/snapshots/`.
 - `resolver/` – name gateway MVP (/resolve, DoH).
 - `scripts/` – dev + validation scripts.
 - `security/` – security tooling and release integrity checks.

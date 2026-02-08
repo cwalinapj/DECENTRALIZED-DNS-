@@ -24,6 +24,17 @@ Health check:
 curl "http://localhost:8054/healthz"
 ```
 
+Enable .dns registry (proofs):
+```bash
+REGISTRY_ENABLED=1 ./scripts/dev.sh
+```
+
+Enable ENS or SNS:
+```bash
+ENABLE_ENS=1 ETH_RPC_URL=https://eth-mainnet.example.com ./scripts/dev.sh
+ENABLE_SNS=1 SOLANA_RPC_URL=https://api.devnet.solana.com ./scripts/dev.sh
+```
+
 Expected JSON shape:
 ```json
 {

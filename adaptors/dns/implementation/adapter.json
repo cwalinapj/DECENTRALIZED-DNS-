@@ -1,28 +1,27 @@
 {
-  "name": "dns-icann",
+  "name": "dns",
   "status": "active",
   "networks": [
-    "dns-icann"
+    "dns"
   ],
-  "supports": "dns-icann",
+  "supports": ".dns",
   "resolveResponseExample": {
-    "name": "example.com",
-    "network": "icann",
+    "name": "alice.dns",
+    "network": "dns",
     "records": [
       {
-        "type": "A",
-        "value": "203.0.113.10",
-        "ttl": 60
+        "type": "TXT",
+        "value": "ipfs://example",
+        "ttl": 300
       }
     ],
     "metadata": {
-      "source": "doh",
-      "cache": "miss"
+      "source": "registry",
+      "root": "<root>"
     }
   },
   "errorCodes": [
     "NOT_FOUND",
-    "UPSTREAM_TIMEOUT",
     "UPSTREAM_ERROR",
     "VOUCHER_REQUIRED",
     "VOUCHER_INVALID",
