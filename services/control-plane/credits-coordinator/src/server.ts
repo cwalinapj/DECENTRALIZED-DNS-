@@ -85,6 +85,7 @@ let treasuryPolicy: any = null;
 let governancePolicy: any = null;
 const treasuryAllocations: Array<{ ts: number; allocations: Record<string, number> }> = [];
 const governanceQueue: Array<{ id: string; action: string; payload: any; executeAfter: number }> = [];
+const siteReceipts = new Map<string, Array<{ ts: number; type: string; payload: any }>>();
 
 function sendJson(res: ServerResponse, status: number, payload: unknown) {
   res.writeHead(status, { "Content-Type": "application/json" });
@@ -134,6 +135,12 @@ function loadState() {
   treasuryBalance = Number((treasury as { balance: number }).balance || 0);
   treasuryPolicy = loadJson(treasuryPolicyPath, null);
   governancePolicy = loadJson(governancePolicyPath, null);
+  const receipts = loadJson("comments/receipts.json", {});
+  Object.entries(receipts as Record<string, any[]>).forEach(([siteId, entries]) => {
+    if (Array.isArray(entries)) {
+      siteReceipts.set(siteId, entries);
+    }
+  });
 }
 
 function saveState() {
@@ -150,6 +157,9 @@ function saveState() {
   persistJson("comments/treasury.json", { balance: treasuryBalance });
   persistJson("comments/allocations.json", treasuryAllocations);
   persistJson("governance/queue.json", governanceQueue);
+  const receipts: Record<string, any[]> = {};
+  siteReceipts.forEach((entries, siteId) => (receipts[siteId] = entries));
+  persistJson("comments/receipts.json", receipts);
 }
 
 loadState();
@@ -315,6 +325,18 @@ export function createCreditsServer() {
       sitePools.set(hold.site_id, poolBalance + poolShare);
       treasuryBalance += treasuryShare;
     }
+    const poolEntries = siteReceipts.get(hold.site_id) || [];
+    poolEntries.unshift({
+      ts: Date.now(),
+      type: "comment_finalized",
+      payload: {
+        ticket_id: hold.ticket_id,
+        result: body?.result,
+        amount: hold.amount,
+        wallet: hold.wallet
+      }
+    });
+    siteReceipts.set(hold.site_id, poolEntries.slice(0, 200));
     saveState();
     return sendJson(res, 200, result);
   }
@@ -339,17 +361,35 @@ export function createCreditsServer() {
     const proof = body?.proof;
     const root = body?.root;
     const siteId = body?.site_id;
+    const authoritySig = body?.authority_sig;
+    const resultHash = body?.result_hash;
     if (!entry || !proof || !root || !siteId) {
       return sendJson(res, 400, { error: "missing_fields" });
     }
     let ok = false;
     try {
+      if (entry.owner) {
+        const ownerRecord = Array.isArray(entry.records)
+          ? entry.records.find((record: any) => String(record.type).toUpperCase() === "OWNER")
+          : null;
+        if (ownerRecord && ownerRecord.value && ownerRecord.value !== entry.owner) {
+          return sendJson(res, 400, { error: "owner_mismatch" });
+        }
+      }
       const leaf = hashLeaf(entry);
       ok = verifyProof(root, leaf, proof);
     } catch {
       ok = false;
     }
     if (!ok) return sendJson(res, 400, { error: "invalid_proof" });
+    if (resolverPubkeyHex) {
+      if (!authoritySig || !resultHash) {
+        return sendJson(res, 400, { error: "authority_sig_required" });
+      }
+      const msg = `resolve\n${resultHash}`;
+      const verified = await verifyEd25519Message(resolverPubkeyHex, msg, authoritySig);
+      if (!verified) return sendJson(res, 400, { error: "authority_sig_invalid" });
+    }
     const verificationId = crypto.randomBytes(12).toString("hex");
     nodeVerifications.set(verificationId, { siteId, expiresAt: Date.now() + 10 * 60 * 1000 });
     return sendJson(res, 200, { verification_id: verificationId });
@@ -381,8 +421,21 @@ export function createCreditsServer() {
     }
     const pool = sitePools.get(siteId) || 0;
     sitePools.set(siteId, pool + 1);
+    const entries = siteReceipts.get(siteId) || [];
+    entries.unshift({ ts: Date.now(), type: "node_receipt", payload: receipt });
+    siteReceipts.set(siteId, entries.slice(0, 200));
     saveState();
     return sendJson(res, 200, { ok: true, balance: sitePools.get(siteId) || 0 });
+  }
+
+  if (req.method === "GET" && url.pathname === "/site-pool/receipts") {
+    const siteId = url.searchParams.get("site_id") || "";
+    const token = req.headers["x-ddns-site-token"];
+    if (!commentsSiteToken || token !== commentsSiteToken) {
+      return sendJson(res, 403, { error: "unauthorized" });
+    }
+    if (!siteId) return sendJson(res, 400, { error: "missing_site_id" });
+    return sendJson(res, 200, { site_id: siteId, receipts: siteReceipts.get(siteId) || [] });
   }
 
   if (req.method === "GET" && url.pathname === "/public/ledger") {

@@ -7,6 +7,8 @@
 - `REQUEST_TIMEOUT_MS`: upstream timeout (default `5000`)
 - `CACHE_TTL_MAX_S`: max TTL for cache (default `3600`)
 - `LOG_LEVEL`: `quiet|verbose`
+- `RESOLVER_PRIVATE_KEY_HEX`: optional Ed25519 seed (hex) to sign responses
+- `RESOLVER_PUBKEY_HEX`: public key (hex) for authority signature verification
 
 ## Registry
 - `REGISTRY_ENABLED`: `1` to enable `.dns` registry

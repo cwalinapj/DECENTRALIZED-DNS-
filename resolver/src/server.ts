@@ -7,6 +7,9 @@ import { buildMerkleRoot, buildProof, loadSnapshot, normalizeName, verifyProof }
 import { resolveEns, supportsEns } from "./adaptors/ens.js";
 import { resolveSns, supportsSns } from "./adaptors/sns.js";
 import { anchorRoot, loadAnchorStore, type AnchorRecord } from "./anchor.js";
+import { hash as blake3 } from "blake3";
+import * as ed from "@noble/ed25519";
+import { sha512 } from "@noble/hashes/sha512";
 
 const PORT = Number(process.env.PORT || "8054");
 const HOST = process.env.HOST || "0.0.0.0";
@@ -31,6 +34,10 @@ const REGISTRY_ADMIN_TOKEN = process.env.REGISTRY_ADMIN_TOKEN || "";
 const NODE_AGGREGATOR_ENABLED = process.env.NODE_AGGREGATOR_ENABLED === "1";
 const NODE_LIST_PATH = process.env.NODE_LIST_PATH || "config/example/nodes.json";
 const NODE_QUORUM = Number(process.env.NODE_QUORUM || 3);
+const RESOLVER_PRIVATE_KEY_HEX = process.env.RESOLVER_PRIVATE_KEY_HEX || "";
+const RESOLVER_PUBKEY_HEX = process.env.RESOLVER_PUBKEY_HEX || "";
+
+ed.etc.sha512Sync = (...m) => sha512(ed.etc.concatBytes(...m));
 
 function logInfo(message: string) {
   if (LOG_LEVEL !== "quiet") {
@@ -238,6 +245,7 @@ export function createApp() {
           } : {})
         }
       };
+      attachAuthoritySig(payload);
       return res.json(payload);
     }
 
@@ -247,7 +255,7 @@ export function createApp() {
         if (!records.length) {
           return res.status(404).json({ error: { code: "NOT_FOUND", message: "ENS record not found", retryable: false } });
         }
-        return res.json({
+        const payload: ResolveResponse = {
           name,
           network: "ens",
           records,
@@ -255,7 +263,9 @@ export function createApp() {
             source: "ens",
             network: ENS_NETWORK
           }
-        });
+        };
+        attachAuthoritySig(payload);
+        return res.json(payload);
       } catch (err: any) {
         const msg = String(err?.message || err);
         const code = msg === "ENS_TIMEOUT" ? "UPSTREAM_TIMEOUT" : "UPSTREAM_ERROR";
@@ -269,7 +279,7 @@ export function createApp() {
         if (!records.length) {
           return res.status(404).json({ error: { code: "NOT_FOUND", message: "SNS record not found", retryable: false } });
         }
-        return res.json({
+        const payload: ResolveResponse = {
           name,
           network: "sns",
           records,
@@ -277,7 +287,9 @@ export function createApp() {
             source: "sns",
             cluster: SNS_CLUSTER
           }
-        });
+        };
+        attachAuthoritySig(payload);
+        return res.json(payload);
       } catch (err: any) {
         const msg = String(err?.message || err);
         const code = msg === "SNS_TIMEOUT" ? "UPSTREAM_TIMEOUT" : "UPSTREAM_ERROR";
@@ -302,6 +314,7 @@ export function createApp() {
           cache: "miss"
         }
       };
+      attachAuthoritySig(payload);
       if (NODE_AGGREGATOR_ENABLED) {
         const nodeResult = await verifyWithNodes(name, payload);
         if (!nodeResult.ok) {
@@ -337,6 +350,54 @@ async function verifyWithNodes(name: string, authoritative: ResolveResponse): Pr
     return { ok: false, message: `quorum_failed:${matches}/${quorum}` };
   }
   return { ok: true, quorum, matches };
+}
+
+function attachAuthoritySig(payload: ResolveResponse) {
+  if (!RESOLVER_PRIVATE_KEY_HEX) return;
+  const resultHash = computeResultHash(payload);
+  const signature = signAuthority(resultHash);
+  payload.metadata = payload.metadata || {};
+  payload.metadata.resultHash = resultHash;
+  payload.metadata.authoritySig = signature;
+  if (RESOLVER_PUBKEY_HEX) {
+    payload.metadata.authorityPubKey = RESOLVER_PUBKEY_HEX;
+  }
+}
+
+function computeResultHash(payload: ResolveResponse): string {
+  const data = stableStringify({
+    name: payload.name,
+    network: payload.network,
+    records: payload.records
+  });
+  return bytesToHex(blake3(new TextEncoder().encode(data)));
+}
+
+function signAuthority(resultHash: string): string {
+  const msg = new TextEncoder().encode(`resolve\n${resultHash}`);
+  const priv = hexToBytes(RESOLVER_PRIVATE_KEY_HEX);
+  const sig = ed.sign(msg, priv);
+  return bytesToHex(sig);
+}
+
+function stableStringify(value: unknown): string {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
+  const entries = Object.entries(value).sort(([a], [b]) => a.localeCompare(b));
+  return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${stableStringify(v)}`).join(",")}}`;
+}
+
+function bytesToHex(bytes: Uint8Array): string {
+  return Buffer.from(bytes).toString("hex");
+}
+
+function hexToBytes(hex: string): Uint8Array {
+  const clean = hex.startsWith("0x") ? hex.slice(2) : hex;
+  const bytes = new Uint8Array(clean.length / 2);
+  for (let i = 0; i < bytes.length; i += 1) {
+    bytes[i] = parseInt(clean.slice(i * 2, i * 2 + 2), 16);
+  }
+  return bytes;
 }
 
 async function loadNodeList(): Promise<string[]> {
