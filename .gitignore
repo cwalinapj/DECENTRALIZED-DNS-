@@ -19,6 +19,8 @@ solana/devnet-wallet.json
 **/target/
 solana/test-ledger/
 **/test-ledger/
+wallet-cache/
+services/toll-booth/tollbooth-db/
 **/node_modules/
 **/.DS_Store
 **/.env

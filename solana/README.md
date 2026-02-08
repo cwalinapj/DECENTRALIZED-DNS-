@@ -142,6 +142,55 @@ Notes:
 - Use `--update-only` to prevent accidental creation.
 - Name record PDA seeds are derived from `sha256(name)` (not raw name bytes).
 
+## Devnet MVP Flow (Routes + Witness + Toll Booth)
+
+1) Configure devnet + wallet:
+```bash
+solana config set --url https://api.devnet.solana.com
+solana config set --keypair ~/.config/solana/id.json
+solana address
+solana balance
+```
+
+2) Build + deploy:
+```bash
+export ANCHOR_PROVIDER_URL="https://api.devnet.solana.com"
+export ANCHOR_WALLET="$HOME/.config/solana/id.json"
+anchor build
+anchor deploy --provider.cluster devnet --provider.wallet ~/.config/solana/id.json
+```
+
+3) Mint a toll pass:
+```bash
+npm -C solana run mint-toll-pass -- --name "devnet-pass"
+```
+
+4) Run toll booth:
+```bash
+npm -C services/toll-booth install
+npm -C services/toll-booth run dev
+```
+
+Edit `services/toll-booth/config/trusted_witnesses.json` to include witness pubkeys.
+
+5) Create route locally + gather witnesses:
+```bash
+npm -C solana run route:create -- --name "example.dns" --dest "https://example.com" --ttl 300
+npm -C solana run route:sign-witness -- --route-id <ROUTE_ID> --keypair <witness1>
+npm -C solana run route:sign-witness -- --route-id <ROUTE_ID> --keypair <witness2>
+```
+
+6) Submit + set on-chain:
+```bash
+npm -C solana run set-route -- --name "example.dns" --dest "https://example.com" --ttl 300
+```
+
+Notes:
+- Creating a route requires quorum witnesses (default 2).
+- Wallet cache is the source of truth; chain record is the public checkpoint.
+- Mining credits are recorded by the toll booth (stub).
+- Set `TOLL_BOOTH_URL` if your booth is not on `http://localhost:8787`.
+
 ## Deploy (devnet)
 ```bash
 anchor deploy --provider.cluster devnet --provider.wallet ./devnet-wallet.json

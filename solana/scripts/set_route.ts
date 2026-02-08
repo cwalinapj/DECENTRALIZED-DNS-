@@ -5,6 +5,12 @@ import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import * as anchor from "@coral-xyz/anchor";
 import { Connection, PublicKey, Transaction, TransactionInstruction } from "@solana/web3.js";
+import {
+  RouteRecordV1,
+  readRoute,
+  readWitnesses,
+  findRouteIdByFields,
+} from "./route_lib.js";
 
 function loadKeypair(filePath: string): anchor.web3.Keypair {
   const raw = JSON.parse(fs.readFileSync(filePath, "utf8"));
@@ -128,6 +134,24 @@ async function main() {
   const pageCidHash = destHash;
   const metadataHash = new Uint8Array(32);
 
+  // Load route + witnesses from wallet-cache (required for booth)
+  const owner = payer.publicKey.toBase58();
+  const routeId = findRouteIdByFields({
+    name: normalizedName,
+    dest: argv.dest,
+    ttl: argv.ttl,
+    owner,
+  });
+  if (!routeId) {
+    throw new Error(
+      "route not found in wallet-cache; run route:create then route:sign-witness"
+    );
+  }
+  const route = readRoute(routeId) as RouteRecordV1;
+  const witnesses = readWitnesses(routeId);
+
+  const boothUrl = process.env.TOLL_BOOTH_URL || "http://localhost:8787";
+
   const recordInfo = await connection.getAccountInfo(recordPda, "confirmed");
   if (!recordInfo && argv["update-only"]) {
     throw new Error("record does not exist; use create or omit --update-only");
@@ -198,6 +222,19 @@ async function main() {
     console.log("dry_run: not sending transaction");
     return;
   }
+
+  // Submit to toll booth for verification/quorum
+  const resp = await fetch(`${boothUrl}/v1/route/submit`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ route, witnesses }),
+  });
+  if (!resp.ok) {
+    const body = await resp.text();
+    throw new Error(`toll booth rejected: ${resp.status} ${body}`);
+  }
+  const boothResult = await resp.json();
+  console.log("toll_booth:", boothResult);
 
   const tx = await provider.sendAndConfirm(new Transaction().add(ix), []);
 
