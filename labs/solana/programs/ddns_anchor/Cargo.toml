@@ -10,8 +10,11 @@ crate-type = ["cdylib", "lib"]
 no-entrypoint = []
 no-idl = []
 no-log-ix-name = []
+metaplex = ["mpl-token-metadata"]
 
 [dependencies]
-anchor-lang = "0.29.0"
-anchor-spl = "0.29.0"
-mpl-token-metadata = "4.1.2"
+sha2 = "0.10"
+
+anchor-lang = "0.32.1"
+anchor-spl = { version = "0.32.1", default-features = false, features = ["token"] }
+mpl-token-metadata = { version = "4.1.2", optional = true }

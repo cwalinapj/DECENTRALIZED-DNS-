@@ -1,8 +1,9 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Mint, SetAuthority, Token, TokenAccount, Transfer};
-use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::token::MintTo;
+use sha2::{Digest, Sha256};
+use anchor_spl::token::{self, SetAuthority, Token, Transfer};
+#[cfg(feature = "metaplex")]
 use mpl_token_metadata::instruction::{create_master_edition_v3, create_metadata_accounts_v3};
+#[cfg(feature = "metaplex")]
 use mpl_token_metadata::ID as METADATA_PROGRAM_ID;
 
 declare_id!("2kE76PBfDwKvSsfBW9xMBxaor8AoEooVDA7DkGd8WVR1");
@@ -18,7 +19,7 @@ pub mod ddns_anchor {
         }
         config.admin = ctx.accounts.admin.key();
         config.version = version;
-        config.bump = *ctx.bumps.get("config").ok_or(ErrorCode::MissingBump)?;
+        config.bump = ctx.bumps.config;
         config.initialized = true;
         Ok(())
     }
@@ -48,7 +49,7 @@ pub mod ddns_anchor {
         pass.name_hash = name_hash;
         pass.page_cid_hash = page_cid_hash;
         pass.metadata_hash = metadata_hash;
-        pass.bump = *ctx.bumps.get("toll_pass").ok_or(ErrorCode::MissingBump)?;
+        pass.bump = ctx.bumps.toll_pass;
         pass.initialized = true;
 
         let record = &mut ctx.accounts.record;
@@ -57,18 +58,27 @@ pub mod ddns_anchor {
         }
         record.owner = ctx.accounts.owner.key();
         record.name_hash = name_hash;
-        write_name(&name, &mut record.name_bytes, &mut record.name_len)?;
+        let mut name_len = 0u8;
+        write_name(&name, &mut record.name_bytes, &mut name_len)?;
+        record.name_len = name_len;
         record.page_cid_hash = page_cid_hash;
         record.metadata_hash = metadata_hash;
         record.updated_at = Clock::get()?.unix_timestamp;
-        record.bump = *ctx.bumps.get("record").ok_or(ErrorCode::MissingBump)?;
+        record.bump = ctx.bumps.record;
         record.initialized = true;
 
-        let mint_auth_bump = *ctx
-            .bumps
-            .get("nft_mint_authority")
-            .ok_or(ErrorCode::MissingBump)?;
+        require_keys_eq!(
+            *ctx.accounts.nft_mint.owner,
+            ctx.accounts.token_program.key(),
+            ErrorCode::InvalidMintOwner
+        );
+        require_keys_eq!(
+            *ctx.accounts.nft_token_account.owner,
+            ctx.accounts.token_program.key(),
+            ErrorCode::InvalidTokenAccountOwner
+        );
 
+        let mint_auth_bump = ctx.bumps.nft_mint_authority;
         // Mint soulbound NFT
         token::mint_to(
             CpiContext::new_with_signer(
@@ -100,6 +110,36 @@ pub mod ddns_anchor {
                 &[mint_auth_bump],
             ]],
         ))?;
+
+        token::set_authority(
+            CpiContext::new_with_signer(
+                ctx.accounts.token_program.to_account_info(),
+                SetAuthority {
+                    current_authority: ctx.accounts.nft_mint_authority.to_account_info(),
+                    account_or_mint: ctx.accounts.nft_mint.to_account_info(),
+                },
+                &[&[
+                    b"nft_mint_auth",
+                    ctx.accounts.owner.key().as_ref(),
+                    &[mint_auth_bump],
+                ]],
+            ),
+            token::spl_token::instruction::AuthorityType::MintTokens,
+            None,
+        )?;
+        Ok(())
+    }
+
+    #[cfg(feature = "metaplex")]
+    pub fn issue_toll_pass_metadata(
+        ctx: Context<IssueTollPassMetadata>,
+    ) -> Result<()> {
+        let pass = &ctx.accounts.toll_pass;
+        require_keys_eq!(pass.owner, ctx.accounts.owner.key(), ErrorCode::Unauthorized);
+        require_keys_eq!(ctx.accounts.record.owner, ctx.accounts.owner.key(), ErrorCode::Unauthorized);
+
+        let name = record_name(&ctx.accounts.record)?;
+        let mint_auth_bump = ctx.bumps.nft_mint_authority;
 
         let metadata_ix = create_metadata_accounts_v3(
             METADATA_PROGRAM_ID,
@@ -166,23 +206,14 @@ pub mod ddns_anchor {
             ]],
         )?;
 
-        token::set_authority(
-            CpiContext::new_with_signer(
-                ctx.accounts.token_program.to_account_info(),
-                SetAuthority {
-                    current_authority: ctx.accounts.nft_mint_authority.to_account_info(),
-                    account_or_mint: ctx.accounts.nft_mint.to_account_info(),
-                },
-                &[&[
-                    b"nft_mint_auth",
-                    ctx.accounts.owner.key().as_ref(),
-                    &[mint_auth_bump],
-                ]],
-            ),
-            token::spl_token::instruction::AuthorityType::MintTokens,
-            None,
-        )?;
         Ok(())
+    }
+
+    #[cfg(not(feature = "metaplex"))]
+    pub fn issue_toll_pass_metadata(
+        _ctx: Context<IssueTollPassMetadata>,
+    ) -> Result<()> {
+        Err(ErrorCode::MetadataDisabled.into())
     }
 
     pub fn lock_tokens(ctx: Context<LockTokens>, amount: u64, lock_days: u16) -> Result<()> {
@@ -191,14 +222,29 @@ pub mod ddns_anchor {
         if lock.initialized {
             return err!(ErrorCode::AlreadyInitialized);
         }
+        require_keys_eq!(
+            *ctx.accounts.mint.owner,
+            ctx.accounts.token_program.key(),
+            ErrorCode::InvalidMintOwner
+        );
+        require_keys_eq!(
+            *ctx.accounts.owner_token_account.owner,
+            ctx.accounts.token_program.key(),
+            ErrorCode::InvalidTokenAccountOwner
+        );
+        require_keys_eq!(
+            *ctx.accounts.vault.owner,
+            ctx.accounts.token_program.key(),
+            ErrorCode::InvalidTokenAccountOwner
+        );
         lock.owner = ctx.accounts.owner.key();
         lock.mint = ctx.accounts.mint.key();
         lock.vault = ctx.accounts.vault.key();
         lock.amount = amount;
         lock.locked_at = Clock::get()?.unix_timestamp;
         lock.unlock_at = lock.locked_at + (lock_days as i64) * 86_400;
-        lock.bump = *ctx.bumps.get("lock").ok_or(ErrorCode::MissingBump)?;
-        lock.vault_bump = *ctx.bumps.get("vault_authority").ok_or(ErrorCode::MissingBump)?;
+        lock.bump = ctx.bumps.lock;
+        lock.vault_bump = ctx.bumps.vault_authority;
         lock.initialized = true;
 
         let cpi_accounts = Transfer {
@@ -215,6 +261,21 @@ pub mod ddns_anchor {
         let lock = &mut ctx.accounts.lock;
         require_keys_eq!(lock.owner, ctx.accounts.owner.key(), ErrorCode::Unauthorized);
         require!(Clock::get()?.unix_timestamp >= lock.unlock_at, ErrorCode::LockNotExpired);
+        require_keys_eq!(
+            *ctx.accounts.mint.owner,
+            ctx.accounts.token_program.key(),
+            ErrorCode::InvalidMintOwner
+        );
+        require_keys_eq!(
+            *ctx.accounts.owner_token_account.owner,
+            ctx.accounts.token_program.key(),
+            ErrorCode::InvalidTokenAccountOwner
+        );
+        require_keys_eq!(
+            *ctx.accounts.vault.owner,
+            ctx.accounts.token_program.key(),
+            ErrorCode::InvalidTokenAccountOwner
+        );
         let vault_authority_seeds: &[&[u8]] = &[
             b"vault_auth",
             lock.owner.as_ref(),
@@ -251,11 +312,13 @@ pub mod ddns_anchor {
         require_keys_eq!(ctx.accounts.toll_pass.owner, ctx.accounts.owner.key(), ErrorCode::Unauthorized);
         record.owner = ctx.accounts.owner.key();
         record.name_hash = name_hash;
-        write_name(&name, &mut record.name_bytes, &mut record.name_len)?;
+        let mut name_len = 0u8;
+        write_name(&name, &mut record.name_bytes, &mut name_len)?;
+        record.name_len = name_len;
         record.page_cid_hash = page_cid_hash;
         record.metadata_hash = metadata_hash;
         record.updated_at = Clock::get()?.unix_timestamp;
-        record.bump = *ctx.bumps.get("record").ok_or(ErrorCode::MissingBump)?;
+        record.bump = ctx.bumps.record;
         record.initialized = true;
         Ok(())
     }
@@ -324,22 +387,40 @@ pub struct IssueTollPass<'info> {
     )]
     pub record: Account<'info, NameRecord>,
 
-    #[account(
-        init,
-        payer = owner,
-        mint::decimals = 0,
-        mint::authority = nft_mint_authority,
-        mint::freeze_authority = nft_mint_authority
-    )]
-    pub nft_mint: Account<'info, Mint>,
+    /// CHECK: Pre-created mint for the NFT
+    #[account(mut)]
+    pub nft_mint: UncheckedAccount<'info>,
 
+    /// CHECK: Pre-created token account for the NFT
+    #[account(mut)]
+    pub nft_token_account: UncheckedAccount<'info>,
+
+    /// CHECK: PDA mint authority
+    #[account(seeds = [b"nft_mint_auth", owner.key().as_ref()], bump)]
+    pub nft_mint_authority: UncheckedAccount<'info>,
+
+    #[account(mut)]
+    pub owner: Signer<'info>,
+
+    pub system_program: Program<'info, System>,
+    pub token_program: Program<'info, Token>,
+}
+
+#[derive(Accounts)]
+pub struct IssueTollPassMetadata<'info> {
     #[account(
-        init,
-        payer = owner,
-        associated_token::mint = nft_mint,
-        associated_token::authority = owner
+        mut,
+        seeds = [b"toll_pass", owner.key().as_ref()],
+        bump = toll_pass.bump
     )]
-    pub nft_token_account: Account<'info, TokenAccount>,
+    pub toll_pass: Account<'info, TollPass>,
+
+    #[account(mut)]
+    pub record: Account<'info, NameRecord>,
+
+    /// CHECK: Mint for the NFT
+    #[account(mut)]
+    pub nft_mint: UncheckedAccount<'info>,
 
     /// CHECK: Metaplex metadata PDA
     #[account(mut)]
@@ -353,13 +434,10 @@ pub struct IssueTollPass<'info> {
     #[account(seeds = [b"nft_mint_auth", owner.key().as_ref()], bump)]
     pub nft_mint_authority: UncheckedAccount<'info>,
 
-    pub associated_token_program: Program<'info, anchor_spl::associated_token::AssociatedToken>,
-
     #[account(mut)]
     pub owner: Signer<'info>,
 
     pub system_program: Program<'info, System>,
-    pub token_program: Program<'info, Token>,
     pub rent: Sysvar<'info, Rent>,
 }
 
@@ -374,27 +452,19 @@ pub struct LockTokens<'info> {
     )]
     pub lock: Account<'info, TokenLock>,
 
-    pub mint: Account<'info, Mint>,
+    /// CHECK: Pre-created mint account
+    pub mint: UncheckedAccount<'info>,
 
     #[account(mut)]
     pub owner: Signer<'info>,
 
-    #[account(
-        mut,
-        constraint = owner_token_account.owner == owner.key(),
-        constraint = owner_token_account.mint == mint.key()
-    )]
-    pub owner_token_account: Account<'info, TokenAccount>,
+    /// CHECK: Pre-created owner token account
+    #[account(mut)]
+    pub owner_token_account: UncheckedAccount<'info>,
 
-    #[account(
-        init,
-        payer = owner,
-        seeds = [b"vault", owner.key().as_ref()],
-        bump,
-        token::mint = mint,
-        token::authority = vault_authority
-    )]
-    pub vault: Account<'info, TokenAccount>,
+    /// CHECK: Pre-created vault token account
+    #[account(mut)]
+    pub vault: UncheckedAccount<'info>,
 
     /// CHECK: PDA authority for vault token account
     #[account(seeds = [b"vault_auth", owner.key().as_ref()], bump)]
@@ -402,7 +472,6 @@ pub struct LockTokens<'info> {
 
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
-    pub rent: Sysvar<'info, Rent>,
 }
 
 #[derive(Accounts)]
@@ -414,23 +483,18 @@ pub struct UnlockTokens<'info> {
     )]
     pub lock: Account<'info, TokenLock>,
 
-    pub mint: Account<'info, Mint>,
+    /// CHECK: Pre-created mint account
+    pub mint: UncheckedAccount<'info>,
 
     pub owner: Signer<'info>,
 
-    #[account(
-        mut,
-        constraint = owner_token_account.owner == owner.key(),
-        constraint = owner_token_account.mint == mint.key()
-    )]
-    pub owner_token_account: Account<'info, TokenAccount>,
+    /// CHECK: Pre-created owner token account
+    #[account(mut)]
+    pub owner_token_account: UncheckedAccount<'info>,
 
-    #[account(
-        mut,
-        seeds = [b"vault", owner.key().as_ref()],
-        bump
-    )]
-    pub vault: Account<'info, TokenAccount>,
+    /// CHECK: Pre-created vault token account
+    #[account(mut)]
+    pub vault: UncheckedAccount<'info>,
 
     /// CHECK: PDA authority for vault token account
     #[account(seeds = [b"vault_auth", owner.key().as_ref()], bump = lock.vault_bump)]
@@ -538,7 +602,9 @@ impl NameRecord {
 }
 
 fn hash_name(name: &str) -> [u8; 32] {
-    anchor_lang::solana_program::hash::hash(name.as_bytes()).to_bytes()
+    let mut hasher = Sha256::new();
+    hasher.update(name.as_bytes());
+    hasher.finalize().into()
 }
 
 fn validate_name(name: &str) -> Result<()> {
@@ -573,6 +639,13 @@ fn write_name(name: &str, out: &mut [u8; 32], len_out: &mut u8) -> Result<()> {
     Ok(())
 }
 
+fn record_name(record: &Account<NameRecord>) -> Result<String> {
+    let len = record.name_len as usize;
+    let name_bytes = &record.name_bytes[..len];
+    let name = core::str::from_utf8(name_bytes).map_err(|_| ErrorCode::InvalidNameChars)?;
+    Ok(name.to_string())
+}
+
 fn is_reserved(name: &str) -> bool {
     matches!(name, "fuck" | "shit" | "cunt" | "bitch" | "ass")
 }
@@ -595,4 +668,10 @@ pub enum ErrorCode {
     InvalidNameChars,
     #[msg("Reserved name")]
     ReservedName,
+    #[msg("NFT mint is not owned by token program")]
+    InvalidMintOwner,
+    #[msg("NFT token account is not owned by token program")]
+    InvalidTokenAccountOwner,
+    #[msg("Metadata CPI disabled in this build")]
+    MetadataDisabled,
 }

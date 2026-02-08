@@ -2,9 +2,6 @@
 seeds = false
 skip-lint = false
 
-[toolchain]
-anchor_version = "0.29.0"
-
 [programs.localnet]
 ddns_anchor = "2kE76PBfDwKvSsfBW9xMBxaor8AoEooVDA7DkGd8WVR1"
 
@@ -17,3 +14,6 @@ wallet = "./devnet-wallet.json"
 
 [scripts]
 test = "anchor test"
+
+[toolchain]
+anchor_version = "0.32.1"
