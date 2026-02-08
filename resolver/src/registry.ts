@@ -185,6 +185,9 @@ function validateSnapshot(snapshot: RegistrySnapshot) {
   });
 }
 
-function bytesToHex(bytes: Uint8Array): string {
+function bytesToHex(bytes: Uint8Array | string | Buffer): string {
+  if (typeof bytes === "string") {
+    return bytes;
+  }
   return Buffer.from(bytes).toString("hex");
 }

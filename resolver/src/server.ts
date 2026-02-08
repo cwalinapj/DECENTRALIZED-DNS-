@@ -47,7 +47,7 @@ function logInfo(message: string) {
 
 const cache = new Map<string, { expiresAt: number; payload: ResolveResponse }>();
 
-export type ResolveRecord = { type: string; value: string; ttl?: number };
+export type ResolveRecord = { type: string; value: string | { key: string; value: string }; ttl?: number };
 export type ResolveResponse = {
   name: string;
   network: string;
@@ -387,7 +387,10 @@ function stableStringify(value: unknown): string {
   return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${stableStringify(v)}`).join(",")}}`;
 }
 
-function bytesToHex(bytes: Uint8Array): string {
+function bytesToHex(bytes: Uint8Array | string | Buffer): string {
+  if (typeof bytes === "string") {
+    return bytes;
+  }
   return Buffer.from(bytes).toString("hex");
 }
 

@@ -4,7 +4,7 @@ import path from "node:path";
 import { buildProof, verifyProof } from "../src/registry.js";
 
 const fixturePath = path.resolve("/Users/root1/dev/web3-repos/DECENTRALIZED-DNS-/resolver/tests/fixtures/registry.json");
-const anchorPath = path.resolve("/Users/root1/dev/web3-repos/DECENTRALIZED-DNS-/resolver/tests/fixtures/anchors.json");
+const anchorPath = path.resolve("/Users/root1/dev/web3-repos/DECENTRALIZED-DNS-/resolver/tests/fixtures/anchors-empty.json");
 
 let createApp: typeof import("../src/server.js").createApp;
 
