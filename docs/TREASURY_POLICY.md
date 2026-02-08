@@ -10,6 +10,16 @@ Fields:
 - `caps`: daily/monthly sell caps.
 - `buckets`: utility budget allocation targets.
 
+## Bucket validation (strict)
+Each bucket must include exactly one of:
+- `percent` (0–100)
+- `fraction` (0–1)
+
+Rules:
+- `percent` and `fraction` cannot both be set.
+- Sum of bucket fractions must be `<= 1.0`.
+- Invalid buckets will cause `/treasury/allocate` to return an error.
+
 ## Coordinator endpoints
 - `GET /treasury/policy`
 - `GET /treasury/ledger`

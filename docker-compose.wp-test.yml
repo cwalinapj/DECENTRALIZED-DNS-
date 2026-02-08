@@ -1,0 +1,47 @@
+version: "3.8"
+services:
+  db:
+    image: mariadb:10.11
+    environment:
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wp
+      MYSQL_PASSWORD: wp
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3309:3306"
+    volumes:
+      - ddns_wp_db:/var/lib/mysql
+
+  wordpress:
+    image: wordpress:6.5-php8.2-apache
+    depends_on:
+      - db
+      - coordinator
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: wp
+      WORDPRESS_DB_PASSWORD: wp
+      WORDPRESS_DB_NAME: wordpress
+    ports:
+      - "8087:80"
+    volumes:
+      - ./plugins/toll-comments:/var/www/html/wp-content/plugins/toll-comments
+
+  coordinator:
+    image: node:20-bullseye
+    working_dir: /app/coordinator
+    command: ["sh", "-c", "npm install && npm run build && node dist/server.js"]
+    environment:
+      PORT: 8822
+      DATA_DIR: /data
+      COMMENTS_SITE_TOKEN: dev-site-token
+      AUTH_CHAIN: solana
+    volumes:
+      - .:/app
+      - ddns_coord_data:/data
+    ports:
+      - "8822:8822"
+
+volumes:
+  ddns_wp_db:
+  ddns_coord_data:

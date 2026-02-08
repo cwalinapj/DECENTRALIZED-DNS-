@@ -597,20 +597,13 @@ export function createCreditsServer() {
     const token = req.headers["x-admin-token"];
     if (!adminToken || token !== adminToken) return sendJson(res, 403, { error: "unauthorized" });
     const policy = treasuryPolicy;
-    if (!policy || !policy.buckets || !Array.isArray(policy.buckets)) {
-      return sendJson(res, 400, { error: "policy_missing" });
+    const validation = validateTreasuryPolicy(policy);
+    if (!validation.ok || !validation.buckets) {
+      return sendJson(res, 400, { error: validation.error || "policy_invalid" });
     }
     const allocations: Record<string, number> = {};
-    let total = 0;
-    for (const bucket of policy.buckets) {
-      const name = bucket.name;
-      let pct = Number(bucket.percent ?? bucket.fraction ?? 0);
-      if (pct > 1) pct = pct / 100;
-      total += pct;
-      allocations[name] = Math.floor(treasuryBalance * pct);
-    }
-    if (total > 1.0001) {
-      return sendJson(res, 400, { error: "bucket_total_exceeds_100" });
+    for (const bucket of validation.buckets) {
+      allocations[bucket.name] = Math.floor(treasuryBalance * bucket.fraction);
     }
     treasuryAllocations.push({ ts: Date.now(), allocations });
     saveState();
@@ -706,6 +699,38 @@ function applyBonusCap(wallet: string, delta: number): boolean {
   entry.paid += delta;
   bonusWindows.set(wallet, entry);
   return true;
+}
+
+function validateTreasuryPolicy(policy: any): { ok: boolean; error?: string; buckets?: Array<{ name: string; fraction: number }> } {
+  if (!policy || !Array.isArray(policy.buckets)) return { ok: false, error: "policy_missing" };
+  const buckets: Array<{ name: string; fraction: number }> = [];
+  let total = 0;
+  for (const bucket of policy.buckets) {
+    const name = String(bucket?.name || "").trim();
+    if (!name) return { ok: false, error: "bucket_name_required" };
+    const hasPercent = bucket?.percent !== undefined && bucket?.percent !== null;
+    const hasFraction = bucket?.fraction !== undefined && bucket?.fraction !== null;
+    if (hasPercent && hasFraction) return { ok: false, error: "bucket_percent_and_fraction" };
+    if (!hasPercent && !hasFraction) return { ok: false, error: "bucket_missing_percent" };
+    let fraction = 0;
+    if (hasPercent) {
+      const percent = Number(bucket.percent);
+      if (!Number.isFinite(percent) || percent < 0 || percent > 100) {
+        return { ok: false, error: "bucket_percent_invalid" };
+      }
+      fraction = percent / 100;
+    } else {
+      const rawFraction = Number(bucket.fraction);
+      if (!Number.isFinite(rawFraction) || rawFraction < 0 || rawFraction > 1) {
+        return { ok: false, error: "bucket_fraction_invalid" };
+      }
+      fraction = rawFraction;
+    }
+    total += fraction;
+    buckets.push({ name, fraction });
+  }
+  if (total > 1.0001) return { ok: false, error: "bucket_total_exceeds_100" };
+  return { ok: true, buckets };
 }
 
 function validatePassportEnv() {

@@ -34,3 +34,10 @@ Or use:
 
 ## Validation compose
 `docker-compose.validation.yml` runs validation tooling used in CI and local checks.
+
+## WordPress plugin harness
+Use the bundled WordPress + coordinator harness:
+```bash
+./scripts/wp-test.sh
+```
+Compose file: `docker-compose.wp-test.yml`.
