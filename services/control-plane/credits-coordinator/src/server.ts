@@ -4,10 +4,21 @@ import { URL } from "node:url";
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
-import { applyReceipt, createChallenge, type CreditsState } from "./routes/receipts.js";
+import { applyReceipt, createChallenge, type CreditsState, receiptIdFromEnvelope } from "./routes/receipts.js";
 import { getBalance, spendCredits } from "./routes/credits.js";
-import type { Receipt } from "../../../../ddns-core/credits/types.d.ts";
-import { verifyEd25519Message } from "../../../../ddns-core/credits/verify.js";
+import {
+  type CommentState,
+  createHold,
+  finalizeHold,
+  submitHold
+} from "./routes/comments.js";
+import {
+  type CommentAuthState,
+  createCommentChallenge,
+  verifyCommentSignature
+} from "./routes/comment-auth.js";
+import type { ReceiptEnvelope } from "../../../../ddns-core/dist/credits/types.d.ts";
+import { verifyEd25519Message } from "../../../../ddns-core/dist/credits/verify.js";
 
 const port = Number(process.env.PORT || 8822);
 const dataDir = process.env.DATA_DIR || "./data";
@@ -29,6 +40,13 @@ const passportRpc = process.env.ETH_RPC_URL || "";
 const passportContract = process.env.PASSPORT_CONTRACT || "";
 const passportTokenType = process.env.PASSPORT_TOKEN_TYPE || "erc721";
 const dailyCreditCap = Number(process.env.DAILY_CREDIT_CAP || 100);
+const commentsHoldTtlMs = Number(process.env.COMMENTS_HOLD_TTL_MS || 15 * 60 * 1000);
+const commentsMaxPerMinuteWallet = Number(process.env.COMMENTS_MAX_PER_MIN_WALLET || 12);
+const commentsMaxPerMinuteSite = Number(process.env.COMMENTS_MAX_PER_MIN_SITE || 120);
+const commentsBonusMax = Number(process.env.COMMENTS_BONUS_MAX || 3);
+const commentsWalletCooldownMs = Number(process.env.COMMENTS_WALLET_COOLDOWN_MS || 5_000);
+const commentsSiteToken = process.env.COMMENTS_SITE_TOKEN || "";
+const commentsAuthTtlMs = Number(process.env.COMMENTS_AUTH_TTL_MS || 10 * 60 * 1000);
 
 const state: CreditsState = {
   receipts: new Map(),
@@ -38,10 +56,19 @@ const state: CreditsState = {
   rate: new Map()
 };
 
-const sessions = new Map<string, { wallet: string; expiresAt: number }>();
+const sessions = new Map<string, { nodeId: string; expiresAt: number }>();
 const challenges = new Map<string, { wallet: string; challenge: string; expiresAt: number }>();
 const passportCache = new Map<string, { ok: boolean; expiresAt: number }>();
 const creditWindows = new Map<string, { date: string; credited: number }>();
+const comments: CommentState = {
+  holds: new Map(),
+  walletRate: new Map(),
+  siteRate: new Map(),
+  walletCooldown: new Map()
+};
+const commentAuth: CommentAuthState = {
+  challenges: new Map()
+};
 
 function sendJson(res: ServerResponse, status: number, payload: unknown) {
   res.writeHead(status, { "Content-Type": "application/json" });
@@ -77,6 +104,12 @@ function loadState() {
   Object.entries(ledger as Record<string, number>).forEach(([wallet, amount]) => state.credits.set(wallet, amount));
   const passportList = loadJson("credits/passports.json", passportAllowlist);
   (passportList as string[]).forEach((wallet) => state.passports.add(wallet));
+  const holds = loadJson("comments/holds.json", []);
+  (holds as any[]).forEach((hold) => {
+    if (hold && hold.ticket_id) {
+      comments.holds.set(hold.ticket_id, hold as any);
+    }
+  });
 }
 
 function saveState() {
@@ -86,6 +119,7 @@ function saveState() {
   persistJson("credits/passports.json", Array.from(state.passports));
   persistJson("credits/receipts.json", Array.from(state.receipts.values()));
   persistJson("credits/windows.json", Array.from(creditWindows.entries()));
+  persistJson("comments/holds.json", Array.from(comments.holds.values()));
 }
 
 loadState();
@@ -121,7 +155,7 @@ export function createCreditsServer() {
       return sendJson(res, 403, { error: "passport_required" });
     }
     const token = crypto.randomBytes(16).toString("hex");
-    sessions.set(token, { wallet: body.wallet, expiresAt: Date.now() + sessionTtlMs });
+    sessions.set(token, { nodeId: body.wallet, expiresAt: Date.now() + sessionTtlMs });
     return sendJson(res, 200, { token, expiresAt: Date.now() + sessionTtlMs });
   }
 
@@ -137,7 +171,7 @@ export function createCreditsServer() {
     if (!token || typeof token !== "string") return sendJson(res, 401, { error: "not_authenticated" });
     const session = sessions.get(token);
     if (!session || session.expiresAt < Date.now()) return sendJson(res, 401, { error: "not_authenticated" });
-    const wallet = session.wallet;
+    const wallet = session.nodeId;
     const amount = Number(body?.amount || 0);
     if (!amount || amount <= 0) return sendJson(res, 400, { error: "invalid_amount" });
     const result = spendCredits(state, wallet, amount);
@@ -148,8 +182,8 @@ export function createCreditsServer() {
 
   if (req.method === "POST" && url.pathname === "/receipts") {
     const body = await readBody(req);
-    const receipt = body as Receipt;
-    const result = await applyReceipt(state, receipt, {
+    const envelope = body as ReceiptEnvelope;
+    const result = await applyReceipt(state, envelope, {
       serveCredits,
       verifyCredits,
       storeCredits,
@@ -158,11 +192,74 @@ export function createCreditsServer() {
       maxPerMinute
     });
     if (!result.ok) return sendJson(res, 400, { error: result.error });
-    if (!applyDailyCap(receipt.wallet, result.ok ? creditDelta(receipt.type) : 0)) {
+    if (!applyDailyCap(envelope.receipt.node_id, result.ok ? creditDelta(envelope.receipt.type) : 0)) {
       return sendJson(res, 400, { error: "credit_cap_exceeded" });
     }
     saveState();
-    return sendJson(res, 200, { ok: true, balance: getBalance(state, receipt.wallet) });
+    return sendJson(res, 200, { ok: true, balance: getBalance(state, envelope.receipt.node_id) });
+  }
+
+  if (req.method === "POST" && url.pathname === "/comments/auth/challenge") {
+    const body = await readBody(req);
+    if (!body?.wallet) return sendJson(res, 400, { error: "missing_wallet" });
+    const result = createCommentChallenge(commentAuth, body.wallet, commentsAuthTtlMs);
+    return sendJson(res, 200, result);
+  }
+
+  if (req.method === "POST" && url.pathname === "/comments/auth/verify") {
+    const body = await readBody(req);
+    if (!body?.wallet || !body?.signature) return sendJson(res, 400, { error: "missing_fields" });
+    const ok = verifyCommentSignature(commentAuth, body.wallet, body.signature);
+    if (!ok) return sendJson(res, 403, { error: "invalid_signature" });
+    return sendJson(res, 200, { ok: true });
+  }
+
+  if (req.method === "POST" && url.pathname === "/comments/hold") {
+    const body = await readBody(req);
+    const token = req.headers["x-ddns-site-token"];
+    if (!commentsSiteToken || token !== commentsSiteToken) {
+      return sendJson(res, 403, { error: "unauthorized" });
+    }
+    const result = createHold(state, comments, body || {}, {
+      holdTtlMs: commentsHoldTtlMs,
+      maxPerMinuteWallet: commentsMaxPerMinuteWallet,
+      maxPerMinuteSite: commentsMaxPerMinuteSite,
+      bonusMax: commentsBonusMax,
+      walletCooldownMs: commentsWalletCooldownMs
+    });
+    if (!result.ok) return sendJson(res, 400, { error: result.error });
+    saveState();
+    return sendJson(res, 200, result);
+  }
+
+  if (req.method === "POST" && url.pathname === "/comments/submit") {
+    const body = await readBody(req);
+    const token = req.headers["x-ddns-site-token"];
+    if (!commentsSiteToken || token !== commentsSiteToken) {
+      return sendJson(res, 403, { error: "unauthorized" });
+    }
+    const result = submitHold(comments, body || {});
+    if (!result.ok) return sendJson(res, 400, { error: result.error });
+    saveState();
+    return sendJson(res, 200, result);
+  }
+
+  if (req.method === "POST" && url.pathname === "/comments/finalize") {
+    const body = await readBody(req);
+    const token = req.headers["x-ddns-site-token"];
+    if (!commentsSiteToken || token !== commentsSiteToken) {
+      return sendJson(res, 403, { error: "unauthorized" });
+    }
+    const result = finalizeHold(state, comments, body || {}, {
+      holdTtlMs: commentsHoldTtlMs,
+      maxPerMinuteWallet: commentsMaxPerMinuteWallet,
+      maxPerMinuteSite: commentsMaxPerMinuteSite,
+      bonusMax: commentsBonusMax,
+      walletCooldownMs: commentsWalletCooldownMs
+    });
+    if (!result.ok) return sendJson(res, 400, { error: result.error });
+    saveState();
+    return sendJson(res, 200, result);
   }
 
   if (req.method === "POST" && url.pathname === "/audits/challenge") {
