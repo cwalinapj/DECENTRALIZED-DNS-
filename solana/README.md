@@ -102,6 +102,21 @@ This creates the master edition PDA and adds an additional instruction.
 
 Note: Creating metadata usually requires the mint authority to sign; use `--allow-non-mint-authority` only if you know your mint setup supports it.
 
+## Mint a Toll Pass (devnet/local)
+
+Local:
+```bash
+solana-test-validator --reset
+ANCHOR_PROVIDER_URL=http://127.0.0.1:8899 ANCHOR_WALLET=~/.config/solana/id.json npm -C solana run mint-toll-pass
+```
+
+Devnet:
+```bash
+solana config set --url https://api.devnet.solana.com
+solana airdrop 2
+ANCHOR_PROVIDER_URL=https://api.devnet.solana.com ANCHOR_WALLET=~/.config/solana/id.json npm -C solana run mint-toll-pass
+```
+
 ## Deploy (devnet)
 ```bash
 anchor deploy --provider.cluster devnet --provider.wallet ./devnet-wallet.json

@@ -6,7 +6,8 @@
   "scripts": {
     "apply-metadata": "tsx scripts/apply_metadata.ts",
     "apply-metadata:dry": "tsx scripts/apply_metadata.ts --dry-run",
-    "metadata:sample": "node scripts/write_sample_metadata.mjs"
+    "metadata:sample": "node scripts/write_sample_metadata.mjs",
+    "mint-toll-pass": "tsx scripts/mint_toll_pass.ts"
   },
   "devDependencies": {
     "@coral-xyz/anchor": "^0.29.0",
