@@ -1,0 +1,18 @@
+{
+  "sell_bands": [
+    {"min": 0, "max": 1000, "sell_percent": 0.05},
+    {"min": 1000, "max": 10000, "sell_percent": 0.03},
+    {"min": 10000, "max": 100000, "sell_percent": 0.01}
+  ],
+  "caps": {
+    "daily_sell_cap": 500,
+    "monthly_sell_cap": 10000
+  },
+  "buckets": [
+    {"name": "hosting", "percent": 0.25},
+    {"name": "email", "percent": 0.15},
+    {"name": "rewards", "percent": 0.35},
+    {"name": "ops", "percent": 0.15},
+    {"name": "reserves", "percent": 0.10}
+  ]
+}

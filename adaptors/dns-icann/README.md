@@ -1,26 +1,18 @@
-# Adapter: dns-icann (Native ICANN/Web2 DNS)
+# Adapter
 
-This adapter resolves standard ICANN DNS using native recursion (DoH/DoT server-side) and returns DNS RRsets.
+## Purpose
+This adapter integrates the upstream network or naming system into the DDNS stack.
 
-Namespace:
-- `ICANN_DNS`
+## Token Swap / OTC
+- Eligible partners can offer custodial OTC swaps for client onboarding.
+- Flow: client pays -> OTC desk swaps -> credits issued -> adapter routes traffic.
+- Settlement can be in native token, USDC, or agreed stable.
 
-Capabilities:
-- `RECURSIVE_DNS`
-- `CACHE_PROVIDER` (optional: cache interface hooks)
+## Integration Points
+- Resolver routing
+- Toll credits / usage ledger
+- Optional trust-score hooks
 
-Key behaviors:
-- DNS recursion and caching
-- optional DNSSEC validation (policy-defined)
-- strict bounds (max recursion depth, max response size, max CNAME chain)
-
-Fallback:
-- if policy state is DEGRADED/DISABLED, route per `fallback_set_id` (usually upstream-forward or centralized resolver set)
-
-Conformance:
-- correctness defined by conformance profiles (see `docs/04-functional-equivalence-proofs.md`)
-- challenge sets should include NXDOMAIN/NODATA semantics, CNAME chasing, TTL bounds
-
-Related:
-- Backend interface: `specs/backend-interface.md`
-- Routing policy: `docs/07-routing-engine.md`
+## Operator Opportunity
+Partners can grow usage by onboarding DDNS clients, providing routing and caching,
+and participating in the OTC swap pipeline.

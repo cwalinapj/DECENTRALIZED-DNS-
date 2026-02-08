@@ -1,6 +1,6 @@
 # 09 — Roadmap (Milestones, Phases, Deliverables)
 
-Repo home: https://github.com/cwalinapj/DECENTRALIZED-DNS-
+Repo home: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 
 This roadmap is written as a prospectus-style plan: start with a viable paid recursive DNS, then progressively add decentralization, gateways, watchdog safety, and finally “decentralized Cloudflare-like” capabilities (edge, anycast, scrubbing, and potentially DePIN ISP/fiber).
 
@@ -13,12 +13,14 @@ The roadmap is intentionally modular so the project can ship useful capability e
 TollDNS is actively seeking partners across infrastructure, security, Web3 naming/storage, and hardware.
 
 Our view is that a decentralized, policy-driven DNS + gateway + edge network can **outcompete centralized edge providers** over time by offering:
+
 - **Web3-native resolution and login primitives** (identity + naming + content addressing),
 - **more composable services** than a single provider can ship alone (via adapters and third-party gateways),
 - **consumer-facing features** that users have not seen yet (privacy, portable identity, decentralized routing choices, incentive-aligned infrastructure),
 - and **resilience through multi-operator diversity** rather than reliance on a single organization.
 
 If you operate:
+
 - edge infrastructure / POP capacity,
 - DDoS scrubbing / security tooling,
 - Web3 naming/storage protocols,
@@ -43,6 +45,7 @@ we want to talk.
 **Goal:** lock in design constraints and produce a runnable prototype skeleton.
 
 **Deliverables**
+
 - Docs/specs stabilized:
   - Vision: `docs/00-vision.md`
   - Architecture: `docs/01-architecture-overview.md`
@@ -65,6 +68,7 @@ we want to talk.
   - policy read + routing stub
 
 **Exit criteria**
+
 - clear MVP scope and interfaces
 - test harness defined for routing + health states
 
@@ -75,6 +79,7 @@ we want to talk.
 **Goal:** a working paid resolver that users can point devices at.
 
 **Deliverables**
+
 - DoH/DoT recursive resolver with:
   - query handling
   - caching
@@ -93,6 +98,7 @@ we want to talk.
   - upstream-forwarded resolution for reliability initially (optionally quorum-based)
 
 **Exit criteria**
+
 - end-user can resolve normal domains through TollDNS reliably
 - toll collection works without per-query prompts
 
@@ -103,6 +109,7 @@ we want to talk.
 **Goal:** prove “it stays up safely” before claiming decentralization.
 
 **Deliverables**
+
 - Verifier node network MVP:
   - multi-region probing
   - signed health reports
@@ -116,6 +123,7 @@ we want to talk.
   - pass/fail attestations for key resolution surfaces
 
 **Exit criteria**
+
 - observable, auditable automatic switching under simulated outages
 - no manual “flip a switch” requirement in normal incident modes
 
@@ -126,6 +134,7 @@ we want to talk.
 **Goal:** start distributing workload to independent operators using the fastest-to-ship onboarding path.
 
 **Deliverables**
+
 - **Miner Docker stack (first miner release)**:
   - edge ingress + admission gating (“toll booth”)
   - caching (RRsets + validated routes)
@@ -141,13 +150,14 @@ we want to talk.
   - adapter interface + test harness
   - developer documentation
 - Initial gateway integrations (choose subset):
-  - ENS: https://github.com/ensdomains
-  - SNS/Bonfida: https://github.com/Bonfida and https://github.com/SolanaNameService/sns-sdk
-  - Handshake: https://github.com/handshake-org and https://github.com/handshake-org/hnsd
-  - PKDNS/PKARR: https://github.com/pubky/pkdns and https://github.com/pubky/pkarr
-  - IPFS/Filecoin/Arweave: https://github.com/ipfs / https://github.com/filecoin-project / https://github.com/arweaveteam
+  - ENS: <https://github.com/ensdomains>
+  - SNS/Bonfida: <https://github.com/Bonfida> and <https://github.com/SolanaNameService/sns-sdk>
+  - Handshake: <https://github.com/handshake-org> and <https://github.com/handshake-org/hnsd>
+  - PKDNS/PKARR: <https://github.com/pubky/pkdns> and <https://github.com/pubky/pkarr>
+  - IPFS/Filecoin/Arweave: <https://github.com/ipfs> / <https://github.com/filecoin-project> / <https://github.com/arweaveteam>
 
 **Exit criteria**
+
 - operators can join via Docker, be routed traffic, and be paid for it
 - at least one web3 namespace + one content network works end-to-end
 
@@ -158,6 +168,7 @@ we want to talk.
 **Goal:** move from beta Docker miners to consumer-friendly “plug-and-play” miners.
 
 **Deliverables**
+
 - Reference miner firmware image targeting:
   - Raspberry Pi 5 (8GB)
   - NVMe HAT + active cooling
@@ -171,6 +182,7 @@ we want to talk.
   - gateway features as performance allows
 
 **Exit criteria**
+
 - non-expert operators can reliably deploy and stay online
 - measurable geographic/ASN diversity improvement vs VPS-only
 
@@ -181,6 +193,7 @@ we want to talk.
 **Goal:** prevent “cheap VPS proxy mining” from turning into de-facto centralization.
 
 **Deliverables**
+
 - Routing-time diversity constraints:
   - ASN caps
   - operator caps
@@ -195,6 +208,7 @@ we want to talk.
   - lock + exit delay rules enforced
 
 **Exit criteria**
+
 - measurable reduction in concentration even under incentive pressure
 - new operators can’t dominate by spinning up fleets in one provider
 
@@ -205,6 +219,7 @@ we want to talk.
 **Goal:** evolve into “lifeboat-grade” resilience.
 
 **Deliverables**
+
 - Anycast ingress role (optional advanced):
   - eligibility checks
   - reachability verification
@@ -220,6 +235,7 @@ we want to talk.
 - Operational runbooks + dashboards (even if basic)
 
 **Exit criteria**
+
 - proven ability to sustain service under stress tests and partial outages
 - automatic incident-mode transitions are auditable and recover automatically
 
@@ -230,12 +246,14 @@ we want to talk.
 **Goal:** enable “always-on” neighborhood edge participation without extra hardware.
 
 **Deliverables**
+
 - firmware/packages for routers that already run open-source routing software (OpenWrt-class)
 - ingress + caching roles by default
 - policy enforcement and receipt signing (where applicable)
 - constrained-hardware role profiles (avoid overpromising)
 
 **Exit criteria**
+
 - meaningful participation from home/small-office networks
 - improved distribution and survivability during incidents
 
@@ -246,6 +264,7 @@ we want to talk.
 **Goal:** expand from recursive resolver into more edge features while keeping Index Unit usage pricing.
 
 **Deliverables**
+
 - Nameserver usage features (authoritative-like services where applicable)
 - Additional edge capabilities:
   - web3 route caching at NS level
@@ -256,6 +275,7 @@ we want to talk.
   - role-based staking continues for business/dev/operator tiers
 
 **Exit criteria**
+
 - real value beyond recursion: performance/security features comparable to edge providers
 - extensible developer ecosystem of gateways/adapters
 
@@ -266,12 +286,14 @@ we want to talk.
 **Goal:** support miners as purpose-built edge/router devices optimized for TollDNS workloads.
 
 **Deliverables**
+
 - hardware partner program and reference design targets
 - secure provisioning flow (keys, firmware attestation, updates)
 - high-throughput ingress + routing + caching profiles
 - attack-mode survivability targets
 
 **Exit criteria**
+
 - predictable edge performance at scale
 - broad distribution without sacrificing diversity constraints
 
@@ -282,12 +304,14 @@ we want to talk.
 **Goal:** if pursued, build physical last-mile resilience.
 
 **Deliverables (conceptual)**
+
 - financing model using native token (grants, subsidies, ROI governance)
 - deployment incentives and operator onboarding
 - legal/compliance and locality constraints per region
 - integration with TollDNS routing and resilience layer
 
 **Exit criteria**
+
 - clear feasibility and sustainable incentives
 - no compromise of core DNS/gateway reliability
 
@@ -296,6 +320,7 @@ we want to talk.
 ## Cross-Cutting Work (Ongoing)
 
 These run across all phases:
+
 - security audits and bug bounties (native token)
 - privacy hardening
 - improved conformance proofs (Tier 1 → Tier 2/3 over time)

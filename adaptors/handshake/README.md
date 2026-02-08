@@ -1,22 +1,18 @@
-# Adapter: handshake (Alt-root / TLD Resolution)
+# Adapter
 
-This adapter resolves Handshake names (alt-root / TLD layer) and maps them into DNS-compatible outputs.
+## Purpose
+This adapter integrates the upstream network or naming system into the DDNS stack.
 
-Namespace:
-- `HANDSHAKE`
+## Token Swap / OTC
+- Eligible partners can offer custodial OTC swaps for client onboarding.
+- Flow: client pays -> OTC desk swaps -> credits issued -> adapter routes traffic.
+- Settlement can be in native token, USDC, or agreed stable.
 
-Capabilities:
-- `ALT_ROOT_RESOLUTION`
+## Integration Points
+- Resolver routing
+- Toll credits / usage ledger
+- Optional trust-score hooks
 
-Key behaviors:
-- query Handshake resolver (e.g., hnsd) and translate records
-- enforce conformance semantics for supported RR types
-- bounded recursion/chasing rules as defined by profile
-
-Fallback:
-- policy may disable Handshake namespace resolution if unhealthy
-- ICANN DNS remains independent and separate (do not silently merge semantics)
-
-Upstream references:
-- Handshake org: https://github.com/handshake-org
-- hnsd: https://github.com/handshake-org/hnsd
+## Operator Opportunity
+Partners can grow usage by onboarding DDNS clients, providing routing and caching,
+and participating in the OTC swap pipeline.

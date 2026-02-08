@@ -1,0 +1,115 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  docs:
+    name: Docs formatting (markdownlint)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install markdownlint
+        run: npm install -g markdownlint-cli
+
+      - name: Lint Markdown
+        run: |
+          markdownlint "**/*.md" \
+            --ignore node_modules \
+            --ignore .git \
+            --config .markdownlint.json
+
+  tests:
+    name: Raspi TS package builds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Build raspi gui
+        working-directory: miner/raspi/gui
+        run: |
+          npm ci
+          npm run build
+
+      - name: Build raspi diagnostics
+        working-directory: miner/raspi/diagnostics
+        run: |
+          npm ci
+          npm run build
+
+      - name: Build raspi integrity
+        working-directory: miner/raspi/integrity
+        run: |
+          npm ci
+          npm run build
+
+  compat-mvp:
+    name: Compat MVP validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run compat validation harness
+        run: |
+          bash scripts/validate-compat-mvp.sh
+
+  mvp-node:
+    name: MVP resolver checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: resolver/package-lock.json
+
+      - name: Install deps
+        working-directory: resolver
+        run: npm ci
+
+      - name: Lint
+        working-directory: resolver
+        run: npm run lint
+
+      - name: Build
+        working-directory: resolver
+        run: npm run build
+
+      - name: Test
+        working-directory: resolver
+        run: npm test
+
+  mvp-root-tests:
+    name: MVP root tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: resolver/package-lock.json
+
+      - name: Run repo tests
+        run: npm test

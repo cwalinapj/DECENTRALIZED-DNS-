@@ -1,0 +1,25 @@
+miner/raspi/
+  README.md
+  docker-compose.yml
+  .env.example
+
+  config/
+    edge-node.json
+    watchdog.yaml
+    logging.yaml
+
+  gui/
+    README.md
+    Dockerfile
+    src/
+      server.ts          # serves GUI + JSON API
+      docker.ts          # docker engine access
+      checks.ts          # health checks aggregation
+      recover.ts         # auto-recovery logic
+    web/
+      index.html         # simple dashboard (no framework required)
+
+  scripts/
+    os-loader.sh
+    firewall.sh
+    update.sh

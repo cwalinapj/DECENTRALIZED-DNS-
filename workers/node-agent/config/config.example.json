@@ -1,0 +1,17 @@
+{
+  "listen_addr": "0.0.0.0:8088",
+  "data_dir": "/var/lib/ddns-node",
+  "coordinator_url": "https://your-coordinator.example/receipts",
+  "resolver_url": "https://your-gateway.example/resolve",
+  "hot_names": ["example.com", "google.com"],
+  "prefetch_interval_seconds": 60,
+  "request_timeout_ms": 5000,
+  "max_cache_items": 5000,
+  "max_cached_bytes": 1048576,
+  "rate_limit_rps": 10,
+  "registry": {
+    "enabled": false,
+    "root_url": "https://your-gateway.example/registry/root",
+    "poll_interval_seconds": 60
+  }
+}

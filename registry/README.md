@@ -1,8 +1,9 @@
 # Registry Contracts (Backends, Adapters, Operators, Fallback Sets)
 
-Repo home: https://github.com/cwalinapj/DECENTRALIZED-DNS-
+Repo home: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 
 This folder specifies the on-chain registries that define:
+
 - which backends are enabled,
 - which adapters implement them,
 - which operators/miners are eligible to receive traffic,
@@ -11,6 +12,7 @@ This folder specifies the on-chain registries that define:
 Registries are governance-controlled and referenced by the routing engine and policy state machine.
 
 Related:
+
 - Backends: `docs/02-resolution-backends.md`
 - Backend interface: `specs/backend-interface.md`
 - Routing: `docs/07-routing-engine.md`
@@ -20,7 +22,9 @@ Related:
 ## Contracts in this Module
 
 ### 1) AdapterRegistry
+
 Tracks adapter listings (integration modules) and their immutable references:
+
 - adapter id + version
 - supported namespaces/capabilities
 - conformance profile ids
@@ -28,6 +32,7 @@ Tracks adapter listings (integration modules) and their immutable references:
 - optional listing fee / required developer stake tier
 
 **Purpose**
+
 - standardize integrations
 - allow DAO to approve/deny adapters
 - enable watchdog conformance checks
@@ -35,7 +40,9 @@ Tracks adapter listings (integration modules) and their immutable references:
 ---
 
 ### 2) BackendRegistry
+
 Tracks enabled backends and maps them to:
+
 - adapter id/version
 - policy id (watchdog thresholds)
 - verifier set id
@@ -43,12 +50,15 @@ Tracks enabled backends and maps them to:
 - immutable config pointer(s)
 
 **Purpose**
+
 - make routing and fallback auditable and deterministic
 
 ---
 
 ### 3) OperatorRegistry
+
 Tracks miner/operator identities and capabilities:
+
 - operator id
 - roles (EDGE_INGRESS, GATEWAY, CACHE, ANYCAST, SCRUBBING)
 - supported namespaces
@@ -58,6 +68,7 @@ Tracks miner/operator identities and capabilities:
 - signing keys for receipts
 
 **Purpose**
+
 - route traffic to eligible operators
 - pay rewards only to registered staked operators
 - enforce diversity controls (caps)
@@ -65,12 +76,15 @@ Tracks miner/operator identities and capabilities:
 ---
 
 ### 4) FallbackSetRegistry
+
 Defines allowed fallback sets for a backend:
+
 - list of fallback backend ids (decentralized and/or centralized references)
 - rules for when they may be used (state-based)
 - optional ordering/weights
 
 **Purpose**
+
 - make fallback behavior explicit and governance-controlled
 
 ---
@@ -87,6 +101,7 @@ Defines allowed fallback sets for a backend:
 ## Suggested Data Fields
 
 ### Adapter Listing
+
 - `adapter_id`, `version`
 - `capabilities`, `namespaces`, `qtypes`
 - `conformance_profile_ids`
@@ -95,6 +110,7 @@ Defines allowed fallback sets for a backend:
 - `listing_fee_native` (optional)
 
 ### Backend Entry
+
 - `backend_id`
 - `adapter_id@version`
 - `policy_id`
@@ -104,6 +120,7 @@ Defines allowed fallback sets for a backend:
 - `enabled` flag
 
 ### Operator Entry
+
 - `operator_id`
 - `roles`
 - `regions`
@@ -113,6 +130,7 @@ Defines allowed fallback sets for a backend:
 - `enabled` flag
 
 Events (examples):
+
 - `AdapterListed(adapter_id, version, hash)`
 - `BackendEnabled(backend_id)`
 - `BackendDisabled(backend_id)`

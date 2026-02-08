@@ -1,23 +1,18 @@
-# Adapter: filecoin (Retrieval / Storage Network Gateway)
+# Adapter
 
-This adapter supports retrieving content through Filecoin-based retrieval and/or gateway providers.
+## Purpose
+This adapter integrates the upstream network or naming system into the DDNS stack.
 
-Namespace:
-- `FILECOIN`
+## Token Swap / OTC
+- Eligible partners can offer custodial OTC swaps for client onboarding.
+- Flow: client pays -> OTC desk swaps -> credits issued -> adapter routes traffic.
+- Settlement can be in native token, USDC, or agreed stable.
 
-Capabilities:
-- `GATEWAY_RESOLUTION`
-- `CONTENT_RETRIEVAL`
+## Integration Points
+- Resolver routing
+- Toll credits / usage ledger
+- Optional trust-score hooks
 
-Key behaviors:
-- translate TollDNS pointer requests into Filecoin retrieval routes
-- choose among gateway/retrieval operators via routing policy
-- validate returned content integrity (hash/CID expectations per profile)
-
-Fallback:
-- alternate retrieval providers
-- centralized gateways (only under policy)
-- cache-only for previously validated content (policy-controlled)
-
-Upstream reference:
-- Filecoin org: https://github.com/filecoin-project
+## Operator Opportunity
+Partners can grow usage by onboarding DDNS clients, providing routing and caching,
+and participating in the OTC swap pipeline.

@@ -1,0 +1,32 @@
+{
+  "name": "solana-sns-bonfida",
+  "status": "stub",
+  "networks": [
+    "solana-sns-bonfida"
+  ],
+  "supports": "solana-sns-bonfida",
+  "resolveResponseExample": {
+    "name": "example.com",
+    "network": "icann",
+    "records": [
+      {
+        "type": "A",
+        "value": "203.0.113.10",
+        "ttl": 60
+      }
+    ],
+    "metadata": {
+      "source": "doh",
+      "cache": "miss"
+    }
+  },
+  "errorCodes": [
+    "NOT_FOUND",
+    "UPSTREAM_TIMEOUT",
+    "UPSTREAM_ERROR",
+    "VOUCHER_REQUIRED",
+    "VOUCHER_INVALID",
+    "VOUCHER_NOT_IMPLEMENTED"
+  ],
+  "notes": "Stub adapter descriptor; implementation pending."
+}

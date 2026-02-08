@@ -1,0 +1,9 @@
+{
+  "name": "ddns-pages-hosting",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node tests/subdomain.test.mjs"
+  }
+}

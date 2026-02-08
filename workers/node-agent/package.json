@@ -1,0 +1,12 @@
+{
+  "name": "ddns-node-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "echo 'rust-only node agent; use cargo build'"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
+}

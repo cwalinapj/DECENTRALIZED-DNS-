@@ -1,0 +1,15 @@
+{
+  : https://json-schema.org/draft/2020-12/schema,
+  title: ResourcePolicy,
+  type: object,
+  properties: {
+    cpu_percent: { type: number, minimum: 0, maximum: 100 },
+    ram_mb: { type: number, minimum: 128 },
+    disk_mb: { type: number, minimum: 0 },
+    bandwidth_kbps: { type: number, minimum: 0 },
+    allow_swarm: { type: boolean },
+    allow_storage: { type: boolean }
+  },
+  required: [cpu_percent, ram_mb],
+  additionalProperties: false
+}

@@ -1,0 +1,30 @@
+{
+  "name": "dns",
+  "status": "active",
+  "networks": [
+    "dns"
+  ],
+  "supports": ".dns",
+  "resolveResponseExample": {
+    "name": "alice.dns",
+    "network": "dns",
+    "records": [
+      {
+        "type": "TXT",
+        "value": "ipfs://example",
+        "ttl": 300
+      }
+    ],
+    "metadata": {
+      "source": "registry",
+      "root": "<root>"
+    }
+  },
+  "errorCodes": [
+    "NOT_FOUND",
+    "UPSTREAM_ERROR",
+    "VOUCHER_REQUIRED",
+    "VOUCHER_INVALID",
+    "VOUCHER_NOT_IMPLEMENTED"
+  ]
+}

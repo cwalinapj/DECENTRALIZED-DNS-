@@ -1,21 +1,18 @@
-# Adapter: ens (Ethereum Name Service)
+# Adapter
 
-This adapter resolves ENS names to records and/or content pointers, and maps results into DNS-compatible outputs (RRsets) and/or gateway routes.
+## Purpose
+This adapter integrates the upstream network or naming system into the DDNS stack.
 
-Namespace:
-- `ENS`
+## Token Swap / OTC
+- Eligible partners can offer custodial OTC swaps for client onboarding.
+- Flow: client pays -> OTC desk swaps -> credits issued -> adapter routes traffic.
+- Settlement can be in native token, USDC, or agreed stable.
 
-Capabilities:
-- `WEB3_NAME_RESOLUTION`
+## Integration Points
+- Resolver routing
+- Toll credits / usage ledger
+- Optional trust-score hooks
 
-Key behaviors:
-- resolve ENS records (address, text, contenthash, etc.) within supported surface
-- apply conformance profile rules for normalization and record mapping
-- optionally support resolver-side caching for hot entries (TTL/policy-controlled)
-
-Fallback:
-- centralized RPC providers may be used temporarily under policy
-- cache-only operation may apply during incidents (policy-controlled)
-
-Upstream reference:
-- ENS org: https://github.com/ensdomains
+## Operator Opportunity
+Partners can grow usage by onboarding DDNS clients, providing routing and caching,
+and participating in the OTC swap pipeline.

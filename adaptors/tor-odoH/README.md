@@ -1,21 +1,18 @@
-# Adapter: tor-odoH (Tor-Oriented / Privacy-Preserving DoH Mode)
+# Adapter
 
-This adapter represents a privacy-oriented routing mode (e.g., onion-routed DoH, or policy-controlled Tor gateway usage).
+## Purpose
+This adapter integrates the upstream network or naming system into the DDNS stack.
 
-Namespace:
-- may apply to `ICANN_DNS` and/or gateway namespaces depending on implementation
+## Token Swap / OTC
+- Eligible partners can offer custodial OTC swaps for client onboarding.
+- Flow: client pays -> OTC desk swaps -> credits issued -> adapter routes traffic.
+- Settlement can be in native token, USDC, or agreed stable.
 
-Capabilities:
-- `EDGE_INGRESS` (privacy mode)
-- optional: `GATEWAY_RESOLUTION` / `CONTENT_RETRIEVAL`
+## Integration Points
+- Resolver routing
+- Toll credits / usage ledger
+- Optional trust-score hooks
 
-Important:
-- This integration is **policy-controlled** and DAO-governed.
-- Abuse prevention and compliance rules apply.
-- The adapter MUST avoid leaking user metadata and should prioritize privacy-preserving telemetry.
-
-Fallback:
-- standard DoH/DoT paths when Tor-mode is degraded or disabled by policy.
-
-Note:
-- This README defines intent and scope; exact implementation details depend on governance policy and threat model.
+## Operator Opportunity
+Partners can grow usage by onboarding DDNS clients, providing routing and caching,
+and participating in the OTC swap pipeline.

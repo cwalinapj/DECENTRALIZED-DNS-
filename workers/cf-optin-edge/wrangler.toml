@@ -1,0 +1,17 @@
+name = "ddns-optin-edge"
+main = "src/worker.ts"
+compatibility_date = "2026-02-06"
+
+# Update to your account/zone settings as needed:
+# routes = [
+#   { pattern = "optin.yourdomain.tld/*", zone_name = "yourdomain.tld" }
+# ]
+
+[vars]
+RATE_LIMIT_PER_MIN = "60"
+MAX_SKEW_SEC = "600"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "ddns_optin"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"

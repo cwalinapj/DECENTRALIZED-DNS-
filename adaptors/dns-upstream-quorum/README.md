@@ -1,32 +1,18 @@
-# Adapter: dns-upstream-quorum (Forwarding + Quorum Correctness)
+# Adapter
 
-This adapter forwards DNS queries to a configured set of upstream recursive DNS providers and optionally requires N-of-M agreement before returning or caching results.
+## Purpose
+This adapter integrates the upstream network or naming system into the DDNS stack.
 
-Namespace:
-- `ICANN_DNS`
+## Token Swap / OTC
+- Eligible partners can offer custodial OTC swaps for client onboarding.
+- Flow: client pays -> OTC desk swaps -> credits issued -> adapter routes traffic.
+- Settlement can be in native token, USDC, or agreed stable.
 
-Capabilities:
-- `UPSTREAM_FORWARD`
-- `UPSTREAM_QUORUM`
+## Integration Points
+- Resolver routing
+- Toll credits / usage ledger
+- Optional trust-score hooks
 
-Use cases:
-- bootstrapping reliability (early phases)
-- correctness cross-checking when native recursion is immature
-- safer cache population (quorum-based cache fills)
-
-Key behaviors:
-- configurable upstream set (e.g., Cloudflare/Google/others)
-- quorum rules (N-of-M, majority, weighted)
-- response normalization and comparison rules
-- bounded fanout (avoid amplification)
-
-Fallback:
-- if quorum fails, return SERVFAIL or use single-upstream fallback per policy
-
-Conformance:
-- challenge sets should include behavior under disagreement and tie cases
-- ensure NXDOMAIN/NODATA semantics are handled correctly
-
-Related:
-- Backends: `docs/02-resolution-backends.md`
-- Routing: `docs/07-routing-engine.md`
+## Operator Opportunity
+Partners can grow usage by onboarding DDNS clients, providing routing and caching,
+and participating in the OTC swap pipeline.
