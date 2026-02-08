@@ -19,6 +19,11 @@ Logging:
 curl "http://localhost:8054/resolve?name=example.com"
 ```
 
+Health check:
+```bash
+curl "http://localhost:8054/healthz"
+```
+
 Expected JSON shape:
 ```json
 {

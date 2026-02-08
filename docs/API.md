@@ -28,6 +28,9 @@ Response (success):
 
 Errors:
 - 400: `{ "error": "missing_name" }`
+- 402: `{ "error": { "code": "VOUCHER_REQUIRED", "message": "...", "retryable": true } }`
+- 403: `{ "error": { "code": "VOUCHER_INVALID", "message": "...", "retryable": false } }`
+- 501: `{ "error": { "code": "VOUCHER_NOT_IMPLEMENTED", "message": "...", "retryable": false } }`
 - 502: `{ "error": { "code": "UPSTREAM_TIMEOUT" | "UPSTREAM_ERROR", "message": "...", "retryable": true } }`
 
 Caching:
@@ -42,3 +45,6 @@ Configuration:
 - `UPSTREAM_DOH_URL` (default `https://cloudflare-dns.com/dns-query`)
 - `REQUEST_TIMEOUT_MS` (default `2000`)
 - `LOG_LEVEL` (`quiet` by default, `verbose` when `NODE_ENV=development`)
+- `GATED_SUFFIXES` (default `.premium`, comma-separated)
+- `VOUCHER_MODE` (`stub` by default, set to `memory` to enable in-process verifier)
+- `VOUCHER_SECRET` (required when `VOUCHER_MODE=memory`)

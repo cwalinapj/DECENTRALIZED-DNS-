@@ -9,3 +9,5 @@ export * from "./wire_safe.js";
 export * from "./dns_name.js";
 export * from "./gateway_routes.js";
 export * from "./rr_helpers.js";
+export * from "./error_codes.js";
+export * from "./resolve_schema.js";

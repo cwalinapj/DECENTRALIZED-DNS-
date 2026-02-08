@@ -11,3 +11,9 @@ run_pkg() {
 }
 
 run_pkg "$root/resolver" "npm ci && npm run lint && npm run build && npm test"
+
+echo "==> tests/smoke: /resolve"
+(cd "$root" && bash tests/smoke/resolve.sh)
+
+echo "==> tests/conformance: adapters"
+(cd "$root" && node tests/conformance/adapter_contract.test.mjs)

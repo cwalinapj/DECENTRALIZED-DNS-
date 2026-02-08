@@ -12,11 +12,11 @@ Adapters can drive adoption by routing DDNS traffic for client workloads and
 participating in the OTC pipeline.
 
 ## Adapter Interface
-All adapters must conform to `docs/sections/ADAPTER_INTERFACE.md`.
+All adapters must conform to `adaptors/ADAPTER_INTERFACE.md`.
 
 ## Tests
 ```bash
-cd /Users/root1/scripts/DECENTRALIZED-DNS-/adaptors
+cd /Users/root1/dev/web3-repos/DECENTRALIZED-DNS-/adaptors
 npm install
 npm test
 ```

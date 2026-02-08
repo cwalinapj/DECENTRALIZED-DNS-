@@ -1,10 +1,17 @@
 import express from "express";
 import dnsPacket from "dns-packet";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { verifyVoucherHeader } from "./voucher.js";
 
 const PORT = Number(process.env.PORT || "8054");
 const UPSTREAM_DOH_URL = process.env.UPSTREAM_DOH_URL || "https://cloudflare-dns.com/dns-query";
 const REQUEST_TIMEOUT_MS = Number(process.env.REQUEST_TIMEOUT_MS || "2000");
 const LOG_LEVEL = process.env.LOG_LEVEL || (process.env.NODE_ENV === "development" ? "verbose" : "quiet");
+const GATED_SUFFIXES = (process.env.GATED_SUFFIXES || ".premium")
+  .split(",")
+  .map((entry) => entry.trim().toLowerCase())
+  .filter(Boolean);
 
 function logInfo(message: string) {
   if (LOG_LEVEL !== "quiet") {
@@ -91,6 +98,29 @@ export function createApp() {
     const name = typeof req.query.name === "string" ? req.query.name : "";
     if (!name) return res.status(400).json({ error: "missing_name" });
 
+    const lowered = name.toLowerCase();
+    const gated = GATED_SUFFIXES.some((suffix) => lowered.endsWith(suffix));
+    if (gated) {
+      const voucherHeader = typeof req.headers["x-ddns-voucher"] === "string"
+        ? req.headers["x-ddns-voucher"]
+        : "";
+      const voucherCheck = verifyVoucherHeader(voucherHeader);
+      if (!voucherCheck.ok) {
+        const status = voucherCheck.code === "VOUCHER_REQUIRED"
+          ? 402
+          : voucherCheck.code === "VOUCHER_NOT_IMPLEMENTED"
+            ? 501
+            : 403;
+        return res.status(status).json({
+          error: {
+            code: voucherCheck.code,
+            message: voucherCheck.message,
+            retryable: voucherCheck.retryable
+          }
+        });
+      }
+    }
+
     const cacheKey = `resolve:${name.toLowerCase()}`;
     const cached = cacheGet(cacheKey);
     if (cached) {
@@ -122,7 +152,10 @@ export function createApp() {
 
 const app = createApp();
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+const modulePath = fileURLToPath(import.meta.url);
+const entryPath = process.argv[1] ? path.resolve(process.argv[1]) : "";
+
+if (modulePath === entryPath) {
   app.listen(PORT, () => {
     logInfo(`Listening on port ${PORT}`);
   });
