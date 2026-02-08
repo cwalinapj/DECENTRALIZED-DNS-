@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import request from "supertest";
-import path from "node:path";
 import fs from "node:fs";
+import { fileURLToPath } from "node:url";
 
-const anchorPath = path.resolve("/Users/root1/dev/web3-repos/DECENTRALIZED-DNS-/resolver/tests/fixtures/anchors.json");
-const registryPath = path.resolve("/Users/root1/dev/web3-repos/DECENTRALIZED-DNS-/resolver/tests/fixtures/registry.json");
+const anchorPath = fileURLToPath(new URL("./fixtures/anchors.json", import.meta.url));
+const registryPath = fileURLToPath(new URL("./fixtures/registry.json", import.meta.url));
 
 let createApp: typeof import("../src/server.js").createApp;
 
