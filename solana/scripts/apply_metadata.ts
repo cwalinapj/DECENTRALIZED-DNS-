@@ -100,12 +100,9 @@ async function main() {
 
   const creators = parseCreators(argv.creators);
   const metadataAccount = await connection.getAccountInfo(metadataPda);
-
-  if (metadataAccount && !argv.force) {
-    console.log("Metadata already exists. Use --force to update.");
-    console.log(`metadata_pda: ${metadataPda.toBase58()}`);
-    return;
-  }
+  const masterEditionAccount = argv["master-edition"]
+    ? await connection.getAccountInfo(masterEditionPda)
+    : null;
 
   const tx = new Transaction();
 
@@ -136,7 +133,7 @@ async function main() {
         }
       )
     );
-  } else {
+  } else if (argv.force) {
     tx.add(
       createUpdateMetadataAccountV2Instruction(
         {
@@ -161,22 +158,28 @@ async function main() {
         }
       )
     );
+  } else {
+    console.log("Metadata already exists; skipping update (use --force to update).");
   }
 
   if (argv["master-edition"]) {
-    tx.add(
-      createCreateMasterEditionV3Instruction(
-        {
-          edition: masterEditionPda,
-          mint,
-          updateAuthority: payer.publicKey,
-          mintAuthority: payer.publicKey,
-          payer: payer.publicKey,
-          metadata: metadataPda,
-        },
-        { createMasterEditionArgs: { maxSupply: 0 } }
-      )
-    );
+    if (masterEditionAccount) {
+      console.log("Master edition already exists; skipping.");
+    } else {
+      tx.add(
+        createCreateMasterEditionV3Instruction(
+          {
+            edition: masterEditionPda,
+            mint,
+            updateAuthority: payer.publicKey,
+            mintAuthority: payer.publicKey,
+            payer: payer.publicKey,
+            metadata: metadataPda,
+          },
+          { createMasterEditionArgs: { maxSupply: 0 } }
+        )
+      );
+    }
   }
 
   console.log("metadata_pda:", metadataPda.toBase58());

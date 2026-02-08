@@ -35,6 +35,26 @@ Notes:
 - The mint authority must still be the wallet running the script.
 - If you revoke mint authority, do it **after** metadata is created.
 
+### Force update (update authority required)
+```bash
+npm -C solana run apply-metadata -- \
+  --force \
+  --mint <MINT_PUBKEY> \
+  --name "DDNS Toll Pass" \
+  --uri "https://example.com/metadata.json"
+```
+`--force` uses `UpdateMetadataAccounts`; it will fail unless your keypair is the update authority.
+
+### Master edition (optional)
+```bash
+npm -C solana run apply-metadata -- \
+  --master-edition \
+  --mint <MINT_PUBKEY> \
+  --name "DDNS Toll Pass" \
+  --uri "https://example.com/metadata.json"
+```
+This creates the master edition PDA and adds an additional instruction.
+
 ## Deploy (devnet)
 ```bash
 anchor deploy --provider.cluster devnet --provider.wallet ./devnet-wallet.json
