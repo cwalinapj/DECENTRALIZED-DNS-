@@ -4,6 +4,7 @@ import path from "node:path";
 import { buildProof, verifyProof } from "../src/registry.js";
 
 const fixturePath = path.resolve("/Users/root1/dev/web3-repos/DECENTRALIZED-DNS-/resolver/tests/fixtures/registry.json");
+const anchorPath = path.resolve("/Users/root1/dev/web3-repos/DECENTRALIZED-DNS-/resolver/tests/fixtures/anchors.json");
 
 let createApp: typeof import("../src/server.js").createApp;
 
@@ -11,6 +12,7 @@ describe("registry endpoints", () => {
   beforeAll(async () => {
     process.env.REGISTRY_ENABLED = "1";
     process.env.REGISTRY_PATH = fixturePath;
+    process.env.ANCHOR_STORE_PATH = anchorPath;
     const mod = await import("../src/server.js");
     createApp = mod.createApp;
   });
@@ -18,6 +20,7 @@ describe("registry endpoints", () => {
   afterAll(() => {
     delete process.env.REGISTRY_ENABLED;
     delete process.env.REGISTRY_PATH;
+    delete process.env.ANCHOR_STORE_PATH;
   });
 
   it("returns registry root and proof", async () => {

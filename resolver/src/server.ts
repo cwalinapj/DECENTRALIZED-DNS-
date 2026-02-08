@@ -6,6 +6,7 @@ import { verifyVoucherHeader } from "./voucher.js";
 import { buildMerkleRoot, buildProof, loadSnapshot, normalizeName } from "./registry.js";
 import { resolveEns, supportsEns } from "./adaptors/ens.js";
 import { resolveSns, supportsSns } from "./adaptors/sns.js";
+import { anchorRoot, loadAnchorStore, type AnchorRecord } from "./anchor.js";
 
 const PORT = Number(process.env.PORT || "8054");
 const UPSTREAM_DOH_URL = process.env.UPSTREAM_DOH_URL || "https://cloudflare-dns.com/dns-query";
@@ -23,6 +24,8 @@ const ETH_RPC_URL = process.env.ETH_RPC_URL || "";
 const ENS_NETWORK = process.env.ENS_NETWORK || "mainnet";
 const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
 const SNS_CLUSTER = process.env.SNS_CLUSTER || "devnet";
+const ANCHOR_STORE_PATH = process.env.ANCHOR_STORE_PATH || "settlement/anchors/anchors.json";
+const REGISTRY_ADMIN_TOKEN = process.env.REGISTRY_ADMIN_TOKEN || "";
 
 function logInfo(message: string) {
   if (LOG_LEVEL !== "quiet") {
@@ -111,7 +114,8 @@ export function createApp() {
     }
     const snapshot = loadSnapshot(REGISTRY_PATH);
     const root = buildMerkleRoot(snapshot.records);
-    return res.json({ root, version: snapshot.version, updatedAt: snapshot.updatedAt });
+    const anchor = loadAnchorStore(ANCHOR_STORE_PATH).latest;
+    return res.json({ root, version: snapshot.version, updatedAt: snapshot.updatedAt, anchoredRoot: anchor });
   });
 
   app.get("/registry/proof", (req, res) => {
@@ -123,6 +127,28 @@ export function createApp() {
     const snapshot = loadSnapshot(REGISTRY_PATH);
     const proof = buildProof(snapshot.records, name);
     return res.json({ root: proof.root, leaf: proof.leaf, proof: proof.proof, version: snapshot.version, updatedAt: snapshot.updatedAt });
+  });
+
+  app.post("/registry/anchor", express.json(), (req, res) => {
+    if (!REGISTRY_ENABLED) {
+      return res.status(501).json({ error: { code: "REGISTRY_DISABLED", message: "registry not enabled" } });
+    }
+    const token = typeof req.headers["x-admin-token"] === "string" ? req.headers["x-admin-token"] : "";
+    if (!REGISTRY_ADMIN_TOKEN || token !== REGISTRY_ADMIN_TOKEN) {
+      return res.status(403).json({ error: { code: "UNAUTHORIZED", message: "admin token required" } });
+    }
+    const body = req.body as Partial<AnchorRecord>;
+    if (!body?.root || !body?.version || !body?.timestamp || !body?.source) {
+      return res.status(400).json({ error: { code: "INVALID_REQUEST", message: "missing anchor fields" } });
+    }
+    const record: AnchorRecord = {
+      root: String(body.root),
+      version: Number(body.version),
+      timestamp: String(body.timestamp),
+      source: String(body.source)
+    };
+    const anchored = anchorRoot(record, ANCHOR_STORE_PATH);
+    return res.json({ anchored });
   });
 
   app.get("/resolve", async (req, res) => {

@@ -33,6 +33,27 @@ Response:
 }
 ```
 
+## POST /registry/anchor
+Anchors a registry root (admin only).
+
+Headers:
+- `x-admin-token`: required when `REGISTRY_ADMIN_TOKEN` is set
+
+Body:
+```json
+{
+  "root": "<hex>",
+  "version": 1,
+  "timestamp": "2026-02-08T00:00:00Z",
+  "source": "git:<sha>"
+}
+```
+
+Response:
+```json
+{ "anchored": { "root": "...", "version": 1, "timestamp": "...", "source": "..." } }
+```
+
 ## GET /resolve
 Resolve a name using the configured backend.
 
@@ -78,6 +99,8 @@ Configuration:
 - `VOUCHER_SECRET` (required when `VOUCHER_MODE=memory`)
 - `REGISTRY_ENABLED` (`1` to enable `.dns` registry + proof endpoints)
 - `REGISTRY_PATH` (default `registry/snapshots/registry.json`)
+- `REGISTRY_ADMIN_TOKEN` (required for `/registry/anchor`)
+- `ANCHOR_STORE_PATH` (default `settlement/anchors/anchors.json`)
 - `ENABLE_ENS` (`1` to enable `.eth`)
 - `ETH_RPC_URL` (required for ENS)
 - `ENS_NETWORK` (default `mainnet`)
