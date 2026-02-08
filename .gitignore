@@ -7,3 +7,21 @@ dist/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+# Build + node
+**/node_modules/
+**/.DS_Store
+
+# Solana
+solana/target/
+solana/devnet-wallet.json
+
+# local ignores
+**/target/
+**/node_modules/
+**/.DS_Store
+**/.env
+**/.env.*
+/Users/root1/scripts/DECENTRALIZED-DNS-
+git status --porcelain
+ls -d services labs/services 2>/dev/null*/.env.example
+**/*wallet*.json

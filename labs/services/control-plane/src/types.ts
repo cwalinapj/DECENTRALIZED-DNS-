@@ -32,12 +32,23 @@ export interface BackupRecord {
   created_at: string;
 }
 
+export interface DeployRecord {
+  deploy_id: string;
+  site_id: string;
+  version: number;
+  status: "stored" | "failed";
+  created_at: string;
+  file_count: number;
+  total_bytes: number;
+}
+
 export interface ControlPlaneState {
   dataDir: string;
   sites: Map<string, SiteRecord>;
   jobs: Map<string, JobRecord>;
   uploads: Map<string, UploadRecord>;
   backups: Map<string, BackupRecord>;
+  deploys: Map<string, DeployRecord>;
 }
 
 export type RouteContext = {

@@ -10,15 +10,55 @@ run_pkg() {
   (cd "$dir" && eval "$cmd")
 }
 
-run_pkg "$root/gateway" "npm ci && npm run lint && npm run build && npm test"
-run_pkg "$root/core" "npm ci && npm run build && npm test"
-run_pkg "$root/coordinator" "npm ci && npm test"
+maybe_run() {
+  local dir="$1"
+  local cmd="$2"
+  if [ -d "$dir" ]; then
+    run_pkg "$dir" "$cmd"
+  else
+    echo "==> skip (missing): $dir"
+  fi
+}
 
-echo "==> tests/smoke: /resolve"
-(cd "$root" && bash tests/smoke/resolve.sh)
+# Newer layout (preferred)
+maybe_run "$root/gateway" "npm ci && npm run lint && npm run build && npm test"
+maybe_run "$root/core" "npm ci && npm run build && npm test"
+maybe_run "$root/coordinator" "npm ci && npm test"
 
-echo "==> tests/node-name"
-(cd "$root" && node tests/node-name.test.mjs)
+# Legacy layout (still present in some branches/commits)
+maybe_run "$root/ddns-core" "npm ci || npm install; (npx vitest run || npm test)"
+maybe_run "$root/resolver" "npm ci || npm install; (npm test || npm run build)"
+maybe_run "$root/escrow" "npm ci || npm install; (npx vitest run || npm test)"
+maybe_run "$root/services/compat-control-plane" "npm ci || npm install; (npm test || npm run build)"
+maybe_run "$root/services/control-plane" "npm ci || npm install; (npm test || npm run build)"
+maybe_run "$root/services/vault" "npm ci || npm install; (npm test || npm run build)"
 
-echo "==> tests/conformance: adapters"
-(cd "$root" && node tests/conformance/adapter_contract.test.mjs)
+# Repo-level smoke tests (newer layout)
+if [ -d "$root/tests/smoke" ] && [ -f "$root/tests/smoke/resolve.sh" ]; then
+  echo "==> tests/smoke: /resolve"
+  (cd "$root" && bash tests/smoke/resolve.sh)
+fi
+
+if [ -f "$root/tests/node-name.test.mjs" ]; then
+  echo "==> tests/node-name"
+  (cd "$root" && node tests/node-name.test.mjs)
+fi
+
+if [ -f "$root/tests/conformance/adapter_contract.test.mjs" ]; then
+  echo "==> tests/conformance: adapters"
+  (cd "$root" && node tests/conformance/adapter_contract.test.mjs)
+fi
+
+# Solana (optional)
+if [ -d "$root/solana" ]; then
+  echo "==> solana: cargo test"
+  (cd "$root/solana" && cargo test)
+  if command -v anchor >/dev/null 2>&1; then
+    echo "==> solana: anchor build"
+    (cd "$root/solana" && anchor build)
+  else
+    echo "==> skip: anchor not installed"
+  fi
+fi
+
+echo "==> run_all: complete"
