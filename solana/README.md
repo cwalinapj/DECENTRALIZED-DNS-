@@ -137,6 +137,11 @@ anchor deploy
 npm -C solana run set-route -- --name "local.dns" --dest "https://example.com"
 ```
 
+Notes:
+- `set-route` will **create** on first call and **update** on subsequent calls.
+- Use `--update-only` to prevent accidental creation.
+- Name record PDA seeds are derived from `sha256(name)` (not raw name bytes).
+
 ## Deploy (devnet)
 ```bash
 anchor deploy --provider.cluster devnet --provider.wallet ./devnet-wallet.json

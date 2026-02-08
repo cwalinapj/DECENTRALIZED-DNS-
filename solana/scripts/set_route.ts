@@ -65,6 +65,11 @@ async function main() {
     .option("name", { type: "string", demandOption: true })
     .option("dest", { type: "string", demandOption: true })
     .option("ttl", { type: "number", default: 300 })
+    .option("update-only", {
+      type: "boolean",
+      default: false,
+      describe: "Only update an existing record; do not create",
+    })
     .option("rpc", { type: "string" })
     .option("wallet", { type: "string" })
     .option("dry-run", { type: "boolean", default: false })
@@ -124,6 +129,9 @@ async function main() {
   const metadataHash = new Uint8Array(32);
 
   const recordInfo = await connection.getAccountInfo(recordPda, "confirmed");
+  if (!recordInfo && argv["update-only"]) {
+    throw new Error("record does not exist; use create or omit --update-only");
+  }
   const ixName = recordInfo ? "update_name_record" : "create_name_record";
   const ixDef = idl.instructions?.find(
     (i: { name: string }) => i.name === ixName
@@ -186,12 +194,14 @@ async function main() {
       })),
       dataLength: ix.data.length,
     });
+    console.log("action:", ixName === "create_name_record" ? "create" : "update");
     console.log("dry_run: not sending transaction");
     return;
   }
 
   const tx = await provider.sendAndConfirm(new Transaction().add(ix), []);
 
+  console.log("action:", ixName === "create_name_record" ? "create" : "update");
   console.log("tx:", tx);
 
   const info = await connection.getAccountInfo(recordPda, "confirmed");
