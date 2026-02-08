@@ -12,6 +12,10 @@ no-idl = []
 no-log-ix-name = []
 idl-build = ["anchor-lang/idl-build"]
 metaplex = ["mpl-token-metadata"]
+cpi = []
+custom-heap = []
+custom-panic = []
+anchor-debug = []
 
 [dependencies]
 sha2 = "0.10"
