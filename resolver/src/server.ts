@@ -3,7 +3,7 @@ import dnsPacket from "dns-packet";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { verifyVoucherHeader } from "./voucher.js";
-import { buildMerkleRoot, buildProof, loadSnapshot, normalizeName } from "./registry.js";
+import { buildMerkleRoot, buildProof, loadSnapshot, normalizeName, verifyProof } from "./registry.js";
 import { resolveEns, supportsEns } from "./adaptors/ens.js";
 import { resolveSns, supportsSns } from "./adaptors/sns.js";
 import { anchorRoot, loadAnchorStore, type AnchorRecord } from "./anchor.js";
@@ -131,7 +131,14 @@ export function createApp() {
     if (!name) return res.status(400).json({ error: "missing_name" });
     const snapshot = loadSnapshot(REGISTRY_PATH);
     const proof = buildProof(snapshot.records, name);
-    return res.json({ root: proof.root, leaf: proof.leaf, proof: proof.proof, version: snapshot.version, updatedAt: snapshot.updatedAt });
+    return res.json({
+      root: proof.root,
+      leaf: proof.leaf,
+      siblings: proof.proof.siblings,
+      directions: proof.proof.directions,
+      version: snapshot.version,
+      updatedAt: snapshot.updatedAt
+    });
   });
 
   app.post("/registry/anchor", express.json(), (req, res) => {
@@ -197,8 +204,20 @@ export function createApp() {
       if (!entry) {
         return res.status(404).json({ error: { code: "NOT_FOUND", message: "record not found", retryable: false } });
       }
-      const root = buildMerkleRoot(snapshot.records);
+      const computedRoot = buildMerkleRoot(snapshot.records);
+      const anchor = loadAnchorStore(ANCHOR_STORE_PATH).latest;
+      if (anchor && anchor.root !== computedRoot) {
+        return res.status(409).json({
+          error: { code: "ANCHOR_MISMATCH", message: "anchored root does not match snapshot", retryable: false }
+        });
+      }
+      const root = anchor?.root || computedRoot;
       const proof = proofRequested ? buildProof(snapshot.records, name) : null;
+      if (proofRequested && proof && !verifyProof(root, proof.leaf, proof.proof)) {
+        return res.status(500).json({
+          error: { code: "PROOF_INVALID", message: "proof failed to verify", retryable: false }
+        });
+      }
       const payload: ResolveResponse = {
         name,
         network: "dns",
@@ -208,7 +227,15 @@ export function createApp() {
           registryVersion: snapshot.version,
           registryUpdatedAt: snapshot.updatedAt,
           root,
-          ...(proofRequested ? { proof } : {})
+          ...(proofRequested && proof ? {
+            proof: {
+              root,
+              version: snapshot.version,
+              leaf: proof.leaf,
+              siblings: proof.proof.siblings,
+              directions: proof.proof.directions
+            }
+          } : {})
         }
       };
       return res.json(payload);

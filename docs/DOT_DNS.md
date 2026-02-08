@@ -1,54 +1,68 @@
-# .DNS (Origin Namespace)
+# .dns Namespace
 
-## Overview
-`.dns` is an internal namespace resolved from the registry snapshot, not ICANN. It is branded as “.DNS (Origin namespace)” to avoid confusion with generic DNS.
+The `.dns` namespace is our first-party registry. It is **not** ICANN DNS. Records resolve only from the internal registry and can be proven with Merkle proofs.
 
-## Resolution behavior
-- `.dns` names are resolved only from the registry.
-- Supported records (MVP): TXT, A, AAAA, CNAME.
-- Responses can include Merkle proofs when `proof=1`.
+## Record Types
+All `.dns` names **must** include an `OWNER` record.
 
-## Enabling
+- `OWNER`: required. Value is the L2 address or public key string (recommended: `ed25519:<base64>`).
+- `NODE_PUBKEY`: node public key (`ed25519:<base64>`).
+- `ENDPOINT`: HTTPS URL for node/gateway (`https://...`).
+- `CAPS`: comma-separated capabilities (`cache,verify,store,proxy,tor`).
+- `TEXT`: key/value object `{ "key": "...", "value": "..." }`.
+
+Unknown types are rejected.
+
+## Updates + Signing
+Updates are owner-signed. The update payload is canonicalized and signed using Ed25519.
+
+Sign:
 ```bash
-REGISTRY_ENABLED=1 ./scripts/dev.sh
+node scripts/dns-sign.mjs \
+  --name alice.dns \
+  --owner ed25519:YWJj \
+  --record "ENDPOINT:https://example.com" \
+  --record "CAPS:cache,verify" \
+  --record "TEXT:email=alice@example.com" \
+  --nonce 1 \
+  --private-key /path/to/ed25519_seed
 ```
 
-If disabled, `.dns` requests return `REGISTRY_DISABLED`.
-
-## Query
+Verify:
 ```bash
-curl "http://localhost:8054/resolve?name=alice.dns"
+node scripts/dns-verify.mjs --file signed.json --registry registry/snapshots/registry.json
 ```
 
-Proof:
+Updates **must** be rejected unless the signature matches the current `OWNER` record for the name.
+
+## Proof Format
+Proofs are included when `proof=1` is set and are verified against the anchored root (if available).
+
+```json
+{
+  "root": "hex",
+  "version": 1,
+  "leaf": "hex",
+  "siblings": ["hex", "hex"],
+  "directions": ["left", "right"]
+}
+```
+
+## Example Resolve
 ```bash
 curl "http://localhost:8054/resolve?name=alice.dns&proof=1"
 ```
 
-## Updates (wallet-signed)
-Updates require an Ed25519 signature from the record owner.
+Expected fields:
+- `network: "dns"`
+- `records: [...]`
+- `metadata.proof: {root, version, leaf, siblings, directions}`
 
-Set a record:
+## Node Naming Helper
 ```bash
-node scripts/dns-set-record.mjs \
-  --name alice.dns \
-  --type TXT \
-  --value ipfs://example \
-  --ttl 300 \
-  --owner <PUBKEY_HEX> \
-  --sig <SIGNATURE_HEX>
+node scripts/node-name.mjs --pubkey <base64|hex>
 ```
-
-Delete a record:
-```bash
-node scripts/dns-delete-record.mjs \
-  --name alice.dns \
-  --owner <PUBKEY_HEX> \
-  --sig <SIGNATURE_HEX>
+Output example:
 ```
-
-## Signature payloads
-- Update: `registry_update\n<canonical-json>`
-- Delete: `registry_delete\n<normalized-name>\n<updatedAt>`
-
-See `scripts/registry-utils.mjs` for canonicalization details.
+node-1a2b3c4d5e.dns
+```

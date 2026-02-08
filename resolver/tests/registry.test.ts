@@ -32,9 +32,13 @@ describe("registry endpoints", () => {
     const proofRes = await request(app).get("/registry/proof").query({ name: "alice.dns" });
     expect(proofRes.status).toBe(200);
     expect(proofRes.body.root).toBeTruthy();
-    expect(Array.isArray(proofRes.body.proof)).toBe(true);
     expect(proofRes.body.leaf).toBeTruthy();
-    expect(verifyProof(proofRes.body.root, proofRes.body.leaf, proofRes.body.proof)).toBe(true);
+    expect(Array.isArray(proofRes.body.siblings)).toBe(true);
+    expect(Array.isArray(proofRes.body.directions)).toBe(true);
+    expect(verifyProof(proofRes.body.root, proofRes.body.leaf, {
+      siblings: proofRes.body.siblings,
+      directions: proofRes.body.directions
+    })).toBe(true);
   });
 
   it("resolves .dns with proof", async () => {
@@ -45,8 +49,8 @@ describe("registry endpoints", () => {
     expect(res.body.records.length).toBeGreaterThan(0);
     expect(res.body.metadata.root).toBeTruthy();
     expect(res.body.metadata.proof).toBeTruthy();
-    const { root, proof, leaf } = res.body.metadata.proof;
-    expect(verifyProof(root, leaf, proof)).toBe(true);
+    const { root, siblings, directions, leaf } = res.body.metadata.proof;
+    expect(verifyProof(root, leaf, { siblings, directions })).toBe(true);
   });
 
   it("returns NOT_FOUND for missing .dns", async () => {
