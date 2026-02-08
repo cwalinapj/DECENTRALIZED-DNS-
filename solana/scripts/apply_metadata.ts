@@ -9,6 +9,7 @@ import {
   Transaction,
   sendAndConfirmTransaction,
 } from "@solana/web3.js";
+import { getMint } from "@solana/spl-token";
 import {
   createCreateMetadataAccountV3Instruction,
   createCreateMasterEditionV3Instruction,
@@ -60,6 +61,8 @@ async function main() {
     .option("seller-fee-bps", { type: "number", default: 0 })
     .option("creators", { type: "string" })
     .option("master-edition", { type: "boolean", default: false })
+    .option("mutable", { type: "boolean", default: true })
+    .option("allow-non-mint-authority", { type: "boolean", default: false })
     .option("dry-run", { type: "boolean", default: false })
     .option("force", { type: "boolean", default: false })
     .strict()
@@ -101,10 +104,29 @@ async function main() {
   );
 
   const creators = parseCreators(argv.creators);
+  const isMutable = Boolean(argv.mutable);
   const metadataAccount = await connection.getAccountInfo(metadataPda);
   const masterEditionAccount = argv["master-edition"]
     ? await connection.getAccountInfo(masterEditionPda)
     : null;
+
+  let mintInfo = null as null | Awaited<ReturnType<typeof getMint>>;
+  try {
+    mintInfo = await getMint(connection, mint);
+  } catch (err) {
+    if (!argv["dry-run"]) {
+      throw err;
+    }
+    console.warn("Mint account not found; skipping mint-authority check in dry-run.");
+  }
+  if (mintInfo && !argv["allow-non-mint-authority"]) {
+    if (!mintInfo.mintAuthority) {
+      throw new Error("payer is not mint authority; cannot create metadata");
+    }
+    if (!mintInfo.mintAuthority.equals(payer.publicKey)) {
+      throw new Error("payer is not mint authority; cannot create metadata");
+    }
+  }
 
   const tx = new Transaction();
 
@@ -129,7 +151,7 @@ async function main() {
               collection: null,
               uses: null,
             },
-            isMutable: true,
+            isMutable,
             collectionDetails: null,
           },
         }
@@ -153,9 +175,9 @@ async function main() {
               collection: null,
               uses: null,
             },
-            updateAuthority: payer.publicKey,
+            updateAuthority: null,
             primarySaleHappened: null,
-            isMutable: true,
+            isMutable,
           },
         }
       )
