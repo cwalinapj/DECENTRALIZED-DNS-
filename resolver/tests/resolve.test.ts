@@ -22,11 +22,20 @@ describe("/resolve", () => {
     });
   });
 
-  it("resolves example.com", async () => {
+  it("resolves example.com via a running server", async () => {
     const app = createApp();
-    const res = await request(app).get("/resolve").query({ name: "example.com" });
-    expect(res.status).toBe(200);
-    expect(res.body.name).toBe("example.com");
-    expect(res.body.records.length).toBeGreaterThan(0);
+    const server = app.listen(0);
+    try {
+      const res = await request(server).get("/resolve").query({ name: "example.com" });
+      expect(res.status).toBe(200);
+      expect(res.body.name).toBe("example.com");
+      expect(res.body.network).toBe("icann");
+      expect(Array.isArray(res.body.records)).toBe(true);
+      expect(res.body.records.length).toBeGreaterThan(0);
+      const hasA = res.body.records.some((record: { type?: string }) => record?.type === "A");
+      expect(hasA).toBe(true);
+    } finally {
+      server.close();
+    }
   });
 });

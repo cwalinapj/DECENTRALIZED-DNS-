@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-root="/Users/root1/dev/web3-repos/DECENTRALIZED-DNS-"
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 run_pkg() {
   local dir="$1"
@@ -10,4 +10,4 @@ run_pkg() {
   (cd "$dir" && eval "$cmd")
 }
 
-run_pkg "$root/resolver" "npm install && npm run build && npm test"
+run_pkg "$root/resolver" "npm ci && npm run lint && npm run build && npm test"

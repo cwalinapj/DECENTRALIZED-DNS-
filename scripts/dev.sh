@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="/Users/root1/dev/web3-repos/DECENTRALIZED-DNS-"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 cd "$ROOT/resolver"
 
 npm install
 npm run build
-PORT=8054 npm start
+NODE_ENV=development PORT="${PORT:-8054}" npm start

@@ -4,6 +4,13 @@ import dnsPacket from "dns-packet";
 const PORT = Number(process.env.PORT || "8054");
 const UPSTREAM_DOH_URL = process.env.UPSTREAM_DOH_URL || "https://cloudflare-dns.com/dns-query";
 const REQUEST_TIMEOUT_MS = Number(process.env.REQUEST_TIMEOUT_MS || "2000");
+const LOG_LEVEL = process.env.LOG_LEVEL || (process.env.NODE_ENV === "development" ? "verbose" : "quiet");
+
+function logInfo(message: string) {
+  if (LOG_LEVEL !== "quiet") {
+    console.log(message);
+  }
+}
 
 const cache = new Map<string, { expiresAt: number; payload: ResolveResponse }>();
 
@@ -78,7 +85,7 @@ async function resolveViaDoh(name: string): Promise<{ records: ResolveRecord[]; 
 export function createApp() {
   const app = express();
 
-  app.get("/healthz", (_req, res) => res.json({ ok: true }));
+  app.get("/healthz", (_req, res) => res.json({ status: "ok" }));
 
   app.get("/resolve", async (req, res) => {
     const name = typeof req.query.name === "string" ? req.query.name : "";
@@ -117,6 +124,6 @@ const app = createApp();
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   app.listen(PORT, () => {
-    console.log(`name gateway listening on :${PORT}`);
+    logInfo(`Listening on port ${PORT}`);
   });
 }
