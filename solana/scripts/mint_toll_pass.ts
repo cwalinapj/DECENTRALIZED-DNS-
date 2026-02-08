@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import crypto from "node:crypto";
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import * as anchor from "@coral-xyz/anchor";
@@ -24,15 +25,15 @@ function loadKeypair(filePath: string): Keypair {
   return Keypair.fromSecretKey(Uint8Array.from(raw));
 }
 
-function parseHash32(input?: string): number[] {
-  if (!input) return new Array(32).fill(0);
+function parseHash32(input?: string): Uint8Array {
+  if (!input) return new Uint8Array(32);
   const hex = input.startsWith("0x") ? input.slice(2) : input;
   if (hex.length !== 64) {
     throw new Error("hash must be 32 bytes hex (64 hex chars)");
   }
-  const bytes = [];
+  const bytes = new Uint8Array(32);
   for (let i = 0; i < 64; i += 2) {
-    bytes.push(Number.parseInt(hex.slice(i, i + 2), 16));
+    bytes[i / 2] = Number.parseInt(hex.slice(i, i + 2), 16);
   }
   return bytes;
 }
@@ -60,6 +61,21 @@ function loadIdl() {
     }
   }
   return idl;
+}
+
+function readProgramIdFromAnchorToml(rpcUrl: string): string | null {
+  try {
+    const tomlPath = path.resolve("Anchor.toml");
+    if (!fs.existsSync(tomlPath)) return null;
+    const content = fs.readFileSync(tomlPath, "utf8");
+    const isLocal = /127\\.0\\.0\\.1|localhost/.test(rpcUrl);
+    const section = isLocal ? "programs.localnet" : "programs.devnet";
+    const re = new RegExp(`\\[${section}\\][^\\[]*?ddns_anchor\\s*=\\s*\"([^\"]+)\"`, "s");
+    const match = content.match(re);
+    return match ? match[1] : null;
+  } catch {
+    return null;
+  }
 }
 
 async function main() {
@@ -116,25 +132,27 @@ async function main() {
 
   const idl = loadIdl();
   const programId = new PublicKey(
-    idl.metadata?.address ??
+    readProgramIdFromAnchorToml(rpcUrl) ??
+      idl.metadata?.address ??
       idl.address ??
-      "2kE76PBfDwKvSsfBW9xMBxaor8AoEooVDA7DkGd8WVR1"
+      "9hwvtFzawMZ6R9eWJZ8YjC7rLCGgNK7PZBNeKMRCPBes"
   );
   const ixCoder = new anchor.BorshInstructionCoder(idl);
 
   const owner = payer.publicKey;
+
+  const pageCidHash = parseHash32(argv["page-cid-hash"]);
+  const metadataHash = parseHash32(argv["metadata-hash"]);
+  const nameHash = crypto.createHash("sha256").update(argv.name).digest();
 
   const [tollPassPda] = PublicKey.findProgramAddressSync(
     [Buffer.from("toll_pass"), owner.toBuffer()],
     programId
   );
   const [recordPda] = PublicKey.findProgramAddressSync(
-    [Buffer.from("name"), Buffer.from(argv.name)],
+    [Buffer.from("name"), Buffer.from(nameHash)],
     programId
   );
-
-  const pageCidHash = parseHash32(argv["page-cid-hash"]);
-  const metadataHash = parseHash32(argv["metadata-hash"]);
 
   console.log("provider_url:", rpcUrl);
   console.log("program_id:", programId.toBase58());
@@ -151,6 +169,13 @@ async function main() {
     console.log("mint:", mint.toBase58());
     console.log("token_account:", tokenAccount.toBase58());
     console.log("dry_run: not sending transaction");
+    return;
+  }
+
+  // Skip if toll_pass PDA already exists (idempotent mint)
+  const existing = await provider.connection.getAccountInfo(tollPassPda, "confirmed");
+  if (existing) {
+    console.log("toll_pass_exists:", tollPassPda.toBase58());
     return;
   }
 
@@ -223,8 +248,9 @@ async function main() {
   );
   const data = ixCoder.encode("issue_toll_pass", {
     name: argv.name,
-    pageCidHash,
-    metadataHash,
+    name_hash: nameHash,
+    page_cid_hash: pageCidHash,
+    metadata_hash: metadataHash,
   });
   const ix = new TransactionInstruction({
     programId,

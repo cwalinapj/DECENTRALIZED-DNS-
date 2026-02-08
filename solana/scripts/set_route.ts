@@ -45,6 +45,21 @@ function loadIdl() {
   return idl;
 }
 
+function readProgramIdFromAnchorToml(rpcUrl: string): string | null {
+  try {
+    const tomlPath = path.resolve("Anchor.toml");
+    if (!fs.existsSync(tomlPath)) return null;
+    const content = fs.readFileSync(tomlPath, "utf8");
+    const isLocal = /127\\.0\\.0\\.1|localhost/.test(rpcUrl);
+    const section = isLocal ? "programs.localnet" : "programs.devnet";
+    const re = new RegExp(`\\[${section}\\][^\\[]*?ddns_anchor\\s*=\\s*\"([^\"]+)\"`, "s");
+    const match = content.match(re);
+    return match ? match[1] : null;
+  } catch {
+    return null;
+  }
+}
+
 async function main() {
   const argv = await yargs(hideBin(process.argv))
     .option("name", { type: "string", demandOption: true })
@@ -76,9 +91,10 @@ async function main() {
 
   const idl = loadIdl();
   const programId = new PublicKey(
-    idl.metadata?.address ??
+    readProgramIdFromAnchorToml(rpcUrl) ??
+      idl.metadata?.address ??
       idl.address ??
-      "2kE76PBfDwKvSsfBW9xMBxaor8AoEooVDA7DkGd8WVR1"
+      "9hwvtFzawMZ6R9eWJZ8YjC7rLCGgNK7PZBNeKMRCPBes"
   );
   const accountsCoder = new anchor.BorshAccountsCoder(idl);
   const ixCoder = new anchor.BorshInstructionCoder(idl);
@@ -88,7 +104,7 @@ async function main() {
   const destHash = sha256Bytes(argv.dest);
 
   const [recordPda] = PublicKey.findProgramAddressSync(
-    [Buffer.from("name"), Buffer.from(normalizedName)],
+    [Buffer.from("name"), Buffer.from(nameHash)],
     programId
   );
   const [tollPassPda] = PublicKey.findProgramAddressSync(
@@ -104,14 +120,16 @@ async function main() {
   console.log("dest_hash:", Buffer.from(destHash).toString("hex"));
   console.log("ttl:", argv.ttl);
 
-  const pageCidHash = Array.from(destHash);
-  const metadataHash = new Array(32).fill(0);
+  const pageCidHash = destHash;
+  const metadataHash = new Uint8Array(32);
 
+  const recordInfo = await connection.getAccountInfo(recordPda, "confirmed");
+  const ixName = recordInfo ? "update_name_record" : "create_name_record";
   const ixDef = idl.instructions?.find(
-    (i: { name: string }) => i.name === "create_name_record"
+    (i: { name: string }) => i.name === ixName
   );
   if (!ixDef) {
-    throw new Error("IDL missing create_name_record instruction");
+    throw new Error(`IDL missing ${ixName} instruction`);
   }
   const accountMap: Record<string, PublicKey> = {
     record: recordPda,
@@ -140,11 +158,18 @@ async function main() {
       };
     }
   );
-  const data = ixCoder.encode("create_name_record", {
-    name: normalizedName,
-    pageCidHash,
-    metadataHash,
-  });
+  const data =
+    ixName === "create_name_record"
+      ? ixCoder.encode("create_name_record", {
+          name: normalizedName,
+          name_hash: nameHash,
+          page_cid_hash: pageCidHash,
+          metadata_hash: metadataHash,
+        })
+      : ixCoder.encode("update_name_record", {
+          page_cid_hash: pageCidHash,
+          metadata_hash: metadataHash,
+        });
   const ix = new TransactionInstruction({
     programId,
     keys,
@@ -173,18 +198,35 @@ async function main() {
   if (!info) {
     throw new Error("record account not found after tx");
   }
-  const decoded = accountsCoder.decode("NameRecord", info.data) as {
-    owner: PublicKey;
-    nameHash: Uint8Array;
-    pageCidHash: Uint8Array;
-    metadataHash: Uint8Array;
-    updatedAt: anchor.BN;
-  };
-  console.log("record_owner:", decoded.owner.toBase58());
-  console.log("record_name_hash:", Buffer.from(decoded.nameHash).toString("hex"));
-  console.log("record_dest_hash:", Buffer.from(decoded.pageCidHash).toString("hex"));
-  console.log("record_metadata_hash:", Buffer.from(decoded.metadataHash).toString("hex"));
-  console.log("record_updated_at:", decoded.updatedAt.toString());
+  const decoded = accountsCoder.decode("NameRecord", info.data) as any;
+  console.log(
+    "record_owner:",
+    decoded.owner?.toBase58?.() ?? decoded.owner?.toString?.() ?? "unknown"
+  );
+  const decodedNameHash = decoded.nameHash ?? decoded.name_hash;
+  const decodedPageCidHash = decoded.pageCidHash ?? decoded.page_cid_hash;
+  const decodedMetadataHash = decoded.metadataHash ?? decoded.metadata_hash;
+  if (decodedNameHash) {
+    console.log(
+      "record_name_hash:",
+      Buffer.from(decodedNameHash).toString("hex")
+    );
+  }
+  if (decodedPageCidHash) {
+    console.log(
+      "record_dest_hash:",
+      Buffer.from(decodedPageCidHash).toString("hex")
+    );
+  }
+  if (decodedMetadataHash) {
+    console.log(
+      "record_metadata_hash:",
+      Buffer.from(decodedMetadataHash).toString("hex")
+    );
+  }
+  if (decoded.updatedAt) {
+    console.log("record_updated_at:", decoded.updatedAt.toString());
+  }
 }
 
 main().catch((err) => {

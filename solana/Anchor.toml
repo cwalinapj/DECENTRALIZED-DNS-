@@ -3,13 +3,13 @@ seeds = false
 skip-lint = false
 
 [programs.localnet]
-ddns_anchor = "2kE76PBfDwKvSsfBW9xMBxaor8AoEooVDA7DkGd8WVR1"
+ddns_anchor = "9hwvtFzawMZ6R9eWJZ8YjC7rLCGgNK7PZBNeKMRCPBes"
 
 [programs.devnet]
-ddns_anchor = "2kE76PBfDwKvSsfBW9xMBxaor8AoEooVDA7DkGd8WVR1"
+ddns_anchor = "9hwvtFzawMZ6R9eWJZ8YjC7rLCGgNK7PZBNeKMRCPBes"
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]

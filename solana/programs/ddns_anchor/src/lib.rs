@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use sha2::{Digest, Sha256};
 use anchor_spl::token::{self, Token, Transfer};
 
-declare_id!("2kE76PBfDwKvSsfBW9xMBxaor8AoEooVDA7DkGd8WVR1");
+declare_id!("9hwvtFzawMZ6R9eWJZ8YjC7rLCGgNK7PZBNeKMRCPBes");
 
 #[program]
 pub mod ddns_anchor {
@@ -30,11 +30,13 @@ pub mod ddns_anchor {
     pub fn issue_toll_pass(
         ctx: Context<IssueTollPass>,
         name: String,
+        name_hash: [u8; 32],
         page_cid_hash: [u8; 32],
         metadata_hash: [u8; 32],
     ) -> Result<()> {
         validate_name(&name)?;
-        let name_hash = hash_name(&name);
+        let computed = hash_name(&name);
+        require!(computed == name_hash, ErrorCode::InvalidNameHash);
 
         let pass = &mut ctx.accounts.toll_pass;
         if pass.initialized {
@@ -182,11 +184,13 @@ pub mod ddns_anchor {
     pub fn create_name_record(
         ctx: Context<CreateNameRecord>,
         name: String,
+        name_hash: [u8; 32],
         page_cid_hash: [u8; 32],
         metadata_hash: [u8; 32],
     ) -> Result<()> {
         validate_name(&name)?;
-        let name_hash = hash_name(&name);
+        let computed = hash_name(&name);
+        require!(computed == name_hash, ErrorCode::InvalidNameHash);
         let record = &mut ctx.accounts.record;
         if record.initialized {
             return err!(ErrorCode::AlreadyInitialized);
@@ -249,7 +253,7 @@ pub struct SetVersion<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(name: String)]
+#[instruction(name: String, name_hash: [u8; 32])]
 pub struct IssueTollPass<'info> {
     #[account(
         init,
@@ -264,7 +268,7 @@ pub struct IssueTollPass<'info> {
         init,
         payer = owner,
         space = 8 + NameRecord::SIZE,
-        seeds = [b"name", name.as_bytes()],
+        seeds = [b"name", name_hash.as_ref()],
         bump
     )]
     pub record: Account<'info, NameRecord>,
@@ -347,13 +351,13 @@ pub struct UnlockTokens<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(name: String)]
+#[instruction(name: String, name_hash: [u8; 32])]
 pub struct CreateNameRecord<'info> {
     #[account(
         init,
         payer = owner,
         space = 8 + NameRecord::SIZE,
-        seeds = [b"name", name.as_bytes()],
+        seeds = [b"name", name_hash.as_ref()],
         bump
     )]
     pub record: Account<'info, NameRecord>,
@@ -458,8 +462,14 @@ fn validate_name(name: &str) -> Result<()> {
     if bytes[0] == b'-' || bytes[bytes.len() - 1] == b'-' {
         return err!(ErrorCode::InvalidNameChars);
     }
+    if bytes[0] == b'.' || bytes[bytes.len() - 1] == b'.' {
+        return err!(ErrorCode::InvalidNameChars);
+    }
     for b in bytes {
-        let ok = (b'a'..=b'z').contains(b) || (b'0'..=b'9').contains(b) || *b == b'-';
+        let ok = (b'a'..=b'z').contains(b)
+            || (b'0'..=b'9').contains(b)
+            || *b == b'-'
+            || *b == b'.';
         if !ok {
             return err!(ErrorCode::InvalidNameChars);
         }
@@ -502,6 +512,8 @@ pub enum ErrorCode {
     InvalidNameLength,
     #[msg("Invalid name characters")]
     InvalidNameChars,
+    #[msg("Name hash does not match name")]
+    InvalidNameHash,
     #[msg("Reserved name")]
     ReservedName,
     #[msg("NFT mint is not owned by token program")]
