@@ -241,6 +241,11 @@ Native token can flow through:
 - grants/bounties/community operations
 - reserve accumulation and emergency response budgets
 
+### 6.3 Adoption Drivers (Live Integrations)
+
+- Toll Comments plugin (credits-based, refundable): [web3-wp-plugins/toll-comments](https://github.com/cwalinapj/web3-wp-plugins/tree/main/plugins/toll-comments)
+- Mining Wallet (opt-in receipts + capacity caps): [Origin-Web3-Wallet](https://github.com/cwalinapj/Origin-Web3-Wallet)
+
 ---
 
 ## 7) Gateway Listing Fees + Revenue Potential (Developer Ecosystem)

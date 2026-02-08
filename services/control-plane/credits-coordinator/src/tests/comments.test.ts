@@ -45,7 +45,7 @@ function createCommentState(): CommentState {
     { holdTtlMs: 900_000, maxPerMinuteWallet: 5, maxPerMinuteSite: 20, bonusMax: 3, walletCooldownMs: 0 }
   );
   assert.strictEqual(finalize.ok, true);
-  assert.strictEqual(credits.credits.get("0xabc"), 6);
+  assert.strictEqual(credits.credits.get("0xabc"), 5);
 
   console.log("comments coordinator tests passed");
 })();

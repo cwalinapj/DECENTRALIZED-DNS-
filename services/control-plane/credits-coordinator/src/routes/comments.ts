@@ -38,7 +38,7 @@ export type HoldResult =
 export type SubmitResult = { ok: true } | { ok: false; error: string };
 
 export type FinalizeResult =
-  | { ok: true; wallet: string; balance: number }
+  | { ok: true; wallet: string; balance: number; hold: CommentHold }
   | { ok: false; error: string };
 
 function applyRateLimit(
@@ -144,22 +144,12 @@ export function finalizeHold(
   }
 
   const wallet = hold.wallet;
-  let refund = 0;
   if (result === "approved") {
-    const bonus = Math.min(
-      Number(payload.bonus_multiplier || 1),
-      config.bonusMax
-    );
-    const multiplier = Number.isFinite(bonus) && bonus >= 1 ? bonus : 1;
-    refund = hold.amount * multiplier;
-  }
-
-  if (refund > 0) {
     const balance = getBalance(credits, wallet);
-    credits.credits.set(wallet, balance + refund);
+    credits.credits.set(wallet, balance + hold.amount);
   }
 
   hold.status = result as CommentHold["status"];
   comments.holds.set(ticket_id, hold);
-  return { ok: true, wallet, balance: getBalance(credits, wallet) };
+  return { ok: true, wallet, balance: getBalance(credits, wallet), hold };
 }

@@ -1,0 +1,9 @@
+{
+  "passport_required": true,
+  "reputation_weighting": true,
+  "timelock_seconds": 86400,
+  "voting_windows": {
+    "proposal_window_hours": 72,
+    "execution_delay_hours": 24
+  }
+}
