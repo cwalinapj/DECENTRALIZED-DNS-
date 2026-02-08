@@ -1,0 +1,16 @@
+[Unit]
+Description=DDNS Node Agent
+After=network.target
+
+[Service]
+Type=simple
+User=ddns-node
+Group=ddns-node
+ExecStart=/usr/local/bin/ddns-node run --config /etc/ddns-node/config.json
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=65536
+Environment=RUST_LOG=info
+
+[Install]
+WantedBy=multi-user.target

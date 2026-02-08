@@ -1,24 +1,21 @@
-# Node Agent (MVP)
+# Node Agent (Rust)
 
-## Purpose
-Background worker that caches registry/proofs, verifies signatures, and submits receipts to the credits coordinator.
+This is the Linux node agent daemon for the edge network.
 
-## Safety defaults
-- Only serves protocol data by default.
-- `.tor` and proxy-chain require explicit opt-in:
-  - `ALLOW_TOR=1`
-  - `ALLOW_PROXY_CHAIN=1`
-
-## Basic usage
+## Build
 ```bash
-npm install
-npm run build
-node dist/agent.js
+cargo build --release
 ```
 
-## Receipt flow
-- Build receipt with `createReceipt`.
-- Submit to coordinator `POST /receipts`.
+## Init
+```bash
+./target/release/ddns-node init --config ./config.local.json
+```
 
-## Notes
-This is a minimal stub for desktop/mobile/extension integrations. Persisted cache and full task scheduler will be added later.
+## Run
+```bash
+./target/release/ddns-node run --config ./config.local.json
+```
+
+## Docs
+See `docs/NODE_AGENT_LINUX.md`.
