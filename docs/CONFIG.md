@@ -28,3 +28,16 @@
 - `NODE_AGGREGATOR_ENABLED`: `1` to enable WP node quorum
 - `NODE_LIST_PATH`: JSON list of node URLs
 - `NODE_QUORUM`: integer quorum
+
+## Credits Coordinator
+- `AUTH_CHAIN`: `auto|solana|evm`
+- `MAX_BODY_BYTES`: request body limit (default 1,000,000)
+- `ALLOW_CORS`: `1` to enable permissive CORS
+- `ADMIN_TOKEN`: admin token for protected endpoints
+- `SESSION_TTL_MS`: auth session TTL (default 10 minutes)
+- `PUBLIC_LEDGER_ENABLED`: `1` to expose `/public/ledger`
+- `PASSPORT_ENABLED`: `1` to enforce passport check
+- `PASSPORT_CHAIN`: `base` (current default)
+- `ETH_RPC_URL`: EVM RPC for passport
+- `PASSPORT_CONTRACT`: `0x...` ERC-721 contract
+- `PASSPORT_TOKEN_TYPE`: `erc721` (only supported)
