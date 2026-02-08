@@ -1,10 +1,10 @@
 import crypto from "node:crypto";
-import type { Receipt } from "../../../../../ddns-core/credits/types.d.ts";
-import { validateReceiptShape, verifyReceiptSignature } from "../../../../../ddns-core/credits/receipts.js";
-import { verifyEd25519Message } from "../../../../../ddns-core/credits/verify.js";
+import type { ReceiptEnvelope } from "../../../../../ddns-core/dist/credits/types.d.ts";
+import { validateReceiptShape, verifyReceiptSignature } from "../../../../../ddns-core/dist/credits/receipts.js";
+import { verifyEd25519Message } from "../../../../../ddns-core/dist/credits/verify.js";
 
 export type CreditsState = {
-  receipts: Map<string, Receipt>;
+  receipts: Map<string, ReceiptEnvelope>;
   credits: Map<string, number>;
   passports: Set<string>;
   challenges: Map<string, { wallet: string; chunkHash: string; expiresAt: number }>;
@@ -24,25 +24,27 @@ export type ReceiptConfig = {
 
 export function validateAndApplyReceipt(
   state: CreditsState,
-  receipt: Receipt,
+  envelope: ReceiptEnvelope,
   config: ReceiptConfig
 ): ReceiptResult {
-  const shapeErr = validateReceiptShape(receipt);
+  const shapeErr = validateReceiptShape(envelope);
   if (shapeErr) return { ok: false, error: shapeErr };
-  if (!state.passports.has(receipt.wallet)) return { ok: false, error: "PASSPORT_REQUIRED" };
+  const receipt = envelope.receipt;
+  if (!state.passports.has(receipt.node_id)) return { ok: false, error: "PASSPORT_REQUIRED" };
 
-  if (state.receipts.has(receipt.id)) {
+  const receiptId = receiptIdFromEnvelope(envelope);
+  if (state.receipts.has(receiptId)) {
     return { ok: true };
   }
 
   const now = Date.now();
-  const rate = state.rate.get(receipt.wallet) || { count: 0, windowStart: now };
+  const rate = state.rate.get(receipt.node_id) || { count: 0, windowStart: now };
   if (now - rate.windowStart > 60_000) {
     rate.count = 0;
     rate.windowStart = now;
   }
   rate.count += 1;
-  state.rate.set(receipt.wallet, rate);
+  state.rate.set(receipt.node_id, rate);
   if (rate.count > config.maxPerMinute) return { ok: false, error: "RATE_LIMITED" };
 
   return { ok: true };
@@ -50,47 +52,49 @@ export function validateAndApplyReceipt(
 
 export async function applyReceipt(
   state: CreditsState,
-  receipt: Receipt,
+  envelope: ReceiptEnvelope,
   config: ReceiptConfig
 ): Promise<ReceiptResult> {
-  const pre = validateAndApplyReceipt(state, receipt, config);
+  const pre = validateAndApplyReceipt(state, envelope, config);
   if (!pre.ok) return pre;
 
-  const sigOk = await verifyReceiptSignature(receipt.wallet, receipt);
+  const receipt = envelope.receipt;
+  const sigOk = await verifyReceiptSignature(envelope.public_key, receipt, envelope.signature);
   if (!sigOk) return { ok: false, error: "INVALID_SIGNATURE" };
 
   if (receipt.type === "SERVE") {
     if (!config.resolverPubkeyHex && !config.allowUnverifiedServe) {
       return { ok: false, error: "AUTHORITY_SIG_REQUIRED" };
     }
-    if (config.resolverPubkeyHex && receipt.payload.authoritySig && receipt.payload.responseHash) {
-      const msg = `resolve\n${receipt.payload.responseHash}`;
+    if (config.resolverPubkeyHex && receipt.details?.authoritySig && receipt.result_hash) {
+      const msg = `resolve\n${receipt.result_hash}`;
       const expected = await verifyEd25519Message(
         config.resolverPubkeyHex,
         msg,
-        receipt.payload.authoritySig
+        receipt.details.authoritySig as string
       );
       if (!expected) return { ok: false, error: "AUTHORITY_SIG_INVALID" };
     } else if (config.resolverPubkeyHex && !config.allowUnverifiedServe) {
       return { ok: false, error: "AUTHORITY_SIG_REQUIRED" };
     }
-    credit(state, receipt.wallet, config.serveCredits);
+    credit(state, receipt.node_id, config.serveCredits);
   }
 
   if (receipt.type === "VERIFY") {
-    const challenge = receipt.payload.challengeId ? state.challenges.get(receipt.payload.challengeId) : null;
+    const challenge = receipt.details?.challengeId ? state.challenges.get(receipt.details.challengeId as string) : null;
     if (!challenge) return { ok: false, error: "CHALLENGE_INVALID" };
-    if (challenge.wallet !== receipt.wallet) return { ok: false, error: "CHALLENGE_INVALID" };
+    if (challenge.wallet !== receipt.node_id) return { ok: false, error: "CHALLENGE_INVALID" };
     if (challenge.expiresAt < Date.now()) return { ok: false, error: "CHALLENGE_INVALID" };
-    if (receipt.payload.chunkHash !== challenge.chunkHash) return { ok: false, error: "CHALLENGE_INVALID" };
-    credit(state, receipt.wallet, config.verifyCredits);
+    if (receipt.details?.chunkHash !== challenge.chunkHash) return { ok: false, error: "CHALLENGE_INVALID" };
+    credit(state, receipt.node_id, config.verifyCredits);
   }
 
   if (receipt.type === "STORE") {
-    credit(state, receipt.wallet, config.storeCredits);
+    credit(state, receipt.node_id, config.storeCredits);
   }
 
-  state.receipts.set(receipt.id, receipt);
+  const receiptId = receiptIdFromEnvelope(envelope);
+  state.receipts.set(receiptId, envelope);
   return { ok: true };
 }
 
@@ -103,4 +107,11 @@ export function createChallenge(state: CreditsState, wallet: string, chunkHash: 
 export function credit(state: CreditsState, wallet: string, amount: number) {
   const current = state.credits.get(wallet) || 0;
   state.credits.set(wallet, current + amount);
+}
+
+export function receiptIdFromEnvelope(envelope: ReceiptEnvelope): string {
+  return crypto
+    .createHash("sha256")
+    .update(JSON.stringify(envelope.receipt))
+    .digest("hex");
 }
