@@ -21,5 +21,8 @@ run_pkg "$root/workers/site-builder" "npm ci && npm test"
 echo "==> tests/smoke: /resolve"
 (cd "$root" && bash tests/smoke/resolve.sh)
 
+echo "==> tests/node-name"
+(cd "$root" && node tests/node-name.test.mjs)
+
 echo "==> tests/conformance: adapters"
 (cd "$root" && node tests/conformance/adapter_contract.test.mjs)
