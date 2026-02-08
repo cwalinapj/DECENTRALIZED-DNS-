@@ -1,7 +1,5 @@
-import { sha256 } from "@noble/hashes/sha256";
-import { bytesToHex, utf8ToBytes } from "@noble/hashes/utils";
 import { ed25519Sign, ed25519Verify } from "../src/crypto_ed25519.js";
-import type { Receipt, ReceiptCore, ReceiptValidationError } from "./types.js";
+import type { Receipt, ReceiptEnvelope, ReceiptValidationError } from "./types.js";
 
 function stableStringify(value: unknown): string {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -10,39 +8,32 @@ function stableStringify(value: unknown): string {
   return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${stableStringify(v)}`).join(",")}}`;
 }
 
-export function receiptMessage(core: ReceiptCore): string {
-  return `receipt\n${stableStringify(core)}`;
+export function receiptMessage(receipt: Receipt): string {
+  return `receipt\n${stableStringify(receipt)}`;
 }
 
-export function computeReceiptId(core: Omit<ReceiptCore, "id">): string {
-  const payload = stableStringify(core);
-  return bytesToHex(sha256(utf8ToBytes(payload)));
-}
-
-export async function signReceipt(privKeyHex: string, core: ReceiptCore): Promise<string> {
-  const msg = utf8ToBytes(receiptMessage(core));
+export async function signReceipt(privKeyHex: string, receipt: Receipt): Promise<string> {
+  const msg = new TextEncoder().encode(receiptMessage(receipt));
   const sig = await ed25519Sign(hexToBytes(privKeyHex), msg);
-  return bytesToHex(sig);
+  return bytesToBase64(sig);
 }
 
-export async function verifyReceiptSignature(pubKeyHex: string, receipt: Receipt): Promise<boolean> {
-  const msg = utf8ToBytes(receiptMessage({
-    id: receipt.id,
-    type: receipt.type,
-    wallet: receipt.wallet,
-    timestamp: receipt.timestamp,
-    payload: receipt.payload
-  }));
-  return await ed25519Verify(hexToBytes(pubKeyHex), msg, hexToBytes(receipt.signature));
+export async function verifyReceiptSignature(pubKeyB64: string, receipt: Receipt, signatureB64: string): Promise<boolean> {
+  const msg = new TextEncoder().encode(receiptMessage(receipt));
+  return await ed25519Verify(base64ToBytes(pubKeyB64), msg, base64ToBytes(signatureB64));
 }
 
-export function validateReceiptShape(receipt: Receipt): ReceiptValidationError | null {
-  if (!receipt?.id || !receipt?.type || !receipt?.wallet || !receipt?.timestamp || !receipt?.payload) {
-    return "MISSING_FIELDS";
-  }
-  if (!receipt.signature) return "MISSING_FIELDS";
-  if (!["SERVE", "VERIFY", "STORE"].includes(receipt.type)) return "UNKNOWN_TYPE";
+export function validateReceiptShape(envelope: ReceiptEnvelope): ReceiptValidationError | null {
+  if (!envelope?.receipt || !envelope?.signature || !envelope?.public_key) return "MISSING_FIELDS";
+  const { receipt } = envelope;
+  if (!receipt.type || !receipt.node_id || !receipt.ts) return "MISSING_FIELDS";
+  if (!receipt.node_id || receipt.node_id !== envelope.public_key) return "NODE_ID_MISMATCH";
+  if (!"SERVE VERIFY STORE".split(" ").includes(receipt.type)) return "UNKNOWN_TYPE";
   return null;
+}
+
+export function makeEnvelope(receipt: Receipt, signatureB64: string, publicKeyB64: string): ReceiptEnvelope {
+  return { receipt, signature: signatureB64, public_key: publicKeyB64 };
 }
 
 function hexToBytes(hex: string): Uint8Array {
@@ -52,4 +43,12 @@ function hexToBytes(hex: string): Uint8Array {
     bytes[i] = parseInt(clean.slice(i * 2, i * 2 + 2), 16);
   }
   return bytes;
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  return Buffer.from(bytes).toString("base64");
+}
+
+function base64ToBytes(text: string): Uint8Array {
+  return new Uint8Array(Buffer.from(text, "base64"));
 }

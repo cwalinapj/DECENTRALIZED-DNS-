@@ -1,31 +1,30 @@
 export type ReceiptType = "SERVE" | "VERIFY" | "STORE";
 
-export type ReceiptPayload = {
-  name?: string;
-  responseHash?: string;
-  authoritySig?: string;
-  challengeId?: string;
-  chunkHash?: string;
-  responseHashVerified?: string;
+export type ReceiptRequest = {
+  name: string;
+};
+
+export type Receipt = {
+  type: ReceiptType;
+  node_id: string; // base64(pubkey)
+  ts: number; // unix seconds
+  request?: ReceiptRequest;
+  result_hash?: string; // base64(blake3)
+  bytes?: number;
   details?: Record<string, unknown>;
 };
 
-export type ReceiptCore = {
-  id: string;
-  type: ReceiptType;
-  wallet: string;
-  timestamp: string;
-  payload: ReceiptPayload;
-};
-
-export type Receipt = ReceiptCore & {
-  signature: string;
+export type ReceiptEnvelope = {
+  receipt: Receipt;
+  signature: string; // base64(ed25519 sig)
+  public_key: string; // base64(pubkey)
 };
 
 export type ReceiptValidationError =
   | "INVALID_SIGNATURE"
   | "MISSING_FIELDS"
-  | "UNKNOWN_TYPE";
+  | "UNKNOWN_TYPE"
+  | "NODE_ID_MISMATCH";
 
 export type CreditsErrorCode =
   | "NOT_AUTHENTICATED"

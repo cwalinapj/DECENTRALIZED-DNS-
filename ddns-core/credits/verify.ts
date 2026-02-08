@@ -1,12 +1,12 @@
 import { ed25519Verify } from "../src/crypto_ed25519.js";
 import { utf8ToBytes } from "@noble/hashes/utils";
-import type { Receipt } from "./types.js";
+import type { ReceiptEnvelope } from "./types.js";
 import { validateReceiptShape, verifyReceiptSignature } from "./receipts.js";
 
-export async function verifyReceipt(pubKeyHex: string, receipt: Receipt): Promise<{ ok: boolean; error?: string }> {
-  const err = validateReceiptShape(receipt);
+export async function verifyReceipt(envelope: ReceiptEnvelope): Promise<{ ok: boolean; error?: string }> {
+  const err = validateReceiptShape(envelope);
   if (err) return { ok: false, error: err };
-  const ok = await verifyReceiptSignature(pubKeyHex, receipt);
+  const ok = await verifyReceiptSignature(envelope.public_key, envelope.receipt, envelope.signature);
   return ok ? { ok: true } : { ok: false, error: "INVALID_SIGNATURE" };
 }
 
