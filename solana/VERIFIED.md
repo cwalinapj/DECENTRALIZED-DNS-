@@ -15,6 +15,7 @@ Result:
 - `anchor test` passed:
   - `tests/design3.ts` ("stakes + claims rewards; finalizes canonical route via quorum CPI")
   - `tests/ddns_rewards.ts` ("verifies a claim (authority), pays revenue share, submits usage, and claims epoch bonus")
+  - `tests/ddns_operators.ts` ("registers operator, stakes, submits metrics, and claims rewards (TOLL)")
 
 ## Devnet Deploy (Programs)
 
@@ -69,4 +70,25 @@ Once wallet balance is topped up, re-run:
 ```bash
 anchor deploy --provider.cluster devnet --program-name ddns_rewards
 solana program show -u devnet 8GQJrUpNhCFodqKdhEvWub6pjTtgoXBtBZUqxeEDujAY
+```
+
+## Devnet Deploy (ddns_operators)
+
+Program id (generated via `anchor keys sync`):
+
+- `ddns_operators`: `3Q5VCoAT4TZ9xMrpbt4jbN9LhHfihxGH3TiD6PmSqHhp`
+
+Localnet proof:
+
+```bash
+cd solana
+anchor test --provider.cluster localnet
+```
+
+Devnet deploy command (blocked until deploy wallet has sufficient SOL):
+
+```bash
+cd solana
+anchor deploy --provider.cluster devnet --program-name ddns_operators
+solana program show -u devnet 3Q5VCoAT4TZ9xMrpbt4jbN9LhHfihxGH3TiD6PmSqHhp
 ```

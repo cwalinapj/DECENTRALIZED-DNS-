@@ -73,3 +73,17 @@ End-state direction (not implemented yet):
 - stake-weighted attestors, rotation, and slashing for provably false attestations
 - optional on-chain commitments to receipt sets (Merkle/zk) for auditability
 - client multi-gateway resolution where gateway speed is an optimization, not a trust anchor
+
+## 8) NS/DoH Operator Marketplace (Infrastructure Decentralization)
+
+Goal: decentralize the authoritative NS and DoH gateway layers by paying many independent operators in TOLL based on demand and performance.
+
+MVP bootstrap (implemented now):
+- `ddns_operators` on-chain registry of operators + endpoints and allowlisted metric submissions per epoch.
+- Rewards are paid from a treasury vault in TOLL; the heavy verification is OFF-CHAIN in MVP.
+
+End-state direction (not implemented yet):
+- permissionless operator onboarding (stake-based admission)
+- stake-weighted metrics submitters and/or multi-party attestation of metrics
+- slashing for provable fraud / downtime / equivocation
+- on-chain verification of receipts via Merkle proofs or zk (optional)

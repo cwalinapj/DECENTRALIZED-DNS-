@@ -78,6 +78,8 @@ Call-out:
 - Tollbooth service (centralized submitter/fee-payer).
 - Optional gateway resolver service.
 - Domain verification for ICANN rewards (authority performs TXT/HTTPS checks off-chain and submits `claim_domain`).
+- NS/DoH operators are not permissionless yet:
+  - operator rewards are based on allowlisted watcher/miner submitted metrics (OFF-CHAIN verified in MVP).
 
 Not yet decentralized in MVP:
 

@@ -315,3 +315,45 @@ npm -C solana run rewards -- pay --amount 1000000000 --fqdn example.com
 This transfers:
 - `domain_share_bps` of `amount` to the verified domain owner's payout token account
 - remainder to the protocol treasury vault
+
+## NS/DoH Operator Registry (MVP): Operator Marketplace Bootstrap (ddns_operators)
+
+This module starts decentralizing DNS infrastructure itself by paying independent operators for running:
+- DoH gateways
+- Authoritative NS endpoints
+
+MVP trust model (explicit):
+- Epoch metrics are submitted by allowlisted watcher/miner wallets.
+- On-chain does not verify per-query proofs in MVP; `metrics_root` is a commitment for auditability.
+
+Localnet verification:
+
+```bash
+cd /Users/root1/scripts/DECENTRALIZED-DNS-/solana
+anchor test --provider.cluster localnet
+```
+
+Devnet deploy (once wallet has sufficient SOL):
+
+```bash
+cd /Users/root1/scripts/DECENTRALIZED-DNS-/solana
+anchor build
+anchor deploy --provider.cluster devnet --program-name ddns_operators
+```
+
+CLI (after `anchor build` so IDL exists):
+
+```bash
+# init config + treasury vault (needs a TOLL mint)
+npm -C solana run operators -- init --toll-mint <TOLL_MINT_PUBKEY> --submitter <WATCHER_PUBKEY> --enabled=true
+
+# register operator + stake
+npm -C solana run operators -- register --payout-ata <OPERATOR_TOLL_ATA> --endpoint doh:<SHA256_URL_HEX>
+npm -C solana run operators -- stake --amount-lamports 200000
+
+# allowlisted watcher submits metrics for current epoch
+npm -C solana run operators -- metrics-submit --operator-wallet <OPERATOR_WALLET> --epoch-id <EPOCH_ID> --paid-query-count 10 --receipt-count 0
+
+# operator claims rewards
+npm -C solana run operators -- claim --epoch-id <EPOCH_ID> --payout-ata <OPERATOR_TOLL_ATA>
+```
