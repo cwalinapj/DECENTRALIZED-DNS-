@@ -362,7 +362,8 @@ export function createApp() {
   });
 
   // Normalized "route answer" API: stable shape for adapters across naming/content systems.
-  app.get("/v1/route", async (req, res) => {
+  // NOTE: This endpoint name intentionally avoids collisions with tollbooth `/v1/route/*`.
+  app.get("/v1/resolve-adapter", async (req, res) => {
     try {
       const name = typeof req.query.name === "string" ? req.query.name : "";
       if (!name) return res.status(400).json({ error: "missing_name" });
