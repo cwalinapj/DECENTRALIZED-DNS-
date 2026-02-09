@@ -60,3 +60,16 @@ Goal: parameter evolution without a single censor.
 - Verifier selection moves from allowlist to rotating stake-weighted committees.
 - Slashing and challenge windows enforce honest aggregation.
 
+## 7) Nameserver Delegation Incentives (ICANN domains)
+
+Goal: incentivize ICANN domain owners to point NS to DDNS infra and get paid in TOLL, without trusting a single gateway.
+
+MVP bootstrap (implemented now):
+- `ddns_rewards` provides on-chain state for `DomainClaim` + revenue share on paid tolls.
+- Domain control verification (TXT/HTTPS) and usage aggregation are OFF-CHAIN and submitted by allowlisted actors.
+
+End-state direction (not implemented yet):
+- multiple independent verifiers/oracles attest domain control + NS delegation over a time window
+- stake-weighted attestors, rotation, and slashing for provably false attestations
+- optional on-chain commitments to receipt sets (Merkle/zk) for auditability
+- client multi-gateway resolution where gateway speed is an optimization, not a trust anchor

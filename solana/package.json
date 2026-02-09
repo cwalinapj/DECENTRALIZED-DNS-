@@ -10,6 +10,7 @@
     "mint-toll-pass": "tsx scripts/mint_toll_pass.ts",
     "set-route": "tsx scripts/set_route.ts",
     "stake": "tsx scripts/stake.ts",
+    "rewards": "tsx scripts/rewards.ts",
     "make-receipt": "tsx scripts/make_receipt.ts",
     "submit-receipts": "tsx scripts/submit_receipts.ts",
     "route:create": "tsx scripts/route_create.ts",

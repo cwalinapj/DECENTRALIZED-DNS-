@@ -240,3 +240,78 @@ Proof outputs (tx sigs, PDAs, hashes): see `/Users/root1/scripts/DECENTRALIZED-D
 
 ## Build status
 Default build passes (no Metaplex CPI in-program).
+
+## Domain Owner Rewards (MVP): ICANN NS Adoption + Revenue Share (ddns_rewards)
+
+This module pays ICANN domain owners in TOLL for routing DNS queries through DDNS infrastructure.
+
+MVP trust model (explicit):
+- Domain verification (DNS TXT/HTTPS) is OFF-CHAIN and submitted by a centralized authority wallet.
+- Usage aggregates are submitted by allowlisted verifier/miner wallets (off-chain verified).
+
+### Build + deploy (devnet)
+
+Note: initial program deploy requires enough SOL in the deploy wallet.
+
+```bash
+cd /Users/root1/scripts/DECENTRALIZED-DNS-/solana
+anchor build
+anchor deploy --provider.cluster devnet --program-name ddns_rewards
+```
+
+Confirm:
+
+```bash
+solana program show -u devnet 8GQJrUpNhCFodqKdhEvWub6pjTtgoXBtBZUqxeEDujAY
+```
+
+### Initialize RewardsConfig (once)
+
+First, obtain the TOLL mint. If you use `ddns_stake` as the mint source:
+
+```bash
+npm -C solana run stake -- status
+```
+
+Then init `ddns_rewards`:
+
+```bash
+export ANCHOR_PROVIDER_URL=https://api.devnet.solana.com
+export ANCHOR_WALLET=$HOME/.config/solana/id.json
+npm -C solana run rewards -- init --toll-mint <TOLL_MINT_PUBKEY> --domain-share-bps 1500 --enabled=false --verifier <YOUR_WALLET_PUBKEY>
+```
+
+### Domain owner: start challenge
+
+Run with the domain owner's wallet:
+
+```bash
+export ANCHOR_WALLET=/path/to/domain_owner.json
+npm -C solana run rewards -- challenge --fqdn example.com
+```
+
+This prints:
+- `nonce_hex`
+- a TXT record name/value to publish (MVP)
+
+### Authority: verify + claim domain (MVP centralized)
+
+After verifying the TXT/HTTPS proof off-chain, the authority wallet submits `claim`:
+
+```bash
+export ANCHOR_WALLET=/path/to/authority.json
+npm -C solana run rewards -- claim --fqdn example.com --nonce <nonce_hex> --owner-wallet <DOMAIN_OWNER_PUBKEY> --payout-ata <DOMAIN_OWNER_TOLL_ATA>
+```
+
+### User: pay a toll with revenue share
+
+The payer wallet must hold TOLL tokens.
+
+```bash
+export ANCHOR_WALLET=/path/to/payer.json
+npm -C solana run rewards -- pay --amount 1000000000 --fqdn example.com
+```
+
+This transfers:
+- `domain_share_bps` of `amount` to the verified domain owner's payout token account
+- remainder to the protocol treasury vault

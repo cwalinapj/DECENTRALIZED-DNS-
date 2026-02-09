@@ -492,6 +492,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ddns_rewards"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+ "anchor-spl",
+ "sha2",
+ "spl-token",
+]
+
+[[package]]
 name = "ddns_stake"
 version = "0.1.0"
 dependencies = [

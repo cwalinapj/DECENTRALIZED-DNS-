@@ -7,12 +7,14 @@ Date: 2026-02-09
 ```bash
 cd solana
 anchor build
-anchor test
+anchor test --provider.cluster localnet
 ```
 
 Result:
 
-- `anchor test` passed: `tests/design3.ts` ("stakes + claims rewards; finalizes canonical route via quorum CPI")
+- `anchor test` passed:
+  - `tests/design3.ts` ("stakes + claims rewards; finalizes canonical route via quorum CPI")
+  - `tests/ddns_rewards.ts` ("verifies a claim (authority), pays revenue share, submits usage, and claims epoch bonus")
 
 ## Devnet Deploy (Programs)
 
@@ -43,3 +45,28 @@ solana program show -u devnet 9gyHsemmJfujZEqH1o4VhefxvbUJFQkPko8ASAteX5YB
 solana program show -u devnet 6gT4zHNpU4PtXL4LRv1sW8MwkFu254Z7gQM7wKqnmZYF
 ```
 
+## Devnet Deploy (ddns_rewards)
+
+Program id (generated via `anchor keys sync`):
+
+- `ddns_rewards`: `8GQJrUpNhCFodqKdhEvWub6pjTtgoXBtBZUqxeEDujAY`
+
+Attempted deploy command:
+
+```bash
+cd solana
+anchor deploy --provider.cluster devnet --program-name ddns_rewards
+```
+
+Blocked as of 2026-02-09:
+
+- Deploy wallet: `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5`
+- Error: insufficient funds (needed ~`3.235 SOL` + fee; wallet had ~`2.514 SOL`)
+- Faucet attempts (`solana airdrop -u devnet ...`) were rate-limited.
+
+Once wallet balance is topped up, re-run:
+
+```bash
+anchor deploy --provider.cluster devnet --program-name ddns_rewards
+solana program show -u devnet 8GQJrUpNhCFodqKdhEvWub6pjTtgoXBtBZUqxeEDujAY
+```

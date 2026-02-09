@@ -10,6 +10,9 @@ This MVP ships a working `.dns` flow on Solana devnet while explicitly allowing 
   - Passport/TollPass identity + `.dns` name claim (anti-sybil + uniqueness).
   - Route writes (current MVP: tollbooth or allowlisted miner submits).
   - Route reads (canonical route PDAs in Design 3; existing per-wallet records remain usable).
+- (Optional, MVP bootstrap) ICANN domain owner rewards:
+  - domain owners can claim a `DomainClaim` and receive a revenue share in TOLL on paid tolls (see `solana/programs/ddns_rewards`).
+  - verification is centralized in MVP (authority submits on-chain after off-chain TXT/HTTPS check).
 - Off-chain witness receipts (client-signed) collected and aggregated by miners.
 - Staking rewards (TOLL token) so users can earn funds to pay future tolls.
 
@@ -74,6 +77,7 @@ Call-out:
 - Allowlisted miners/verifiers (aggregation admission is centralized).
 - Tollbooth service (centralized submitter/fee-payer).
 - Optional gateway resolver service.
+- Domain verification for ICANN rewards (authority performs TXT/HTTPS checks off-chain and submits `claim_domain`).
 
 Not yet decentralized in MVP:
 
@@ -81,3 +85,15 @@ Not yet decentralized in MVP:
 - Rotating stake-weighted committees and slashing.
 - Browser extension distribution (Firefox).
 
+## 6) ICANN Nameserver Adoption Incentives (MVP Bootstrap)
+
+Goal: incentivize ICANN domain owners (e.g. `example.com`) to delegate NS to DDNS infra and receive TOLL revenue share.
+
+On-chain (shipped):
+- `ddns_rewards` program with `DomainChallenge` + `DomainClaim`, per-query revenue share on `pay_toll_with_domain`, and optional epoch bonus based on allowlisted usage aggregates.
+
+Off-chain (MVP trust assumption):
+- a centralized authority (gateway/tollbooth) verifies TXT/HTTPS control proof and then submits `claim_domain`.
+- allowlisted miners/verifiers submit usage aggregates; receipts are NOT verified on-chain in MVP.
+
+Quickstart: see `/Users/root1/scripts/DECENTRALIZED-DNS-/solana/README.md`.
