@@ -7,6 +7,7 @@
     "build": "tsc -p tsconfig.json",
     "lint": "tsc -p tsconfig.json --noEmit",
     "start": "node dist/server.js",
+    "adapter:query": "node dist/adapter_cli.js",
     "test": "vitest run"
   },
   "dependencies": {

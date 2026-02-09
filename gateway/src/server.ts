@@ -6,6 +6,7 @@ import { verifyVoucherHeader } from "./voucher.js";
 import { buildMerkleRoot, buildProof, loadSnapshot, normalizeName, verifyProof } from "./registry.js";
 import { resolveEns, supportsEns } from "./adapters/ens.js";
 import { resolveSns, supportsSns } from "./adapters/sns.js";
+import { buildDefaultAdapters, resolveRouteAnswer } from "./route_adapters/index.js";
 import { anchorRoot, loadAnchorStore, type AnchorRecord } from "./anchor.js";
 import { hash as blake3 } from "blake3";
 import * as ed from "@noble/ed25519";
@@ -31,6 +32,8 @@ const ENS_NETWORK = process.env.ENS_NETWORK || "mainnet";
 const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
 const SNS_CLUSTER = process.env.SNS_CLUSTER || "devnet";
 const ANCHOR_STORE_PATH = process.env.ANCHOR_STORE_PATH || "settlement/anchors/anchors.json";
+const WATCHDOG_POLICY_PROGRAM_ID = process.env.DDNS_WATCHDOG_POLICY_PROGRAM_ID || "";
+const IPFS_HTTP_GATEWAY_BASE_URL = process.env.IPFS_HTTP_GATEWAY_BASE_URL || "https://ipfs.io/ipfs";
 const REGISTRY_ADMIN_TOKEN = process.env.REGISTRY_ADMIN_TOKEN || "";
 const NODE_AGGREGATOR_ENABLED = process.env.NODE_AGGREGATOR_ENABLED === "1";
 const NODE_LIST_PATH = process.env.NODE_LIST_PATH || "config/example/nodes.json";
@@ -48,6 +51,15 @@ function logInfo(message: string) {
     console.log(message);
   }
 }
+
+const routeAdapters = buildDefaultAdapters({
+  registryPath: REGISTRY_PATH,
+  anchorStorePath: ANCHOR_STORE_PATH,
+  solanaRpcUrl: SOLANA_RPC_URL,
+  ethRpcUrl: ETH_RPC_URL,
+  policyProgramId: WATCHDOG_POLICY_PROGRAM_ID || undefined,
+  ipfsHttpGatewayBaseUrl: IPFS_HTTP_GATEWAY_BASE_URL
+});
 
 const cache = new Map<string, { expiresAt: number; payload: ResolveResponse }>();
 const mintCaches = new Map<string, Map<string, { rrtype: string; value: string; ttl: number; expiresAt: number; wallet_pubkey: string }>>();
@@ -208,12 +220,49 @@ async function resolveViaDoh(name: string): Promise<{ records: ResolveRecord[]; 
   }
 }
 
+async function resolveVia(url: string, queryBytes: Buffer): Promise<Uint8Array> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "content-type": "application/dns-message",
+        "accept": "application/dns-message"
+      },
+      body: queryBytes,
+      signal: controller.signal
+    });
+    if (!res.ok) throw new Error(`upstream_${res.status}`);
+    return new Uint8Array(await res.arrayBuffer());
+  } catch (err: any) {
+    if (err?.name === "AbortError") throw new Error("upstream_timeout");
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export function createApp() {
   const app = express();
 
   app.use("/dns-query", express.raw({ type: ["application/dns-message"], limit: "512kb" }));
 
   app.get("/healthz", (_req, res) => res.json({ status: "ok" }));
+
+  // Normalized "route answer" API: stable shape for adapters across naming/content systems.
+  app.get("/v1/route", async (req, res) => {
+    try {
+      const name = typeof req.query.name === "string" ? req.query.name : "";
+      if (!name) return res.status(400).json({ error: "missing_name" });
+      const ans = await resolveRouteAnswer(routeAdapters, name, { timeoutMs: REQUEST_TIMEOUT_MS });
+      return res.json(ans);
+    } catch (err: any) {
+      const msg = String(err?.message || err);
+      const status = msg === "NO_ADAPTER_MATCH" ? 404 : msg.endsWith("TIMEOUT") ? 502 : 500;
+      return res.status(status).json({ error: msg });
+    }
+  });
 
   app.post("/cache/upsert", express.json(), async (req, res) => {
     try {
@@ -487,8 +536,8 @@ export function createApp() {
             type: "response",
             id: Math.floor(Math.random() * 65535),
             flags: dnsPacket.RECURSION_DESIRED,
-            questions: [{ type: rrtype, name, class: "IN" }],
-            answers: [{ type: rrtype, name, class: "IN", ttl: hit.ttl, data: hit.value }]
+            questions: [{ type: rrtype as any, name, class: "IN" }],
+            answers: [{ type: rrtype as any, name, class: "IN", ttl: hit.ttl, data: hit.value as any }]
           });
           return res.set("content-type", "application/dns-message").send(Buffer.from(response));
         }
@@ -504,8 +553,8 @@ export function createApp() {
           type: "response",
           id: Math.floor(Math.random() * 65535),
           flags: dnsPacket.RECURSION_DESIRED,
-          questions: [{ type: rrtype, name, class: "IN" }],
-          answers: answers.map((a) => ({ type: a.type, name: a.name, class: "IN", ttl: a.TTL, data: a.data }))
+          questions: [{ type: rrtype as any, name, class: "IN" }],
+          answers: answers.map((a) => ({ type: a.type as any, name: a.name, class: "IN", ttl: a.TTL, data: a.data as any }))
         });
         return res.set("content-type", "application/dns-message").send(Buffer.from(response));
       }
@@ -538,7 +587,7 @@ export function createApp() {
           id: decoded.id,
           flags: dnsPacket.RECURSION_DESIRED,
           questions: decoded.questions,
-          answers: [{ type: qtype, name: qname, class: "IN", ttl: hit.ttl, data: hit.value }]
+          answers: [{ type: qtype as any, name: qname, class: "IN", ttl: hit.ttl, data: hit.value as any }]
         });
         return res.set("content-type", "application/dns-message").send(Buffer.from(response));
       }

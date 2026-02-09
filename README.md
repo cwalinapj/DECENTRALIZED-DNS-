@@ -4,6 +4,7 @@ Repo: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 
 - 📄 Prospectus: `PROSPECTUS.md`
 - Watchdogs + policy: `docs/PROTOCOL_WATCHDOG_ATTESTATION.md` and `docs/MVP.md`
+- Adapters (PKDNS/IPFS/ENS/SNS): `docs/ADAPTERS.md`
 
 TollDNS is a concept for a **decentralized cloud-edge fabric** built around a **paid recursive DNS** (DoH/DoT) and an extensible network of **gateway + caching + ingress** operators (“miners”). A small **toll per query** funds infrastructure and makes abusive query patterns economically costly.
 

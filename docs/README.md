@@ -5,6 +5,7 @@
 - `MVP.md` (watchdogs + policy MVP trust assumptions)
 - `END_STATE.md` (watchdogs + policy end-state)
 - `PROTOCOL_WATCHDOG_ATTESTATION.md` (watchdog attestation formats)
+- `ADAPTERS.md` (adapter layer: PKDNS/IPFS/ENS/SNS)
 - `ops/` (deployment + runbooks)
 - `specs/` (API/spec references; see `/Users/root1/scripts/DECENTRALIZED-DNS-/specs/`)
 
