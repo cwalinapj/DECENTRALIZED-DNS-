@@ -4,6 +4,35 @@ Repo: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 
 - 📄 Prospectus: `PROSPECTUS.md`
 
+### Status (MVP)
+
+- Devnet: reference environment for MVP demos. See `docs/MVP.md`, `docs/PR1_VERIFIED.md`, and `solana/VERIFIED.md` (once PR2 is merged).
+- Localnet: optional for MVP. Some machines hit `solana-test-validator` genesis/ledger issues; use Docker-based localnet where needed (see `docs/LOCAL_DEV.md`).
+- Centralization points (explicit in MVP):
+  - allowlisted miner/verifier submitters
+  - gateway/tollbooth services (clients verify on-chain and keep local cache).
+
+### Security Posture: Attack Mode (PR series)
+
+Attack Mode is a resilience layer being added via a PR series to make the system degrade safely under active adversaries.
+
+- It can freeze writes, clamp TTL, and raise verification thresholds under attack.
+- It adds multi-RPC disagreement guards (refuse writes when sources diverge).
+- It can require stake/passport gating for higher-risk submissions.
+- Enable/disable via environment variables (documented in PR-A).
+- New endpoints (land in PR-C/PR-D): `GET /v1/attack-mode` on gateway/tollbooth/miner.
+
+### How To Review The Attack Mode PR Series
+
+Merge order:
+- PR-A: docs (threat model + attack mode rules)
+- PR-B: shared attack-mode module + tests
+- PR-C: miner integration
+- PR-D: gateway + tollbooth integration
+- PR-E: client scripts integration
+
+See: `docs/REVIEW_CHECKLIST_ATTACK_MODE.md` (reviewer checklist) and `docs/INDEX.md` (docs map).
+
 TollDNS is a concept for a **decentralized cloud-edge fabric** built around a **paid recursive DNS** (DoH/DoT) and an extensible network of **gateway + caching + ingress** operators (“miners”). A small **toll per query** funds infrastructure and makes abusive query patterns economically costly.
 
 The long-term goal is a “decentralized Cloudflare”: many independent operators, multi-provider diversity, and automatic failover so the network remains functional even when centralized infrastructure is pressured or attacked.
