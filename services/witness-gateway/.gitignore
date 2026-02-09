@@ -1,0 +1,4 @@
+dist/
+spool/
+*.log
+
