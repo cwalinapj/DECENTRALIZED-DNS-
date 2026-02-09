@@ -17,6 +17,7 @@ async function main() {
     .option("solana-rpc", { type: "string", default: process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com" })
     .option("ddns-registry-program-id", { type: "string", default: process.env.DDNS_REGISTRY_PROGRAM_ID || "" })
     .option("ddns-watchdog-policy-program-id", { type: "string", default: process.env.DDNS_WATCHDOG_POLICY_PROGRAM_ID || "" })
+    .option("witness-url", { type: "string", default: process.env.DDNS_WITNESS_URL || "", describe: "HTTP endpoint that returns {dest, ttl_s} for resolve+verify" })
     .option("evm-rpc", { type: "string", default: process.env.EVM_RPC_URL || process.env.ETH_RPC_URL || "" })
     .option("evm-chain-id", { type: "number", default: Number(process.env.EVM_CHAIN_ID || "1") })
     .option("ipfs-gateway", { type: "string", default: process.env.IPFS_HTTP_GATEWAY_BASE_URL || "https://ipfs.io/ipfs" })
@@ -44,7 +45,8 @@ async function main() {
       solanaRpcUrl: argv["solana-rpc"],
       evmRpcUrl: argv["evm-rpc"],
       chainId: argv["evm-chain-id"],
-      dest: argv.dest
+      dest: argv.dest,
+      witnessUrl: argv["witness-url"] || undefined
     }
   };
 
@@ -61,4 +63,3 @@ main().catch((err) => {
   process.stderr.write(String(err?.message || err) + "\n");
   process.exit(1);
 });
-

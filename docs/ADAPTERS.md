@@ -37,7 +37,15 @@ MVP verification:
 Trust notes:
 - MVP uses RPC reads (trust assumptions: RPC availability + correctness).
 - End-state can add multi-RPC and light client verification.
-- **MVP chain stores `dest_hash` only**. If you want `dest` returned, pass a `dest` string and the adapter will validate `sha256(dest)` matches the on-chain `dest_hash` (proof-of-observation).
+- **MVP chain stores `dest_hash` only**. PKDNS is a verifier unless you supply a candidate `dest` (or configure a witness URL) and it can validate `sha256(dest)` matches on-chain `dest_hash`.
+
+MVP modes:
+- Verify-only (no witness):
+  - `GET /v1/route?name=alice.dns&dest=https://...`
+- Resolve+verify (requires `DDNS_WITNESS_URL`):
+  - `GET /v1/route?name=alice.dns`
+  - witness returns `{ "dest": "...", "ttl_s": 300 }`
+  - PKDNS returns `verified=true/false` and includes canonical proof fields.
 
 ### IPFS (CID)
 
@@ -98,4 +106,7 @@ node dist/server.js
 curl 'http://localhost:8054/v1/route?name=vitalik.eth'
 curl 'http://localhost:8054/v1/route?name=bonfida.sol'
 curl 'http://localhost:8054/v1/route?name=ipfs://bafy...'
+
+# PKDNS verify-only:
+curl 'http://localhost:8054/v1/route?name=alice.dns&dest=https://example.com'
 ```

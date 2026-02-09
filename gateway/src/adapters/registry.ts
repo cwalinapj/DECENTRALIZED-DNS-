@@ -88,4 +88,3 @@ function must<T>(v: T | undefined, name: string): T {
   if (!v) throw new Error(`missing_adapter:${name}`);
   return v;
 }
-

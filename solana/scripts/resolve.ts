@@ -8,9 +8,12 @@ type PolicyStatus = "OK" | "WARN" | "QUARANTINE";
 type RouteAnswer = {
   name: string;
   nameHashHex: string;
-  dest: string;
+  dest: string | null;
   destHashHex: string;
   ttlS: number;
+  verified?: boolean;
+  canonical?: { programId: string; canonicalPda: string; destHashHex: string; ttlS: number; updatedAtSlot?: string };
+  error?: { code: string; message: string };
   source: {
     kind: "pkdns" | "ens" | "sns" | "handshake" | "ipfs" | "filecoin" | "arweave";
     ref: string;
@@ -46,19 +49,34 @@ async function main() {
     .option("evm-rpc", { type: "string", default: process.env.EVM_RPC_URL || "" })
     .option("evm-chain-id", { type: "number", default: Number(process.env.EVM_CHAIN_ID || "1") })
     .option("dest", { type: "string", describe: "optional dest string to validate against on-chain dest_hash (PKDNS)" })
+    .option("witness-url", { type: "string", default: process.env.DDNS_WITNESS_URL || "", describe: "HTTP endpoint that returns {dest, ttl_s} for resolve+verify" })
     .strict()
     .parse();
 
   const name = normalizeName(argv.name);
 
   if (argv.source === "auto" && name.endsWith(".dns")) {
-    const ans = await resolvePkdns(name, argv.rpc, argv["ddns-registry-program-id"], argv["ddns-watchdog-policy-program-id"], argv.dest || "");
+    const ans = await resolvePkdns(
+      name,
+      argv.rpc,
+      argv["ddns-registry-program-id"],
+      argv["ddns-watchdog-policy-program-id"],
+      argv.dest || "",
+      argv["witness-url"] || ""
+    );
     process.stdout.write(JSON.stringify(ans, null, 2) + "\n");
     return;
   }
 
   if (argv.source === "pkdns") {
-    const ans = await resolvePkdns(name, argv.rpc, argv["ddns-registry-program-id"], argv["ddns-watchdog-policy-program-id"], argv.dest || "");
+    const ans = await resolvePkdns(
+      name,
+      argv.rpc,
+      argv["ddns-registry-program-id"],
+      argv["ddns-watchdog-policy-program-id"],
+      argv.dest || "",
+      argv["witness-url"] || ""
+    );
     process.stdout.write(JSON.stringify(ans, null, 2) + "\n");
     return;
   }
@@ -89,7 +107,8 @@ async function resolvePkdns(
   rpcUrl: string,
   registryProgramIdStr: string,
   policyProgramIdStr: string,
-  destOverride: string
+  destOverride: string,
+  witnessUrl: string
 ): Promise<RouteAnswer> {
   if (!registryProgramIdStr) throw new Error("DDNS_REGISTRY_PROGRAM_ID_MISSING");
   const registryProgramId = new PublicKey(registryProgramIdStr);
@@ -103,25 +122,74 @@ async function resolvePkdns(
   const decoded = decodeCanonicalRoute(ctx.value.data);
   if (!Buffer.from(decoded.nameHash).equals(nameHash)) throw new Error("PKDNS_NAME_HASH_MISMATCH");
 
-  let dest = "";
-  if (destOverride) {
-    const dh = sha256Bytes(normalizeDest(destOverride));
-    if (Buffer.from(decoded.destHash).equals(dh)) dest = normalizeDest(destOverride);
-  }
+  const canonicalDestHashHex = `0x${Buffer.from(decoded.destHash).toString("hex")}`;
+  const canonical = {
+    programId: registryProgramId.toBase58(),
+    canonicalPda: canonicalPda.toBase58(),
+    destHashHex: canonicalDestHashHex,
+    ttlS: decoded.ttlS,
+    updatedAtSlot: decoded.updatedAtSlot.toString()
+  };
 
-  const policy = policyProgramIdStr ? await tryFetchPolicy(conn, policyProgramIdStr, nameHash) : null;
+  const candidate =
+    destOverride && destOverride.trim()
+      ? destOverride
+      : witnessUrl
+        ? await tryFetchWitnessDest(witnessUrl, name, 5000)
+        : "";
+
+  if (candidate && candidate.trim()) {
+    const dh = sha256Bytes(normalizeDest(candidate));
+    const ok = Buffer.from(decoded.destHash).equals(dh);
+    return {
+      name,
+      nameHashHex: sha256Hex(name),
+      dest: ok ? normalizeDest(candidate) : null,
+      destHashHex: canonicalDestHashHex,
+      ttlS: decoded.ttlS,
+      verified: ok,
+      canonical,
+      ...(ok ? {} : { error: { code: "DEST_HASH_MISMATCH", message: "Candidate dest does not match canonical dest_hash." } }),
+      source: {
+        kind: "pkdns",
+        ref: canonicalPda.toBase58(),
+        confidenceBps: ok ? 10000 : 5000,
+        ...(policyProgramIdStr ? { policy: (await tryFetchPolicy(conn, policyProgramIdStr, nameHash)) || undefined } : {})
+      },
+      proof: {
+        type: "onchain",
+        payload: {
+          programId: registryProgramId.toBase58(),
+          canonicalPda: canonicalPda.toBase58(),
+          slot: ctx.context.slot,
+          candidateDestHashHex: `0x${dh.toString("hex")}`,
+          fields: {
+            ttlS: decoded.ttlS,
+            version: decoded.version.toString(),
+            updatedAtSlot: decoded.updatedAtSlot.toString()
+          }
+        }
+      }
+    };
+  }
 
   return {
     name,
     nameHashHex: sha256Hex(name),
-    dest,
-    destHashHex: `0x${Buffer.from(decoded.destHash).toString("hex")}`,
+    dest: null,
+    destHashHex: canonicalDestHashHex,
     ttlS: decoded.ttlS,
+    verified: false,
+    canonical,
+    error: {
+      code: "DEST_REQUIRED",
+      message: "PKDNS canonical route stores dest_hash only. Supply --dest to verify, or configure --witness-url for resolve+verify."
+    },
     source: {
       kind: "pkdns",
       ref: canonicalPda.toBase58(),
       confidenceBps: 10000,
-      ...(policy ? { policy } : {})
+      ...(policyProgramIdStr ? { policy: (await tryFetchPolicy(conn, policyProgramIdStr, nameHash)) || undefined } : {})
     },
     proof: {
       type: "onchain",
@@ -137,6 +205,27 @@ async function resolvePkdns(
       }
     }
   };
+}
+
+function buildWitnessUrl(base: string, name: string): string {
+  const hasQuery = base.includes("?");
+  return `${base}${hasQuery ? "&" : "?"}name=${encodeURIComponent(name)}`;
+}
+
+async function tryFetchWitnessDest(witnessUrl: string, name: string, timeoutMs: number): Promise<string> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const url = buildWitnessUrl(witnessUrl, name);
+    const res = await fetch(url, { method: "GET", headers: { "accept": "application/json" }, signal: controller.signal });
+    if (!res.ok) return "";
+    const json: any = await res.json();
+    return typeof json?.dest === "string" ? json.dest : "";
+  } catch {
+    return "";
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 function decodeCanonicalRoute(data: Buffer | Uint8Array) {

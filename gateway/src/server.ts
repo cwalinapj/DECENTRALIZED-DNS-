@@ -41,6 +41,7 @@ const ANCHOR_STORE_PATH = process.env.ANCHOR_STORE_PATH || "settlement/anchors/a
 const WATCHDOG_POLICY_PROGRAM_ID = process.env.DDNS_WATCHDOG_POLICY_PROGRAM_ID || "";
 const IPFS_HTTP_GATEWAY_BASE_URL = process.env.IPFS_HTTP_GATEWAY_BASE_URL || "https://ipfs.io/ipfs";
 const DDNS_REGISTRY_PROGRAM_ID = process.env.DDNS_REGISTRY_PROGRAM_ID || "";
+const DDNS_WITNESS_URL = process.env.DDNS_WITNESS_URL || "";
 const REGISTRY_ADMIN_TOKEN = process.env.REGISTRY_ADMIN_TOKEN || "";
 const NODE_AGGREGATOR_ENABLED = process.env.NODE_AGGREGATOR_ENABLED === "1";
 const NODE_LIST_PATH = process.env.NODE_LIST_PATH || "config/example/nodes.json";
@@ -271,7 +272,14 @@ export function createApp() {
         opts: {
           timeoutMs: REQUEST_TIMEOUT_MS,
           // Optional "proof-of-observation" helper: if caller supplies dest, PKDNS can validate it against on-chain dest_hash.
-          dest: typeof req.query.dest === "string" ? req.query.dest : ""
+          dest: typeof req.query.dest === "string" ? req.query.dest : undefined,
+          // MVP resolve+verify: fetch candidate dest off-chain (witness) then verify against canonical dest_hash.
+          witnessUrl:
+            typeof req.query.witness_url === "string"
+              ? req.query.witness_url
+              : DDNS_WITNESS_URL
+                ? DDNS_WITNESS_URL
+                : undefined
         }
       });
       return res.json(ans);

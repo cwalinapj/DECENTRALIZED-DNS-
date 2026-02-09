@@ -8,6 +8,20 @@ export type PkdnsAdapterConfig = {
   ddnsWatchdogPolicyProgramId?: string; // optional
 };
 
+export type CanonicalDestHash = {
+  programId: PublicKey;
+  canonicalPda: PublicKey;
+  slot: number;
+  decoded: CanonicalRouteDecoded;
+  canonical: {
+    programId: string;
+    canonicalPda: string;
+    destHashHex: string;
+    ttlS: number;
+    updatedAtSlot: string;
+  };
+};
+
 export function createPkdnsAdapter(cfg: PkdnsAdapterConfig): Adapter {
   return {
     kind: "pkdns",
@@ -21,69 +35,166 @@ export function createPkdnsAdapter(cfg: PkdnsAdapterConfig): Adapter {
         throw new Error("DDNS_REGISTRY_PROGRAM_ID_MISSING");
       }
 
-      const programId = new PublicKey(cfg.ddnsRegistryProgramId);
       const connection: Connection = input?.opts?.solanaConnection || new Connection(cfg.solanaRpcUrl, "confirmed");
+      const timeoutMs = Number(input?.opts?.timeoutMs ?? 5000);
 
-      const nameHash = nameHashBytes(normalized);
-      const [canonicalPda] = PublicKey.findProgramAddressSync(
-        [Buffer.from("canonical"), nameHash],
-        programId
-      );
+      const canonical = await getCanonicalDestHash({ cfg, name: normalized, connection });
+      if (!canonical) return null;
 
-      const ctx = await connection.getAccountInfoAndContext(canonicalPda, "confirmed");
-      const slot = ctx.context.slot;
-      const info = ctx.value;
-      if (!info?.data) return null;
+      const policy = await tryFetchPolicy(connection, cfg, nameHashBytes(normalized), timeoutMs);
 
-      const decoded = decodeCanonicalRoute(info.data);
-      // Defensive: ensure on-chain name_hash matches computed hash.
-      if (!Buffer.from(decoded.nameHash).equals(nameHash)) {
-        throw new Error("PKDNS_NAME_HASH_MISMATCH");
+      const destFromQuery = typeof input?.opts?.dest === "string" ? input.opts.dest : undefined;
+      const witnessUrl = typeof input?.opts?.witnessUrl === "string" ? input.opts.witnessUrl : undefined;
+      const destCandidate =
+        destFromQuery && destFromQuery.trim()
+          ? destFromQuery
+          : witnessUrl
+            ? await tryFetchWitnessDest(witnessUrl, normalized, timeoutMs)
+            : undefined;
+
+      if (destCandidate && destCandidate.trim()) {
+        return verifyCandidateDest({
+          cfg,
+          name: normalized,
+          dest: destCandidate,
+          connection,
+          canonicalOverride: canonical,
+          policy
+        });
       }
 
-      // MVP: chain stores dest_hash only. dest string is optional (proof-of-observation off-chain).
-      const destOverride = typeof input?.opts?.dest === "string" ? input.opts.dest : "";
-      let dest = "";
-      if (destOverride) {
-        const dh = sha256Bytes(normalizeDest(destOverride));
-        if (Buffer.from(decoded.destHash).equals(dh)) {
-          dest = normalizeDest(destOverride);
-        }
-      }
-
-      const policy = await tryFetchPolicy(connection, cfg, nameHash, Number(input?.opts?.timeoutMs ?? 5000));
-
+      // Hash-only canonical state: return a verifier-style answer with canonical evidence and a clear error.
       return {
         name: normalized,
         nameHashHex: nameHashHex(normalized),
-        dest,
-        destHashHex: `0x${Buffer.from(decoded.destHash).toString("hex")}`,
-        ttlS: decoded.ttlS,
+        dest: null,
+        destHashHex: canonical.canonical.destHashHex,
+        ttlS: canonical.canonical.ttlS,
+        verified: false,
+        canonical: canonical.canonical,
+        error: {
+          code: "DEST_REQUIRED",
+          message: "PKDNS canonical route stores dest_hash only. Supply ?dest=... to verify, or configure DDNS_WITNESS_URL for resolve+verify."
+        },
         source: {
           kind: "pkdns",
-          ref: canonicalPda.toBase58(),
+          ref: canonical.canonicalPda.toBase58(),
           confidenceBps: 10000,
           ...(policy ? { policy } : {})
         },
         proof: {
           type: "onchain",
           payload: {
-            programId: programId.toBase58(),
-            canonicalPda: canonicalPda.toBase58(),
-            slot,
+            programId: canonical.programId.toBase58(),
+            canonicalPda: canonical.canonicalPda.toBase58(),
+            slot: canonical.slot,
             fields: {
-              nameHashHex: `0x${Buffer.from(decoded.nameHash).toString("hex")}`,
-              destHashHex: `0x${Buffer.from(decoded.destHash).toString("hex")}`,
-              ttlS: decoded.ttlS,
-              version: decoded.version.toString(),
-              updatedAtSlot: decoded.updatedAtSlot.toString(),
-              lastAggregate: decoded.lastAggregate.toBase58(),
-              bump: decoded.bump
-            },
-            accountDataBase64: Buffer.from(info.data).toString("base64")
+              nameHashHex: `0x${Buffer.from(canonical.decoded.nameHash).toString("hex")}`,
+              destHashHex: canonical.canonical.destHashHex,
+              ttlS: canonical.canonical.ttlS,
+              version: canonical.decoded.version.toString(),
+              updatedAtSlot: canonical.decoded.updatedAtSlot.toString(),
+              lastAggregate: canonical.decoded.lastAggregate.toBase58(),
+              bump: canonical.decoded.bump
+            }
           }
         }
       };
+    }
+  };
+}
+
+export async function getCanonicalDestHash(params: {
+  cfg: PkdnsAdapterConfig;
+  name: string;
+  connection: Connection;
+}): Promise<CanonicalDestHash | null> {
+  const normalized = normalizeNameForHash(params.name);
+  if (!normalized.endsWith(".dns")) return null;
+  const programId = new PublicKey(params.cfg.ddnsRegistryProgramId);
+
+  const nameHash = nameHashBytes(normalized);
+  const [canonicalPda] = PublicKey.findProgramAddressSync([Buffer.from("canonical"), nameHash], programId);
+
+  const ctx = await params.connection.getAccountInfoAndContext(canonicalPda, "confirmed");
+  const slot = ctx.context.slot;
+  const info = ctx.value;
+  if (!info?.data) return null;
+
+  const decoded = decodeCanonicalRoute(info.data);
+  if (!Buffer.from(decoded.nameHash).equals(nameHash)) throw new Error("PKDNS_NAME_HASH_MISMATCH");
+
+  return {
+    programId,
+    canonicalPda,
+    slot,
+    decoded,
+    canonical: {
+      programId: programId.toBase58(),
+      canonicalPda: canonicalPda.toBase58(),
+      destHashHex: `0x${Buffer.from(decoded.destHash).toString("hex")}`,
+      ttlS: decoded.ttlS,
+      updatedAtSlot: decoded.updatedAtSlot.toString()
+    }
+  };
+}
+
+export async function verifyCandidateDest(params: {
+  cfg: PkdnsAdapterConfig;
+  name: string;
+  dest: string;
+  connection: Connection;
+  canonicalOverride?: CanonicalDestHash;
+  policy?: any;
+}): Promise<import("./types.js").RouteAnswer> {
+  const normalized = normalizeNameForHash(params.name);
+  const canonical = params.canonicalOverride || (await getCanonicalDestHash({ cfg: params.cfg, name: normalized, connection: params.connection }));
+  if (!canonical) throw new Error("NOT_FOUND");
+
+  const destNormalized = normalizeDest(params.dest);
+  const dh = sha256Bytes(destNormalized);
+  const ok = Buffer.from(canonical.decoded.destHash).equals(dh);
+
+  return {
+    name: normalized,
+    nameHashHex: nameHashHex(normalized),
+    dest: ok ? destNormalized : null,
+    destHashHex: canonical.canonical.destHashHex,
+    ttlS: canonical.canonical.ttlS,
+    verified: ok,
+    canonical: canonical.canonical,
+    ...(ok
+      ? {}
+      : {
+          error: {
+            code: "DEST_HASH_MISMATCH",
+            message: "Candidate dest does not match canonical dest_hash."
+          }
+        }),
+    source: {
+      kind: "pkdns",
+      ref: canonical.canonicalPda.toBase58(),
+      confidenceBps: ok ? 10000 : 5000,
+      ...(params.policy ? { policy: params.policy } : {})
+    },
+    proof: {
+      type: "onchain",
+      payload: {
+        programId: canonical.programId.toBase58(),
+        canonicalPda: canonical.canonicalPda.toBase58(),
+        slot: canonical.slot,
+        candidateDest: ok ? destNormalized : undefined,
+        candidateDestHashHex: `0x${dh.toString("hex")}`,
+        fields: {
+          nameHashHex: `0x${Buffer.from(canonical.decoded.nameHash).toString("hex")}`,
+          destHashHex: canonical.canonical.destHashHex,
+          ttlS: canonical.canonical.ttlS,
+          version: canonical.decoded.version.toString(),
+          updatedAtSlot: canonical.decoded.updatedAtSlot.toString(),
+          lastAggregate: canonical.decoded.lastAggregate.toBase58(),
+          bump: canonical.decoded.bump
+        }
+      }
     }
   };
 }
@@ -126,6 +237,30 @@ async function tryFetchPolicy(
     return decodeNamePolicyState(ctx.value.data);
   } catch {
     return null;
+  }
+}
+
+function buildWitnessUrl(base: string, name: string): string {
+  // DDNS_WITNESS_URL is treated as a full endpoint URL; we append `?name=...` if needed.
+  const hasQuery = base.includes("?");
+  return `${base}${hasQuery ? "&" : "?"}name=${encodeURIComponent(name)}`;
+}
+
+async function tryFetchWitnessDest(witnessUrl: string, name: string, timeoutMs: number): Promise<string | null> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const url = buildWitnessUrl(witnessUrl, name);
+    const res = await fetch(url, { method: "GET", headers: { "accept": "application/json" }, signal: controller.signal });
+    if (!res.ok) return null;
+    const json: any = await res.json();
+    if (!json || typeof json.dest !== "string") return null;
+    return json.dest;
+  } catch (err: any) {
+    if (err?.name === "AbortError") return null;
+    return null;
+  } finally {
+    clearTimeout(timer);
   }
 }
 

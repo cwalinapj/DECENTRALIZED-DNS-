@@ -6,9 +6,20 @@ export type PolicyStatus = "OK" | "WARN" | "QUARANTINE";
 export type RouteAnswer = {
   name: string;                 // normalized name
   nameHashHex: string;          // 0x... sha256(normalized_name)
-  dest: string;                 // normalized destination string (url, ipfs://CID, etc). May be "" if unknown.
+  // Destination string is optional for PKDNS when chain stores only `dest_hash`.
+  // In that case, callers can supply a candidate `dest` (or configure a witness URL) and have PKDNS verify it.
+  dest: string | null;          // normalized destination string (url, ipfs://CID, etc)
   destHashHex: string;          // 0x... sha256(normalized_dest)
   ttlS: number;
+  verified?: boolean;           // PKDNS verification result when `dest` is supplied or fetched via witness
+  canonical?: {
+    programId: string;
+    canonicalPda: string;
+    destHashHex: string;
+    ttlS: number;
+    updatedAtSlot?: string;
+  };
+  error?: { code: string; message: string };
   source: {
     kind: "pkdns" | "ens" | "sns" | "handshake" | "ipfs" | "filecoin" | "arweave";
     ref: string;                // tx sig, PDA, chain height, record key, CID, etc.
@@ -52,4 +63,3 @@ export function normalizeDest(dest: string): string {
 export function destHashHex(dest: string): string {
   return sha256Hex(normalizeDest(dest));
 }
-
