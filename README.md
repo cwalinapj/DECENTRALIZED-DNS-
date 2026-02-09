@@ -7,9 +7,18 @@ Repo: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 ## Start Here (Origin DDNS: `.dns`)
 
 - What exists today (MVP): `docs/MVP.md`
+- Adoption wedge (why this gets used): `docs/ADOPTION.md`
 - How it works (protocol): `docs/PROTOCOL_CACHE_WITNESS.md`
 - Where it’s going (end state): `docs/END_STATE.md`
 - Docs index: `docs/INDEX.md` and `docs/README.md`
+
+### Adoption Wedge: Domain Owners Get Paid
+
+Domain owners (ICANN domains and/or `.dns` identities) can delegate NS/DoH to the network and earn a **% of toll revenue**. This is the mass-adoption wedge: install once, earn continuously.
+
+- MVP payouts are based on **toll events** (cache miss / route acquisition / refresh), not per raw DNS query.
+- To resist censorship without tracking users, gateways can emit **privacy-safe witness receipts** (no IP/UA/client identifiers; time-bucketed) that attest only to answer facts.
+- End-state can incorporate stake-weighted witnesses + slashing and public receipt batch commitments.
 
 ### Status (MVP)
 

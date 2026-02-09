@@ -7,6 +7,9 @@
 
 This MVP ships a working `.dns` flow on Solana devnet while explicitly allowing centralized bootstrap components. The system is structured so clients can verify what matters and later migrate to full decentralization.
 
+**MVP callout**: centralized pieces still exist (gateway availability, allowlisted miners).  
+**End state**: fully decentralized quorum + stake-weighted witnesses + optional public receipt batches.
+
 ## 1) What MVP Delivers
 
 - `.dns` resolution through a gateway/tollbooth (fast path).
@@ -149,3 +152,21 @@ Not yet decentralized in MVP:
 - On-chain verification of each receipt/stake proof.
 - Rotating stake-weighted committees and slashing.
 - Browser extension distribution (Firefox).
+
+## MVP Incentives (Adoption Wedge)
+
+MVP adoption wedge: domain owners get paid when the network is used.
+
+Toll-event payment split (basis points, bps; sums to `10,000`):
+- domain owner share (payout wallet)
+- miners/verifiers share (aggregation + availability)
+- treasury share (protocol funding)
+
+Why not “per-query payouts” in MVP:
+- raw query counts are trivial to bot and break economics
+- toll events represent scarce value (route acquisition/refresh), so wash behavior costs real funds.
+
+## Privacy Notes (MVP)
+
+- Witness receipts (gateway-signed) must not include client IP, user agent, wallet pubkeys, or per-request IDs.
+- Observations should be time-bucketed (e.g., 10-minute buckets) to reduce tracking surface.

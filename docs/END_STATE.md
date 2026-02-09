@@ -63,3 +63,20 @@ Goal: parameter evolution without a single censor.
 - Config changes controlled by governance with timelocks and epoch-boundary activation.
 - Verifier selection moves from allowlist to rotating stake-weighted committees.
 - Slashing and challenge windows enforce honest aggregation.
+
+## 7) End State: Trust-Minimized Adoption Flywheel
+
+End-state goal: strong adoption incentives while reducing trust in any single actor.
+
+Domain owner payouts (direction):
+- payouts backed by stake-weighted quorum and/or witness-backed auditability
+- miners/verifiers commit receipt batch roots and can be challenged within dispute windows
+- provably fraudulent aggregates become slashable
+
+Witness receipts (direction):
+- gateways/operators publish witness batches (e.g., IPFS) with deterministic roots
+- third parties can sample-verify and audit without user identifiers
+
+Still end-state (not MVP):
+- DYDNS per NFT + local DoH endpoint
+- IPFS cache snapshots per identity

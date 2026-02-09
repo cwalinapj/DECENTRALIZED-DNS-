@@ -161,3 +161,53 @@ If canonical differs from local cache:
 - keep last-known-good as active
 - store new answer as pending
 - promote pending only after chain shows the new canonical version
+
+## 7) Witness Logging (Gateway Receipts)
+
+This is the privacy-safe “no user tracking” counterpart to wallet/client receipts. A **witness receipt** is signed by a gateway/NS operator and contains only answer facts.
+
+WitnessReceiptV1 fields:
+
+- `version: u8 = 1`
+- `name_hash: [u8;32]` (sha256 of normalized name)
+- `rrset_hash: [u8;32]` (sha256 of canonical answer bytes; MVP route model can use `dest_hash`)
+- `ttl_s: u32`
+- `observed_at_bucket: i64` (bucketed unix seconds; e.g. 10-minute buckets)
+- `witness_pubkey: Pubkey`
+- `signature: [u8;64]` (ed25519)
+
+Canonical signing bytes:
+
+```
+msg = SHA256(
+  "DDNS_WITNESS_V1" ||
+  name_hash ||
+  rrset_hash ||
+  LE32(ttl_s) ||
+  LE64(observed_at_bucket)
+)
+signature = ed25519_sign(witness_sk, msg)
+```
+
+Hard privacy rules:
+
+- MUST NOT include client IP, user agent, wallet pubkeys, or per-request IDs
+- observed time MUST be rounded to buckets (e.g. `floor(unix/600)*600`)
+
+Miner aggregation (MVP):
+
+Group witness receipts by:
+
+```
+(epoch_id, name_hash, rrset_hash)
+```
+
+Compute:
+
+- `receipt_count` (after dedupe)
+- `receipts_root` (Merkle root committing to receipts)
+
+MVP note:
+
+- Witness receipts are verified and aggregated off-chain first.
+- On-chain can store only aggregate commitments (roots + counts) initially; full on-chain receipt verification is end-state.
