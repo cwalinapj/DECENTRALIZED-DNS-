@@ -10,6 +10,7 @@ import { anchorRoot, loadAnchorStore, type AnchorRecord } from "./anchor.js";
 import { hash as blake3 } from "blake3";
 import * as ed from "@noble/ed25519";
 import { sha512 } from "@noble/hashes/sha512";
+import crypto from "node:crypto";
 
 const PORT = Number(process.env.PORT || "8054");
 const HOST = process.env.HOST || "0.0.0.0";
@@ -36,6 +37,9 @@ const NODE_LIST_PATH = process.env.NODE_LIST_PATH || "config/example/nodes.json"
 const NODE_QUORUM = Number(process.env.NODE_QUORUM || 3);
 const RESOLVER_PRIVATE_KEY_HEX = process.env.RESOLVER_PRIVATE_KEY_HEX || "";
 const RESOLVER_PUBKEY_HEX = process.env.RESOLVER_PUBKEY_HEX || "";
+const TRDL_DOMAIN = (process.env.TRDL_DOMAIN || "").toLowerCase();
+const REQUIRE_MINT_OWNER = process.env.REQUIRE_MINT_OWNER === "1";
+const SOLANA_RPC_URL_FOR_MINT = process.env.SOLANA_RPC_URL || SOLANA_RPC_URL;
 
 ed.etc.sha512Sync = (...m) => sha512(ed.etc.concatBytes(...m));
 
@@ -46,6 +50,7 @@ function logInfo(message: string) {
 }
 
 const cache = new Map<string, { expiresAt: number; payload: ResolveResponse }>();
+const mintCaches = new Map<string, Map<string, { rrtype: string; value: string; ttl: number; expiresAt: number; wallet_pubkey: string }>>();
 
 export type ResolveRecord = { type: string; value: string | { key: string; value: string }; ttl?: number };
 export type ResolveResponse = {
@@ -67,6 +72,94 @@ function cacheGet(key: string): ResolveResponse | null {
 
 function cacheSet(key: string, ttlMs: number, payload: ResolveResponse) {
   cache.set(key, { expiresAt: Date.now() + ttlMs, payload });
+}
+
+function base58Decode(input: string): Uint8Array | null {
+  const ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+  const BASE = 58;
+  let bytes = [0];
+  for (const ch of input) {
+    const val = ALPHABET.indexOf(ch);
+    if (val < 0) return null;
+    let carry = val;
+    for (let j = 0; j < bytes.length; ++j) {
+      carry += bytes[j] * BASE;
+      bytes[j] = carry & 0xff;
+      carry >>= 8;
+    }
+    while (carry > 0) {
+      bytes.push(carry & 0xff);
+      carry >>= 8;
+    }
+  }
+  for (const ch of input) {
+    if (ch === "1") bytes.push(0);
+    else break;
+  }
+  return Uint8Array.from(bytes.reverse());
+}
+
+function isBase58Pubkey(value: string): boolean {
+  return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(value);
+}
+
+function parseIdentityFromHost(host: string | undefined): string | null {
+  if (!host) return null;
+  const lower = host.toLowerCase();
+  const needle = ".trdl.";
+  const idx = lower.indexOf(needle);
+  if (idx <= 0) return null;
+  const identity = lower.slice(0, idx);
+  if (!identity || !isBase58Pubkey(identity)) return null;
+  if (TRDL_DOMAIN && !lower.endsWith(`.trdl.${TRDL_DOMAIN}`)) return null;
+  return identity;
+}
+
+function canonicalize(value: unknown): string {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonicalize).join(",")}]`;
+  const obj = value as Record<string, unknown>;
+  const keys = Object.keys(obj).sort();
+  const entries = keys.map((k) => `${JSON.stringify(k)}:${canonicalize(obj[k])}`);
+  return `{${entries.join(",")}}`;
+}
+
+function payloadHashHex(payload: unknown): string {
+  return crypto.createHash("sha256").update(canonicalize(payload)).digest("hex");
+}
+
+async function fetchJsonRpc(method: string, params: unknown[]) {
+  const body = JSON.stringify({ jsonrpc: "2.0", id: 1, method, params });
+  const res = await fetch(SOLANA_RPC_URL_FOR_MINT, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body
+  });
+  if (!res.ok) throw new Error(`rpc_${res.status}`);
+  const json = await res.json();
+  if (json.error) throw new Error(`rpc_${json.error?.message || "error"}`);
+  return json.result;
+}
+
+async function mintExists(mint: string): Promise<boolean> {
+  try {
+    const result = await fetchJsonRpc("getAccountInfo", [mint, { encoding: "jsonParsed" }]);
+    return !!result?.value;
+  } catch {
+    return false;
+  }
+}
+
+async function mintOwner(mint: string): Promise<string | null> {
+  try {
+    const largest = await fetchJsonRpc("getTokenLargestAccounts", [mint]);
+    const acct = largest?.value?.[0]?.address;
+    if (!acct) return null;
+    const info = await fetchJsonRpc("getParsedAccountInfo", [acct, { encoding: "jsonParsed" }]);
+    return info?.value?.data?.parsed?.info?.owner || null;
+  } catch {
+    return null;
+  }
 }
 
 async function resolveViaDoh(name: string): Promise<{ records: ResolveRecord[]; ttl: number }> {
@@ -118,7 +211,46 @@ async function resolveViaDoh(name: string): Promise<{ records: ResolveRecord[]; 
 export function createApp() {
   const app = express();
 
+  app.use("/dns-query", express.raw({ type: ["application/dns-message"], limit: "512kb" }));
+
   app.get("/healthz", (_req, res) => res.json({ status: "ok" }));
+
+  app.post("/cache/upsert", express.json(), async (req, res) => {
+    try {
+      const body = req.body || {};
+      const { mint, wallet_pubkey, name, rrtype, value, ttl, ts, sig } = body;
+      if (!mint || !wallet_pubkey || !name || !rrtype || !value || !ttl || !ts || !sig) {
+        return res.status(400).json({ ok: false, error: "missing_fields" });
+      }
+      if (!isBase58Pubkey(mint) || !isBase58Pubkey(wallet_pubkey)) {
+        return res.status(400).json({ ok: false, error: "invalid_pubkey" });
+      }
+      if (!(await mintExists(mint))) {
+        return res.status(400).json({ ok: false, error: "mint_not_found" });
+      }
+      if (REQUIRE_MINT_OWNER) {
+        const owner = await mintOwner(mint);
+        if (!owner || owner !== wallet_pubkey) {
+          return res.status(403).json({ ok: false, error: "owner_mismatch" });
+        }
+      }
+      const payload = { mint, wallet_pubkey, name, rrtype, value, ttl, ts };
+      const hashHex = payloadHashHex(payload);
+      const sigBytes = Buffer.from(sig, "base64");
+      const pubBytes = base58Decode(wallet_pubkey);
+      if (!pubBytes || !(await ed.verify(sigBytes, Buffer.from(hashHex, "hex"), pubBytes))) {
+        return res.status(403).json({ ok: false, error: "sig_invalid" });
+      }
+      const cacheKey = `${mint}:${name.toLowerCase()}:${rrtype}`;
+      const expiresAt = Date.now() + Math.min(Number(ttl), 3600) * 1000;
+      const bucket = mintCaches.get(mint) || new Map();
+      bucket.set(cacheKey, { rrtype, value, ttl: Number(ttl), expiresAt, wallet_pubkey });
+      mintCaches.set(mint, bucket);
+      return res.json({ ok: true, route_id: hashHex });
+    } catch (err: any) {
+      return res.status(500).json({ ok: false, error: String(err?.message || err) });
+    }
+  });
 
   app.get("/registry/root", (_req, res) => {
     if (!REGISTRY_ENABLED) {
@@ -328,6 +460,81 @@ export function createApp() {
       const msg = String(err?.message || err);
       const code = msg === "upstream_timeout" ? "UPSTREAM_TIMEOUT" : "UPSTREAM_ERROR";
       return res.status(502).json({ error: { code, message: msg, retryable: true } });
+    }
+  });
+
+  app.get("/dns-query", async (req, res) => {
+    try {
+      const host = typeof req.headers.host === "string" ? req.headers.host : "";
+      const identity = parseIdentityFromHost(host);
+      if (!identity) {
+        return res.status(400).json({ ok: false, error: "invalid_identity_host" });
+      }
+      if (!(await mintExists(identity))) {
+        return res.status(400).json({ ok: false, error: "mint_not_found" });
+      }
+      const name = typeof req.query.name === "string" ? req.query.name : "";
+      const rrtype = typeof req.query.type === "string" ? req.query.type.toUpperCase() : "A";
+      if (!name) return res.status(400).json({ ok: false, error: "missing_name" });
+      const cacheKey = `${identity}:${name.toLowerCase()}:${rrtype}`;
+      const idCache = mintCaches.get(identity);
+      const hit = idCache?.get(cacheKey);
+      if (hit && hit.expiresAt > Date.now()) {
+        const answers = [{ name, type: rrtype, TTL: hit.ttl, data: hit.value }];
+        return res.json({ Status: 0, Answer: answers });
+      }
+      if (name.toLowerCase().endsWith(".dns")) {
+        return res.json({ Status: 3, Answer: [] });
+      }
+      const { records, ttl } = await resolveViaDoh(name);
+      const answers = records.map((r) => ({ name, type: r.type, TTL: r.ttl ?? ttl, data: r.value }));
+      return res.json({ Status: 0, Answer: answers });
+    } catch (err: any) {
+      return res.status(500).json({ ok: false, error: String(err?.message || err) });
+    }
+  });
+
+  app.post("/dns-query", async (req, res) => {
+    try {
+      const host = typeof req.headers.host === "string" ? req.headers.host : "";
+      const identity = parseIdentityFromHost(host);
+      if (!identity) {
+        return res.status(400).json({ ok: false, error: "invalid_identity_host" });
+      }
+      if (!(await mintExists(identity))) {
+        return res.status(400).json({ ok: false, error: "mint_not_found" });
+      }
+      const body = req.body instanceof Buffer ? req.body : Buffer.from(req.body);
+      const decoded = dnsPacket.decode(body);
+      const qname = decoded?.questions?.[0]?.name || "";
+      const qtype = decoded?.questions?.[0]?.type || "A";
+      const cacheKey = `${identity}:${qname.toLowerCase()}:${qtype}`;
+      const idCache = mintCaches.get(identity);
+      const hit = idCache?.get(cacheKey);
+      if (hit && hit.expiresAt > Date.now()) {
+        const response = dnsPacket.encode({
+          type: "response",
+          id: decoded.id,
+          flags: dnsPacket.RECURSION_DESIRED,
+          questions: decoded.questions,
+          answers: [{ type: qtype, name: qname, class: "IN", ttl: hit.ttl, data: hit.value }]
+        });
+        return res.set("content-type", "application/dns-message").send(Buffer.from(response));
+      }
+      if (qname.toLowerCase().endsWith(".dns")) {
+        const response = dnsPacket.encode({
+          type: "response",
+          id: decoded.id,
+          flags: dnsPacket.RECURSION_DESIRED,
+          questions: decoded.questions,
+          answers: []
+        });
+        return res.set("content-type", "application/dns-message").send(Buffer.from(response));
+      }
+      const responseBytes = await resolveVia(UPSTREAM_DOH_URL, body);
+      return res.set("content-type", "application/dns-message").send(Buffer.from(responseBytes));
+    } catch (err: any) {
+      return res.status(500).json({ ok: false, error: String(err?.message || err) });
     }
   });
 

@@ -2,11 +2,16 @@
 
 **Format**
 ```
+https://doh.<DOMAIN>/dns-query
+```
+
+**Identity host**
+```
 https://<MINT>.trdl.<DOMAIN>/dns-query
 ```
 
 - `<MINT>` is the Solana Toll Pass mint address (base58).
-- `<DOMAIN>` is your DoH domain.
+- `<DOMAIN>` is your DoH domain (same apex as `doh.<DOMAIN>`).
 
 **Why**
 This makes Firefox-compatible DoH without custom headers. The server derives identity from the hostname.
