@@ -37,6 +37,16 @@ TollDNS aims to reduce reliance on any single provider by funding **distributed,
 
 ---
 
+## Gateway Adapter Layer (MVP)
+
+The gateway exposes a **normalized resolve surface** backed by adapters for multiple naming/content systems.
+
+- MVP: adapters normalize answers; `.dns` (PKDNS) can include proof objects; ENS/SNS are read-only; IPFS is CID validation + optional gateway metadata.
+- Endpoint: `GET /v1/resolve-adapter?name=...` on the gateway (see `gateway/ADAPTERS.md`).
+- End-state: miners/quorum/canonical finalization + receipts make route updates censorship-resistant; the adapter layer remains the stable I/O surface.
+
+---
+
 ---
 
 ---

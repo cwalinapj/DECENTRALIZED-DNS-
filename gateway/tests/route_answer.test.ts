@@ -24,7 +24,7 @@ describe("normalized route answers (adapters)", () => {
 
   it("returns a RouteAnswer for .dns via pkdns adapter", async () => {
     const app = createApp();
-    const res = await request(app).get("/v1/route").query({ name: "alice.dns" });
+    const res = await request(app).get("/v1/resolve-adapter").query({ name: "alice.dns" });
     expect(res.status).toBe(200);
     expect(res.body.source.kind).toBe("pkdns");
     expect(res.body.name).toBe("alice.dns");
@@ -38,7 +38,7 @@ describe("normalized route answers (adapters)", () => {
   it("returns a RouteAnswer for ipfs://CID via ipfs adapter", async () => {
     const app = createApp();
     const cid = "bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi";
-    const res = await request(app).get("/v1/route").query({ name: `ipfs://${cid}` });
+    const res = await request(app).get("/v1/resolve-adapter").query({ name: `ipfs://${cid}` });
     expect(res.status).toBe(200);
     expect(res.body.source.kind).toBe("ipfs");
     expect(res.body.dest).toBe(`ipfs://${cid}`);

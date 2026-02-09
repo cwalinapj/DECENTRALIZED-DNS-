@@ -39,7 +39,14 @@ export async function resolveRouteAnswer(
 ): Promise<RouteAnswer> {
   for (const adapter of adapters) {
     const answer = await adapter.resolve(input);
-    if (answer) return answer;
+    if (answer) {
+      return {
+        ...answer,
+        name_hash: answer.nameHashHex,
+        dest_hash: answer.destHashHex,
+        ttl_s: answer.ttlS
+      };
+    }
   }
   throw new Error("NO_ADAPTER_MATCH");
 }

@@ -9,6 +9,13 @@ export type RouteAnswer = {
   dest: string;        // normalized destination string (url, ipfs://CID, ar://tx, etc.)
   destHashHex: string; // 0x... sha256(normalized_dest)
   ttlS: number;
+
+  // Compatibility aliases (snake_case) for external callers.
+  // These mirror the canonical camelCase fields above.
+  name_hash?: string;
+  dest_hash?: string;
+  ttl_s?: number;
+
   source: {
     kind: "pkdns" | "ens" | "sns" | "handshake" | "ipfs" | "filecoin" | "arweave";
     ref: string;            // adapter-specific pointer (anchor root, tx, CID, key)
@@ -35,4 +42,3 @@ export function destHashHex(dest: string): string {
   const normalized = dest.trim();
   return sha256Hex(normalized);
 }
-

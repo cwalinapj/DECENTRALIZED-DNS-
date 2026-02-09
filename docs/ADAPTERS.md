@@ -96,7 +96,6 @@ npm run build
 REGISTRY_ENABLED=1 REGISTRY_PATH=tests/fixtures/registry.json ANCHOR_STORE_PATH=tests/fixtures/anchors-empty.json \
   node dist/server.js
 
-curl 'http://localhost:8054/v1/route?name=alice.dns'
-curl 'http://localhost:8054/v1/route?name=ipfs://bafy...'
+curl 'http://localhost:8054/v1/resolve-adapter?name=alice.dns'
+curl 'http://localhost:8054/v1/resolve-adapter?name=ipfs://bafy...'
 ```
-

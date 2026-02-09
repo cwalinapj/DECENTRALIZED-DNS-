@@ -102,7 +102,7 @@ Guiding principles:
 **Definition of Done**
 
 - `GET /health` returns OK
-- `GET /v1/route?...` returns ordered `gateway_routes`
+- `GET /v1/resolve-adapter?...` returns a normalized adapter `RouteAnswer`
 - Adapter interface implemented per `specs/backend-interface.md`
 - Unit tests for route selection and adapter wiring
 
