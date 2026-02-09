@@ -1,5 +1,9 @@
 # Design 3 End State: Miners-First Decentralized `.dns`
 
+> This doc contains: [MVP ✅] [End-State 🔮]
+>
+> Everything here is End-State 🔮 (planned) unless explicitly called out as already shipped in MVP docs.
+
 This document describes the end-product vision. Miners/verifiers get the full decentralized stack first; everyday users get a minimal client that still verifies canonical state.
 
 ## 1) End-State Objectives
@@ -59,4 +63,3 @@ Goal: parameter evolution without a single censor.
 - Config changes controlled by governance with timelocks and epoch-boundary activation.
 - Verifier selection moves from allowlist to rotating stake-weighted committees.
 - Slashing and challenge windows enforce honest aggregation.
-
