@@ -92,3 +92,8 @@ cd solana
 anchor deploy --provider.cluster devnet --program-name ddns_operators
 solana program show -u devnet 3Q5VCoAT4TZ9xMrpbt4jbN9LhHfihxGH3TiD6PmSqHhp
 ```
+
+Blocked as of 2026-02-09:
+
+- Deploy wallet: `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5`
+- Error: insufficient funds (needed ~`2.905 SOL` + fee; wallet had ~`2.514 SOL`)
