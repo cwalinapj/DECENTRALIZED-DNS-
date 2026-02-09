@@ -4,6 +4,30 @@ Repo: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 
 - 📄 Prospectus: `PROSPECTUS.md`
 
+## Start Here (Origin DDNS: `.dns`)
+
+If you landed here to understand the `.dns` workstream (Passport/TollPass + routes + “miners-first decentralization”), start with:
+
+- What exists today (MVP): `docs/MVP.md`
+- How it works (protocol): `docs/PROTOCOL_CACHE_WITNESS.md`
+- Where it’s going (end state): `docs/END_STATE.md`
+- Quickstart (devnet):
+  - On-chain + scripts: `solana/README.md`
+  - Miner witness daemon (lands in PR3): `services/miner-witness/README.md`
+- Status (never lies): `docs/STATUS.md`
+
+Trust model (MVP vs end state):
+
+- MVP bootstrap uses an allowlisted verifier/miner set; receipt verification happens off-chain.
+- Clients can verify canonical state directly from Solana; a gateway/tollbooth is a convenience layer, not a trust root.
+- End state removes allowlists by using stake-weighted quorum + multiple independent miners/indexers.
+- Censorship attempts are mitigated by client-side cache retention + quorum finalization of canonical changes.
+- DYDNS/IPFS snapshots are planned, not implemented yet.
+
+PR merge order (to keep main runnable): PR1 docs → PR2 on-chain → PR3 miner/client.
+
+---
+
 TollDNS is a concept for a **decentralized cloud-edge fabric** built around a **paid recursive DNS** (DoH/DoT) and an extensible network of **gateway + caching + ingress** operators (“miners”). A small **toll per query** funds infrastructure and makes abusive query patterns economically costly.
 
 The long-term goal is a “decentralized Cloudflare”: many independent operators, multi-provider diversity, and automatic failover so the network remains functional even when centralized infrastructure is pressured or attacked.
