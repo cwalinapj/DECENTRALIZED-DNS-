@@ -52,23 +52,20 @@ Program id (generated via `anchor keys sync`):
 
 - `ddns_rewards`: `8GQJrUpNhCFodqKdhEvWub6pjTtgoXBtBZUqxeEDujAY`
 
-Attempted deploy command:
+Deploy command:
 
 ```bash
 cd solana
 anchor deploy --provider.cluster devnet --program-name ddns_rewards
 ```
 
-Blocked as of 2026-02-09:
+Deploy tx signature:
 
-- Deploy wallet: `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5`
-- Error: insufficient funds (needed ~`3.235 SOL` + fee; wallet had ~`2.514 SOL`)
-- Faucet attempts (`solana airdrop -u devnet ...`) were rate-limited.
+- `ddns_rewards`: `jE6Qa9MW2iaqM4oYv4Xxfh4cFtLYabeKPjSX79RoL8ZRWE4UUQpteZrK2LPrfTjAd1P23x8GFM6XwgsbVUfJpGY`
 
-Once wallet balance is topped up, re-run:
+Optional confirmation:
 
 ```bash
-anchor deploy --provider.cluster devnet --program-name ddns_rewards
 solana program show -u devnet 8GQJrUpNhCFodqKdhEvWub6pjTtgoXBtBZUqxeEDujAY
 ```
 
@@ -96,7 +93,7 @@ solana program show -u devnet 3Q5VCoAT4TZ9xMrpbt4jbN9LhHfihxGH3TiD6PmSqHhp
 Blocked as of 2026-02-09:
 
 - Deploy wallet: `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5`
-- Error: insufficient funds (needed ~`2.905 SOL` + fee; wallet had ~`2.514 SOL`)
+- Error: insufficient funds (needed ~`2.905 SOL` + fee; wallet had ~`1.739 SOL` after deploying `ddns_rewards`)
 
 ## Devnet Deploy + Proof (ddns_domain_rewards)
 
