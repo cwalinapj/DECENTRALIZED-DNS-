@@ -10,6 +10,52 @@ The long-term goal is a “decentralized Cloudflare”: many independent operato
 
 ---
 
+## Start Here (MVP)
+
+What exists today (MVP):
+
+- Solana program (`ddns_anchor`) that can mint a Passport/TollPass and write/read `.dns` routing state.
+- A cache-first resolution model (clients keep local cache and can re-verify on refresh).
+- Miners/verifiers can be allowlisted in MVP (receipt verification and aggregation can be off-chain).
+- Browser extension is not shipped in MVP (CLI/scripts + services are used).
+
+Quickstart (devnet, minimal proof):
+
+```bash
+cd solana
+npm install
+anchor build
+ANCHOR_PROVIDER_URL=https://api.devnet.solana.com ANCHOR_WALLET=~/.config/solana/id.json npm run mint-toll-pass
+```
+
+Docs map:
+
+- `docs/MVP.md`
+- `docs/ADOPTION.md`
+- `docs/PROTOCOL_CACHE_WITNESS.md`
+- `docs/END_STATE.md`
+
+Merge order (PR series):
+
+1. PR-DOCS
+2. PR-DESIGN3-ONCHAIN
+3. PR-MINER-CLIENT
+4. PR-DOMAIN-REWARDS-WITNESS
+5. PR-OPERATORS
+
+## Devnet Programs (current)
+
+- `ddns_anchor`: `9hwvtFzawMZ6R9eWJZ8YjC7rLCGgNK7PZBNeKMRCPBes` (Passport mint + route writes)
+- `ddns_registry`: `5zg8CsxpRKyurnTg539wr2nVtS6zritQDTGy4uAUerdx` (Design 3 canonical routes, PR-DESIGN3-ONCHAIN)
+- `ddns_quorum`: `9gyHsemmJfujZEqH1o4VhefxvbUJFQkPko8ASAteX5YB` (Design 3 quorum, PR-DESIGN3-ONCHAIN)
+- `ddns_stake`: `6gT4zHNpU4PtXL4LRv1sW8MwkFu254Z7gQM7wKqnmZYF` (Design 3 stake + rewards, PR-DESIGN3-ONCHAIN)
+- `ddns_domain_rewards`: `7iFM5ZYPWpF2rK6dQkgeb4RLc2zTDnEgrTNVMp8n6s3m` (domain owner rewards split per toll event, PR-DOMAIN-REWARDS-WITNESS)
+- `ddns_operators`: pending (PR-OPERATORS; not merged/deployed in this docs PR)
+
+Proofs:
+
+- `VERIFIED.md`
+
 ## Why
 
 Internet reliability and security are increasingly concentrated in a small number of edge providers (DNS, DDoS absorption, gateways, caching). This creates systemic risk:
