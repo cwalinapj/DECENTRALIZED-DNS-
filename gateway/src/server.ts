@@ -362,8 +362,11 @@ export function createApp() {
   });
 
   // Normalized "route answer" API: stable shape for adapters across naming/content systems.
-  // NOTE: This endpoint name intentionally avoids collisions with tollbooth `/v1/route/*`.
-  app.get("/v1/resolve-adapter", async (req, res) => {
+  //
+  // We keep both endpoints:
+  // - `/v1/route` is the primary MVP gateway endpoint used by tests/docs/scripts.
+  // - `/v1/resolve-adapter` is a legacy alias from an earlier PR series.
+  async function handleRoute(req: express.Request, res: express.Response) {
     try {
       const name = typeof req.query.name === "string" ? req.query.name : "";
       if (!name) return res.status(400).json({ error: "missing_name" });
@@ -387,10 +390,18 @@ export function createApp() {
       return res.json(ans);
     } catch (err: any) {
       const msg = String(err?.message || err);
-      const status = msg === "NO_ADAPTER_MATCH" ? 404 : msg.endsWith("TIMEOUT") ? 502 : 500;
+      const status =
+        msg === "NO_ADAPTER_MATCH" || msg === "NOT_FOUND"
+          ? 404
+          : msg.endsWith("TIMEOUT")
+            ? 502
+            : 500;
       return res.status(status).json({ error: msg });
     }
-  });
+  }
+
+  app.get("/v1/route", handleRoute);
+  app.get("/v1/resolve-adapter", handleRoute);
 
   app.post("/cache/upsert", express.json(), async (req, res) => {
     try {
