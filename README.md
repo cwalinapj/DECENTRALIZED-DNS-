@@ -4,9 +4,16 @@ Repo: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 
 - 📄 Prospectus: `PROSPECTUS.md`
 
+## Start Here (Origin DDNS: `.dns`)
+
+- What exists today (MVP): `docs/MVP.md`
+- How it works (protocol): `docs/PROTOCOL_CACHE_WITNESS.md`
+- Where it’s going (end state): `docs/END_STATE.md`
+- Docs index: `docs/INDEX.md` and `docs/README.md`
+
 ### Status (MVP)
 
-- Devnet: reference environment for MVP demos. See `docs/MVP.md`, `docs/PR1_VERIFIED.md`, and `solana/VERIFIED.md` (once PR2 is merged).
+- Devnet: reference environment for MVP demos. See `docs/MVP.md`, `docs/PR1_VERIFIED.md`, and `solana/VERIFIED.md`.
 - Localnet: optional for MVP. Some machines hit `solana-test-validator` genesis/ledger issues; use Docker-based localnet where needed (see `docs/LOCAL_DEV.md`).
 - Centralization points (explicit in MVP):
   - allowlisted miner/verifier submitters
