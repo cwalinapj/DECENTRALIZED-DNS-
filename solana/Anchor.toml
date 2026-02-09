@@ -4,16 +4,22 @@ skip-lint = false
 
 [programs.localnet]
 ddns_anchor = "9hwvtFzawMZ6R9eWJZ8YjC7rLCGgNK7PZBNeKMRCPBes"
+ddns_registry = "5zg8CsxpRKyurnTg539wr2nVtS6zritQDTGy4uAUerdx"
+ddns_quorum = "9gyHsemmJfujZEqH1o4VhefxvbUJFQkPko8ASAteX5YB"
+ddns_stake = "6gT4zHNpU4PtXL4LRv1sW8MwkFu254Z7gQM7wKqnmZYF"
 
 [programs.devnet]
 ddns_anchor = "9hwvtFzawMZ6R9eWJZ8YjC7rLCGgNK7PZBNeKMRCPBes"
+ddns_registry = "5zg8CsxpRKyurnTg539wr2nVtS6zritQDTGy4uAUerdx"
+ddns_quorum = "9gyHsemmJfujZEqH1o4VhefxvbUJFQkPko8ASAteX5YB"
+ddns_stake = "6gT4zHNpU4PtXL4LRv1sW8MwkFu254Z7gQM7wKqnmZYF"
 
 [provider]
 cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "anchor test"
+test = "npx ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
 
 [toolchain]
 anchor_version = "0.32.1"
