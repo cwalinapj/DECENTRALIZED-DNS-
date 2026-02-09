@@ -1,0 +1,20 @@
+{
+  "name": "miner-witness",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.32.1",
+    "@solana/web3.js": "^1.95.3",
+    "bn.js": "^5.2.1",
+    "express": "^4.19.2",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.17.0",
+    "typescript": "^5.3.3"
+  }
+}
+
