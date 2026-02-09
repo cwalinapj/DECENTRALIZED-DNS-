@@ -52,3 +52,9 @@ Set DoH URL to:
 ```
 https://<MINT>.trdl.<DOMAIN>/dns-query
 ```
+
+Example JSON query:
+```bash
+curl -H "accept: application/dns-json" \
+  "https://<MINT>.trdl.<DOMAIN>/dns-query?name=example.com&type=A"
+```
