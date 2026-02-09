@@ -208,6 +208,29 @@ async function resolveViaDoh(name: string): Promise<{ records: ResolveRecord[]; 
   }
 }
 
+async function resolveVia(url: string, queryBytes: Buffer): Promise<Uint8Array> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "content-type": "application/dns-message",
+        "accept": "application/dns-message"
+      },
+      body: queryBytes,
+      signal: controller.signal
+    });
+    if (!res.ok) throw new Error(`upstream_${res.status}`);
+    return new Uint8Array(await res.arrayBuffer());
+  } catch (err: any) {
+    if (err?.name === "AbortError") throw new Error("upstream_timeout");
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export function createApp() {
   const app = express();
 
@@ -487,8 +510,8 @@ export function createApp() {
             type: "response",
             id: Math.floor(Math.random() * 65535),
             flags: dnsPacket.RECURSION_DESIRED,
-            questions: [{ type: rrtype, name, class: "IN" }],
-            answers: [{ type: rrtype, name, class: "IN", ttl: hit.ttl, data: hit.value }]
+            questions: [{ type: rrtype as any, name, class: "IN" }],
+            answers: [{ type: rrtype as any, name, class: "IN", ttl: hit.ttl, data: hit.value }] as any
           });
           return res.set("content-type", "application/dns-message").send(Buffer.from(response));
         }
@@ -504,8 +527,8 @@ export function createApp() {
           type: "response",
           id: Math.floor(Math.random() * 65535),
           flags: dnsPacket.RECURSION_DESIRED,
-          questions: [{ type: rrtype, name, class: "IN" }],
-          answers: answers.map((a) => ({ type: a.type, name: a.name, class: "IN", ttl: a.TTL, data: a.data }))
+          questions: [{ type: rrtype as any, name, class: "IN" }],
+          answers: answers.map((a) => ({ type: a.type as any, name: a.name, class: "IN", ttl: a.TTL, data: a.data })) as any
         });
         return res.set("content-type", "application/dns-message").send(Buffer.from(response));
       }
@@ -538,7 +561,7 @@ export function createApp() {
           id: decoded.id,
           flags: dnsPacket.RECURSION_DESIRED,
           questions: decoded.questions,
-          answers: [{ type: qtype, name: qname, class: "IN", ttl: hit.ttl, data: hit.value }]
+          answers: [{ type: qtype as any, name: qname, class: "IN", ttl: hit.ttl, data: hit.value }] as any
         });
         return res.set("content-type", "application/dns-message").send(Buffer.from(response));
       }

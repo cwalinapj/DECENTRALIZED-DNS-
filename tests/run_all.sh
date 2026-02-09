@@ -14,6 +14,12 @@ maybe_run() {
   local dir="$1"
   local cmd="$2"
   if [ -d "$dir" ]; then
+    # Legacy folders can exist without being runnable npm packages.
+    # Only attempt `npm` commands when a package manifest exists.
+    if [[ "$cmd" == *npm* ]] && [ ! -f "$dir/package.json" ]; then
+      echo "==> skip (missing package.json): $dir"
+      return
+    fi
     run_pkg "$dir" "$cmd"
   else
     echo "==> skip (missing): $dir"
