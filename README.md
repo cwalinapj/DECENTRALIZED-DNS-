@@ -148,6 +148,7 @@ Instead, staking (when used) is only permitted in forms that reduce or eliminate
 - Optional later: **slashable stake** for provable violations (governance-defined)
 
 See: [docs/05-tokenomics.md](docs/05-tokenomics.md)
+See: [docs/MINER_SCORING.md](docs/MINER_SCORING.md)
 
 ---
 

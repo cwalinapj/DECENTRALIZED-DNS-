@@ -14,7 +14,8 @@
     "route:status": "tsx scripts/route_status.ts",
     "route:list": "tsx scripts/route_list.ts",
     "cache:sign-upsert": "tsx scripts/cache_sign_upsert.ts",
-    "cache:upsert": "tsx scripts/cache_upsert_post.ts"
+    "cache:upsert": "tsx scripts/cache_upsert_post.ts",
+    "miner-score": "tsx scripts/miner_score.ts"
   },
   "devDependencies": {
     "@coral-xyz/anchor": "^0.32.1",
