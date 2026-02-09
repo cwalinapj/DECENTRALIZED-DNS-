@@ -4,6 +4,12 @@ Repo: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 
 - 📄 Prospectus: `PROSPECTUS.md`
 
+## MVP Settlement: Toll Events + Vouchers
+
+This repo’s MVP payment surface is **toll events** (cache-miss / route acquisition), not per-DNS-query on-chain payments.
+
+- Spec: `docs/ESCROW_VOUCHERS.md`
+
 TollDNS is a concept for a **decentralized cloud-edge fabric** built around a **paid recursive DNS** (DoH/DoT) and an extensible network of **gateway + caching + ingress** operators (“miners”). A small **toll per query** funds infrastructure and makes abusive query patterns economically costly.
 
 The long-term goal is a “decentralized Cloudflare”: many independent operators, multi-provider diversity, and automatic failover so the network remains functional even when centralized infrastructure is pressured or attacked.

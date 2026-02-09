@@ -1,19 +1,24 @@
-[features]
-seeds = false
-skip-lint = false
+[toolchain]
+anchor_version = "0.32.1"
 
-[programs.localnet]
-ddns_anchor = "9hwvtFzawMZ6R9eWJZ8YjC7rLCGgNK7PZBNeKMRCPBes"
+[features]
+resolution = true
+skip-lint = false
 
 [programs.devnet]
 ddns_anchor = "9hwvtFzawMZ6R9eWJZ8YjC7rLCGgNK7PZBNeKMRCPBes"
+ddns_escrow = "4jtDN5gqUqpmu1nBfLwPBAz8jBYjP6Nba4yZ8Am75M2J"
+
+[programs.localnet]
+ddns_anchor = "9hwvtFzawMZ6R9eWJZ8YjC7rLCGgNK7PZBNeKMRCPBes"
+ddns_escrow = "4jtDN5gqUqpmu1nBfLwPBAz8jBYjP6Nba4yZ8Am75M2J"
+
+[registry]
+url = "https://api.apr.dev"
 
 [provider]
 cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "anchor test"
-
-[toolchain]
-anchor_version = "0.32.1"
+test = "npx ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
