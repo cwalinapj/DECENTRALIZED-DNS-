@@ -209,3 +209,49 @@ anchor test --provider.cluster devnet --provider.wallet ./devnet-wallet.json
 
 ## Build status
 Default build passes (no Metaplex CPI in-program).
+
+## Escrow + Toll Vouchers (MVP)
+
+This is the on-chain split payout path for **toll events** (route acquisition), not per-query payments.
+
+1) Build IDLs:
+
+```bash
+cd /Users/root1/scripts/DECENTRALIZED-DNS-/solana
+npm install
+anchor build
+```
+
+2) Init escrow config (split bps + allowlisted voucher signer):
+
+```bash
+npm -C solana run escrow:init -- \
+  --toll-mint <TOLL_MINT_PUBKEY> \
+  --domain-bps 1000 --miners-bps 2000 --treasury-bps 7000 \
+  --allowlisted-signer <TOLLBOOTH_SIGNER_PUBKEY>
+```
+
+3) User: create escrow vault + deposit TOLL:
+
+```bash
+npm -C solana run escrow:deposit -- --toll-mint <TOLL_MINT_PUBKEY> --amount <U64_BASE_UNITS>
+```
+
+4) Domain owner: register a payout token account for a `.dns` name_hash:
+
+```bash
+npm -C solana run domain:register -- --name example.dns --toll-mint <TOLL_MINT_PUBKEY>
+```
+
+5) Tollbooth (allowlisted signer): issue a voucher; anyone can redeem it:
+
+```bash
+npm -C solana run voucher:issue-toll -- \
+  --payer <USER_WALLET_PUBKEY> --name example.dns --amount <U64_BASE_UNITS> \
+  --mint <TOLL_MINT_PUBKEY> --nonce 1 --signer-keypair <KEYPAIR_JSON>
+
+npm -C solana run voucher:redeem-toll -- \
+  --voucher <voucher_json_or_base64> --sig <signature_base64> --signer <TOLLBOOTH_SIGNER_PUBKEY>
+```
+
+Spec: `/Users/root1/scripts/DECENTRALIZED-DNS-/docs/ESCROW_VOUCHERS.md`

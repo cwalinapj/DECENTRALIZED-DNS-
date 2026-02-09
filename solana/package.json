@@ -20,7 +20,12 @@
     "resolve": "tsx scripts/resolve.ts",
     "stake-gov": "tsx scripts/stake_gov.ts",
     "stake-gov:snapshot": "tsx scripts/snapshot_gov.ts",
-    "stake-gov:slash": "tsx scripts/slash_gov.ts"
+    "stake-gov:slash": "tsx scripts/slash_gov.ts",
+    "escrow:init": "tsx scripts/escrow_init.ts",
+    "escrow:deposit": "tsx scripts/escrow_deposit.ts",
+    "domain:register": "tsx scripts/domain_owner_register.ts",
+    "voucher:issue-toll": "tsx scripts/voucher_issue_toll.ts",
+    "voucher:redeem-toll": "tsx scripts/voucher_redeem_toll.ts"
   },
   "devDependencies": {
     "@coral-xyz/anchor": "^0.32.1",

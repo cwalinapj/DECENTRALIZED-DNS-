@@ -7,6 +7,7 @@ members = [
   "programs/ddns_stake",
   "programs/ddns_watchdog_policy",
   "programs/ddns_stake_gov",
+  "programs/ddns_escrow",
 ]
 
 [patch.crates-io]
