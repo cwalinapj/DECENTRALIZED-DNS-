@@ -12,6 +12,8 @@ type ReceiptV1 = {
   version: 1;
   name: string;
   dest: string;
+  name_hash: string; // hex
+  dest_hash: string; // hex
   ttl_s: number;
   observed_at_unix: number;
   wallet_pubkey: string;
@@ -114,6 +116,12 @@ function destHash(destCanonical: string): Buffer {
   return sha256(Buffer.from(destCanonical, "utf8"));
 }
 
+function parseHex32(s: string, label: string): Buffer {
+  const hex = s.startsWith("0x") ? s.slice(2) : s;
+  if (!/^[0-9a-fA-F]{64}$/.test(hex)) throw new Error(`${label} must be 32-byte hex`);
+  return Buffer.from(hex, "hex");
+}
+
 function receiptMsgHash(r: ReceiptV1, name_hash: Buffer, dest_hash: Buffer): Buffer {
   const prefix = Buffer.from("DDNS_RECEIPT_V1", "utf8");
   const ts = Buffer.alloc(8);
@@ -134,6 +142,10 @@ function verifyReceipt(r: ReceiptV1): { name_lc: string; name_hash: Buffer; dest
   const dest_c = canonicalizeDest(r.dest);
   const nh = nameHash(name_lc);
   const dh = destHash(dest_c);
+  const nhProvided = parseHex32(r.name_hash, "name_hash");
+  const dhProvided = parseHex32(r.dest_hash, "dest_hash");
+  if (!nhProvided.equals(nh)) throw new Error("name_hash mismatch");
+  if (!dhProvided.equals(dh)) throw new Error("dest_hash mismatch");
 
   const msg = receiptMsgHash(r, nh, dh);
   const sig = Buffer.from(r.signature, "base64");

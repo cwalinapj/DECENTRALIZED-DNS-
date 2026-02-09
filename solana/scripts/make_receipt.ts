@@ -9,7 +9,9 @@ import * as anchor from "@coral-xyz/anchor";
 type ReceiptV1 = {
   version: 1;
   name: string;
+  name_hash: string; // hex
   dest: string;
+  dest_hash: string; // hex
   ttl_s: number;
   observed_at_unix: number;
   wallet_pubkey: string;
@@ -60,6 +62,7 @@ async function main() {
     .option("dest", { type: "string", demandOption: true, describe: "Destination (canonicalized by trim in MVP)" })
     .option("ttl", { type: "number", default: 300 })
     .option("observed-at", { type: "number", describe: "Observed-at unix seconds (default now)" })
+    .option("rpc", { type: "string", describe: "Unused (reserved for CLI consistency)" })
     .option("wallet", { type: "string", describe: "Keypair path override (default ANCHOR_WALLET / solana id.json)" })
     .option("out", { type: "string", describe: "Write receipt JSON to this path (default stdout)" })
     .strict()
@@ -87,7 +90,9 @@ async function main() {
   const receipt: ReceiptV1 = {
     version: 1,
     name: nameLc,
+    name_hash: nh.toString("hex"),
     dest: destC,
+    dest_hash: dh.toString("hex"),
     ttl_s: ttlS,
     observed_at_unix: observedAtUnix,
     wallet_pubkey: kp.publicKey.toBase58(),
@@ -115,4 +120,3 @@ main().catch((e) => {
   console.error(e);
   process.exit(1);
 });
-
