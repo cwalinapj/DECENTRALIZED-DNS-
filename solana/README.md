@@ -201,10 +201,13 @@ anchor deploy --provider.cluster devnet --provider.wallet ./devnet-wallet.json
 ## Test
 ```bash
 npm install
-export ANCHOR_PROVIDER_URL=https://api.devnet.solana.com
-export ANCHOR_WALLET=/absolute/path/to/devnet-wallet.json
-export DDNS_ANCHOR_PROGRAM_ID=ReplaceWithProgramId
-anchor test --provider.cluster devnet --provider.wallet ./devnet-wallet.json
+# Localnet (recommended for tests):
+anchor test --provider.cluster localnet
+
+# Devnet (only if you intend to deploy during tests):
+# export ANCHOR_PROVIDER_URL=https://api.devnet.solana.com
+# export ANCHOR_WALLET=/absolute/path/to/devnet-wallet.json
+# anchor test --provider.cluster devnet --provider.wallet ./devnet-wallet.json
 ```
 
 ## Design 3 MVP (Stake + Cache-as-Witness + Quorum)
