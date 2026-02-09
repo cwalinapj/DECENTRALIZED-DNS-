@@ -207,6 +207,37 @@ export DDNS_ANCHOR_PROGRAM_ID=ReplaceWithProgramId
 anchor test --provider.cluster devnet --provider.wallet ./devnet-wallet.json
 ```
 
+## Design 3 MVP (Stake + Cache-as-Witness + Quorum)
+
+This is the “miners-first decentralization” path:
+
+- wallets produce off-chain receipts when they observe resolutions
+- a miner/verifier aggregates receipts off-chain
+- canonical routes update on-chain only via quorum finalization (MVP: allowlisted miner)
+
+Quickstart (devnet):
+
+```bash
+cd /Users/root1/scripts/DECENTRALIZED-DNS-/solana
+npm install
+anchor build
+
+# init stake config + stake some SOL (once per devnet deployment)
+npm run stake -- init
+npm run stake -- stake --amount-sol 0.1
+
+# start the miner witness daemon in another shell:
+# cd /Users/root1/scripts/DECENTRALIZED-DNS-/services/miner-witness
+# npm install
+# BOOTSTRAP=1 MINER_KEYPAIR=~/.config/solana/id.json SOLANA_RPC_URL=https://api.devnet.solana.com npm run dev
+
+# create + submit a receipt
+npm run make-receipt -- --name example123.dns --dest https://example.com --ttl 300 --out /tmp/ddns-receipt.json
+npm run submit-receipts -- --url http://localhost:8790 --in /tmp/ddns-receipt.json
+```
+
+Proof outputs (tx sigs, PDAs, hashes): see `/Users/root1/scripts/DECENTRALIZED-DNS-/services/miner-witness/VERIFIED.md`.
+
 ## Build status
 Default build passes (no Metaplex CPI in-program).
 
