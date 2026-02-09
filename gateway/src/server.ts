@@ -11,6 +11,12 @@ import { hash as blake3 } from "blake3";
 import * as ed from "@noble/ed25519";
 import { sha512 } from "@noble/hashes/sha512";
 import crypto from "node:crypto";
+import {
+  AttackMode,
+  defaultThresholdsFromEnv,
+  evaluateAttackMode,
+  policyForMode
+} from "@ddns/attack-mode";
 
 const PORT = Number(process.env.PORT || "8054");
 const HOST = process.env.HOST || "0.0.0.0";
@@ -40,6 +46,9 @@ const RESOLVER_PUBKEY_HEX = process.env.RESOLVER_PUBKEY_HEX || "";
 const TRDL_DOMAIN = (process.env.TRDL_DOMAIN || "").toLowerCase();
 const REQUIRE_MINT_OWNER = process.env.REQUIRE_MINT_OWNER === "1";
 const SOLANA_RPC_URL_FOR_MINT = process.env.SOLANA_RPC_URL || SOLANA_RPC_URL;
+const ATTACK_MODE_ENABLED = process.env.ATTACK_MODE_ENABLED === "1";
+const ATTACK_WINDOW_SECS = Number(process.env.ATTACK_WINDOW_SECS || "120");
+const attackThresholds = defaultThresholdsFromEnv(process.env);
 
 ed.etc.sha512Sync = (...m) => sha512(ed.etc.concatBytes(...m));
 
@@ -47,6 +56,61 @@ function logInfo(message: string) {
   if (LOG_LEVEL !== "quiet") {
     console.log(message);
   }
+}
+
+type AttackCounters = {
+  windowStartUnix: number;
+  totalReq: number;
+  gatewayErr: number;
+  rpcTotal: number;
+  rpcErr: number;
+};
+
+const attackCounters: AttackCounters = {
+  windowStartUnix: Math.floor(Date.now() / 1000),
+  totalReq: 0,
+  gatewayErr: 0,
+  rpcTotal: 0,
+  rpcErr: 0
+};
+
+let attackMode: AttackMode = AttackMode.NORMAL;
+let attackMemory: { lastStableUnix?: number } = {};
+let attackDecision: { score: number; reasons: string[] } = { score: 0, reasons: [] };
+
+function resetAttackWindow(nowUnix: number) {
+  if (nowUnix - attackCounters.windowStartUnix >= ATTACK_WINDOW_SECS) {
+    attackCounters.windowStartUnix = nowUnix;
+    attackCounters.totalReq = 0;
+    attackCounters.gatewayErr = 0;
+    attackCounters.rpcTotal = 0;
+    attackCounters.rpcErr = 0;
+  }
+}
+
+function currentAttackPolicy(nowUnix: number) {
+  resetAttackWindow(nowUnix);
+  if (!ATTACK_MODE_ENABLED) {
+    attackMode = AttackMode.NORMAL;
+    attackDecision = { score: 0, reasons: ["disabled"] };
+    return policyForMode(attackMode);
+  }
+  const rpcFailPct = attackCounters.rpcTotal
+    ? (attackCounters.rpcErr * 100) / attackCounters.rpcTotal
+    : 0;
+  const gatewayErrPct = attackCounters.totalReq
+    ? (attackCounters.gatewayErr * 100) / attackCounters.totalReq
+    : 0;
+  const decision = evaluateAttackMode(
+    attackMode,
+    { rpcFailPct, gatewayErrorPct: gatewayErrPct, nowUnix },
+    attackThresholds,
+    attackMemory
+  );
+  attackMode = decision.nextMode;
+  attackMemory = decision.memory;
+  attackDecision = { score: decision.score, reasons: decision.reasons };
+  return policyForMode(attackMode);
 }
 
 const cache = new Map<string, { expiresAt: number; payload: ResolveResponse }>();
@@ -129,15 +193,22 @@ function payloadHashHex(payload: unknown): string {
 }
 
 async function fetchJsonRpc(method: string, params: unknown[]) {
+  attackCounters.rpcTotal += 1;
   const body = JSON.stringify({ jsonrpc: "2.0", id: 1, method, params });
   const res = await fetch(SOLANA_RPC_URL_FOR_MINT, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body
   });
-  if (!res.ok) throw new Error(`rpc_${res.status}`);
+  if (!res.ok) {
+    attackCounters.rpcErr += 1;
+    throw new Error(`rpc_${res.status}`);
+  }
   const json = await res.json();
-  if (json.error) throw new Error(`rpc_${json.error?.message || "error"}`);
+  if (json.error) {
+    attackCounters.rpcErr += 1;
+    throw new Error(`rpc_${json.error?.message || "error"}`);
+  }
   return json.result;
 }
 
@@ -214,6 +285,36 @@ export function createApp() {
   app.use("/dns-query", express.raw({ type: ["application/dns-message"], limit: "512kb" }));
 
   app.get("/healthz", (_req, res) => res.json({ status: "ok" }));
+
+  app.get("/v1/attack-mode", (_req, res) => {
+    const now = Math.floor(Date.now() / 1000);
+    const policy = currentAttackPolicy(now);
+    return res.json({
+      ok: true,
+      enabled: ATTACK_MODE_ENABLED,
+      mode: attackMode,
+      decision: attackDecision,
+      policy,
+      window: {
+        secs: ATTACK_WINDOW_SECS,
+        totalReq: attackCounters.totalReq,
+        gatewayErr: attackCounters.gatewayErr,
+        rpcTotal: attackCounters.rpcTotal,
+        rpcErr: attackCounters.rpcErr
+      }
+    });
+  });
+
+  // Attack-mode write gate: certain endpoints are treated as "writes" (centralized in MVP).
+  app.use((req, res, next) => {
+    const now = Math.floor(Date.now() / 1000);
+    const policy = currentAttackPolicy(now);
+    const isWrite = req.method !== "GET" && (req.path.startsWith("/cache/") || req.path.startsWith("/registry/anchor"));
+    if (isWrite && policy.freezeWrites) {
+      return res.status(503).json({ error: "attack_mode_freeze_writes", mode: attackMode, reasons: attackDecision.reasons });
+    }
+    return next();
+  });
 
   app.post("/cache/upsert", express.json(), async (req, res) => {
     try {
@@ -305,6 +406,7 @@ export function createApp() {
   app.get("/resolve", async (req, res) => {
     const name = typeof req.query.name === "string" ? req.query.name : "";
     if (!name) return res.status(400).json({ error: "missing_name" });
+    attackCounters.totalReq += 1;
     const proofRequested = req.query.proof === "1" || req.query.proof === "true";
 
     const lowered = name.toLowerCase();
@@ -378,6 +480,13 @@ export function createApp() {
         }
       };
       attachAuthoritySig(payload);
+      const policy = currentAttackPolicy(Math.floor(Date.now() / 1000));
+      if (policy.ttlClampS > 0) {
+        payload.records = payload.records.map((r) => ({
+          ...r,
+          ttl: Math.min(Number(r.ttl ?? policy.ttlClampS), policy.ttlClampS)
+        }));
+      }
       return res.json(payload);
     }
 
@@ -437,6 +546,8 @@ export function createApp() {
 
     try {
       const { records, ttl } = await resolveViaDoh(name);
+      const policy = currentAttackPolicy(Math.floor(Date.now() / 1000));
+      const effectiveTtl = policy.ttlClampS > 0 ? Math.min(ttl, policy.ttlClampS) : ttl;
       const payload: ResolveResponse = {
         name,
         network: "icann",
@@ -454,9 +565,10 @@ export function createApp() {
         }
         payload.metadata = { ...payload.metadata, nodeQuorum: nodeResult.quorum, nodeMatches: nodeResult.matches };
       }
-      cacheSet(cacheKey, ttl * 1000, payload);
+      cacheSet(cacheKey, effectiveTtl * 1000, payload);
       return res.json(payload);
     } catch (err: any) {
+      attackCounters.gatewayErr += 1;
       const msg = String(err?.message || err);
       const code = msg === "upstream_timeout" ? "UPSTREAM_TIMEOUT" : "UPSTREAM_ERROR";
       return res.status(502).json({ error: { code, message: msg, retryable: true } });
