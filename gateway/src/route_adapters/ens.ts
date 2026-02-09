@@ -1,4 +1,4 @@
-import type { RouteAdapter } from "./adapter.js";
+import type { Adapter } from "./adapter.js";
 import type { RouteAnswer } from "./types.js";
 import { destHashHex, sha256Hex } from "./types.js";
 import { resolveEns, supportsEns } from "../adapters/ens.js";
@@ -7,11 +7,16 @@ type EnsAdapterConfig = {
   rpcUrl: string;
 };
 
-export function ensAdapter(config: EnsAdapterConfig): RouteAdapter {
+export function ensAdapter(config: EnsAdapterConfig): Adapter {
   return {
     kind: "ens",
-    supports: (name) => supportsEns(name),
-    resolve: async (name, opts) => resolveEnsRoute(name, config, opts.timeoutMs)
+    resolve: async (input) => {
+      const name = input?.name ?? "";
+      if (!name) return null;
+      if (!supportsEns(name)) return null;
+      const timeoutMs = Number(input?.opts?.timeoutMs ?? 5000);
+      return resolveEnsRoute(name, config, timeoutMs);
+    }
   };
 }
 
@@ -53,4 +58,3 @@ async function resolveEnsRoute(
     }
   };
 }
-

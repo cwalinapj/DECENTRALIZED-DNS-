@@ -1,12 +1,13 @@
 import type { RouteAnswer } from "./types.js";
 
-export type AdapterResolveOptions = {
-  timeoutMs: number;
+export type AdapterResolveInput = {
+  name: string;
+  nowUnix?: number;
+  network?: string; // devnet/mainnet/chain id
+  opts?: Record<string, any>;
 };
 
-export type RouteAdapter = {
+export interface Adapter {
   kind: RouteAnswer["source"]["kind"];
-  supports(nameOrRef: string): boolean;
-  resolve(nameOrRef: string, opts: AdapterResolveOptions): Promise<RouteAnswer | null>;
-};
-
+  resolve(input: AdapterResolveInput): Promise<RouteAnswer | null>;
+}

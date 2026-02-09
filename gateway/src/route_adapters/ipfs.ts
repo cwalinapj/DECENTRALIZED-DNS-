@@ -1,4 +1,4 @@
-import type { RouteAdapter } from "./adapter.js";
+import type { Adapter } from "./adapter.js";
 import type { RouteAnswer } from "./types.js";
 import { destHashHex, sha256Hex } from "./types.js";
 
@@ -6,11 +6,15 @@ type IpfsConfig = {
   httpGatewayBaseUrl: string; // e.g. https://ipfs.io/ipfs
 };
 
-export function ipfsAdapter(config: IpfsConfig): RouteAdapter {
+export function ipfsAdapter(config: IpfsConfig): Adapter {
   return {
     kind: "ipfs",
-    supports: (ref) => isIpfsRef(ref),
-    resolve: async (ref) => resolveIpfs(ref, config)
+    resolve: async (input) => {
+      const name = input?.name ?? "";
+      if (!name) return null;
+      if (!isIpfsRef(name)) return null;
+      return resolveIpfs(name, config);
+    }
   };
 }
 

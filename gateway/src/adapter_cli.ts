@@ -32,7 +32,12 @@ async function main() {
     ipfsHttpGatewayBaseUrl: ipfsGateway
   });
 
-  const ans = await resolveRouteAnswer(adapters, name, { timeoutMs });
+  const ans = await resolveRouteAnswer(adapters, {
+    name,
+    nowUnix: Math.floor(Date.now() / 1000),
+    network: "cli",
+    opts: { timeoutMs }
+  });
   process.stdout.write(JSON.stringify(ans, null, 2) + "\n");
 }
 
@@ -40,4 +45,3 @@ main().catch((err) => {
   process.stderr.write(String(err?.message || err) + "\n");
   process.exit(1);
 });
-

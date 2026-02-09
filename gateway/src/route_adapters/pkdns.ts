@@ -1,4 +1,4 @@
-import type { RouteAdapter } from "./adapter.js";
+import type { Adapter } from "./adapter.js";
 import type { RouteAnswer } from "./types.js";
 import { destHashHex, nameHashHex } from "./types.js";
 import {
@@ -27,11 +27,17 @@ type NamePolicyState = {
   recommendedTtlCap?: number;
 };
 
-export function pkdnsAdapter(config: PkdnsConfig): RouteAdapter {
+export function pkdnsAdapter(config: PkdnsConfig): Adapter {
   return {
     kind: "pkdns",
-    supports: (name) => normalizeName(name).endsWith(".dns"),
-    resolve: async (name, opts) => resolvePkdns(name, config, opts)
+    resolve: async (input) => {
+      const name = input?.name ?? "";
+      if (!name) return null;
+      const normalized = normalizeName(name);
+      if (!normalized.endsWith(".dns")) return null;
+      const timeoutMs = Number(input?.opts?.timeoutMs ?? 5000);
+      return resolvePkdns(normalized, config, { timeoutMs });
+    }
   };
 }
 

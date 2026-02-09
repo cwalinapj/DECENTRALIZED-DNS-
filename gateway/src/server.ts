@@ -255,7 +255,12 @@ export function createApp() {
     try {
       const name = typeof req.query.name === "string" ? req.query.name : "";
       if (!name) return res.status(400).json({ error: "missing_name" });
-      const ans = await resolveRouteAnswer(routeAdapters, name, { timeoutMs: REQUEST_TIMEOUT_MS });
+      const ans = await resolveRouteAnswer(routeAdapters, {
+        name,
+        nowUnix: Math.floor(Date.now() / 1000),
+        network: "gateway",
+        opts: { timeoutMs: REQUEST_TIMEOUT_MS }
+      });
       return res.json(ans);
     } catch (err: any) {
       const msg = String(err?.message || err);

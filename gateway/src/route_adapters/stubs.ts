@@ -1,24 +1,22 @@
-import type { RouteAdapter } from "./adapter.js";
+import type { Adapter } from "./adapter.js";
 
-function unimplemented(kind: any): RouteAdapter {
+function unimplemented(kind: any): Adapter {
   return {
     kind,
-    supports: () => false,
     resolve: async () => {
       throw new Error(`ADAPTER_NOT_IMPLEMENTED:${String(kind)}`);
     }
   };
 }
 
-export function handshakeAdapterStub(): RouteAdapter {
+export function handshakeAdapterStub(): Adapter {
   return unimplemented("handshake");
 }
 
-export function filecoinAdapterStub(): RouteAdapter {
+export function filecoinAdapterStub(): Adapter {
   return unimplemented("filecoin");
 }
 
-export function arweaveAdapterStub(): RouteAdapter {
+export function arweaveAdapterStub(): Adapter {
   return unimplemented("arweave");
 }
-

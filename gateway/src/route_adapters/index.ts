@@ -1,5 +1,5 @@
 import type { RouteAnswer } from "./types.js";
-import type { AdapterResolveOptions, RouteAdapter } from "./adapter.js";
+import type { Adapter, AdapterResolveInput } from "./adapter.js";
 import { pkdnsAdapter } from "./pkdns.js";
 import { ipfsAdapter } from "./ipfs.js";
 import { ensAdapter } from "./ens.js";
@@ -15,7 +15,7 @@ export type AdapterRegistryConfig = {
   ipfsHttpGatewayBaseUrl: string;
 };
 
-export function buildDefaultAdapters(cfg: AdapterRegistryConfig): RouteAdapter[] {
+export function buildDefaultAdapters(cfg: AdapterRegistryConfig): Adapter[] {
   return [
     pkdnsAdapter({
       registryPath: cfg.registryPath,
@@ -34,15 +34,12 @@ export function buildDefaultAdapters(cfg: AdapterRegistryConfig): RouteAdapter[]
 }
 
 export async function resolveRouteAnswer(
-  adapters: RouteAdapter[],
-  nameOrRef: string,
-  opts: AdapterResolveOptions
+  adapters: Adapter[],
+  input: AdapterResolveInput
 ): Promise<RouteAnswer> {
   for (const adapter of adapters) {
-    if (!adapter.supports(nameOrRef)) continue;
-    const answer = await adapter.resolve(nameOrRef, opts);
+    const answer = await adapter.resolve(input);
     if (answer) return answer;
   }
   throw new Error("NO_ADAPTER_MATCH");
 }
-

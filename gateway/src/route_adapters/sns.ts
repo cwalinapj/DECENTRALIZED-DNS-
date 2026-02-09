@@ -1,4 +1,4 @@
-import type { RouteAdapter } from "./adapter.js";
+import type { Adapter } from "./adapter.js";
 import type { RouteAnswer } from "./types.js";
 import { destHashHex, sha256Hex } from "./types.js";
 import { resolveSns, supportsSns } from "../adapters/sns.js";
@@ -7,11 +7,16 @@ type SnsAdapterConfig = {
   rpcUrl: string;
 };
 
-export function snsAdapter(config: SnsAdapterConfig): RouteAdapter {
+export function snsAdapter(config: SnsAdapterConfig): Adapter {
   return {
     kind: "sns",
-    supports: (name) => supportsSns(name),
-    resolve: async (name, opts) => resolveSnsRoute(name, config, opts.timeoutMs)
+    resolve: async (input) => {
+      const name = input?.name ?? "";
+      if (!name) return null;
+      if (!supportsSns(name)) return null;
+      const timeoutMs = Number(input?.opts?.timeoutMs ?? 5000);
+      return resolveSnsRoute(name, config, timeoutMs);
+    }
   };
 }
 
@@ -47,4 +52,3 @@ async function resolveSnsRoute(
     }
   };
 }
-
