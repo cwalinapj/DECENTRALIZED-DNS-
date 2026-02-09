@@ -18,10 +18,23 @@ function loadKeypair(filePath: string): anchor.web3.Keypair {
   return anchor.web3.Keypair.fromSecretKey(Uint8Array.from(raw));
 }
 
-function normalizeName(name: string): string {
-  let n = name.trim().toLowerCase();
-  if (n.endsWith(".")) n = n.slice(0, -1);
-  return n;
+function normalizeAndValidateLabel(input: string): string {
+  let label = input.trim().toLowerCase();
+  if (label.endsWith(".")) label = label.slice(0, -1);
+  if (label.endsWith(".dns")) label = label.slice(0, -4);
+  if (label.includes(".")) {
+    throw new Error("name must be a label without dots (do not include .dns)");
+  }
+  if (label.length < 3 || label.length > 32) {
+    throw new Error("label must be 3..32 characters");
+  }
+  if (label.startsWith("-") || label.endsWith("-")) {
+    throw new Error("label must not start or end with '-'");
+  }
+  if (!/^[a-z0-9-]+$/.test(label)) {
+    throw new Error("label must match /^[a-z0-9-]+$/");
+  }
+  return label;
 }
 
 function sha256Bytes(input: string): Uint8Array {
@@ -38,9 +51,10 @@ function loadIdl() {
   const idl = JSON.parse(fs.readFileSync(idlPath, "utf8"));
   const sizeMap: Record<string, number> = {
     Config: 8 + 36,
-    TollPass: 8 + 138,
+    TollPass: 8 + 178,
     TokenLock: 8 + 123,
-    NameRecord: 8 + 171,
+    NameRecord: 8 + 146,
+    RouteRecord: 8 + 117,
   };
   if (Array.isArray(idl.accounts)) {
     for (const acct of idl.accounts) {
@@ -127,11 +141,16 @@ async function main() {
   const accountsCoder = new anchor.BorshAccountsCoder(idl);
   const ixCoder = new anchor.BorshInstructionCoder(idl);
 
-  const normalizedName = normalizeName(argv.name);
-  const nameHash = sha256Bytes(normalizedName);
+  const label = normalizeAndValidateLabel(argv.name);
+  const fullName = `${label}.dns`;
+  const nameHash = sha256Bytes(fullName);
   const destHash = sha256Bytes(argv.dest);
 
   const [recordPda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("record"), payer.publicKey.toBuffer(), Buffer.from(nameHash)],
+    programId
+  );
+  const [nameRecordPda] = PublicKey.findProgramAddressSync(
     [Buffer.from("name"), Buffer.from(nameHash)],
     programId
   );
@@ -142,7 +161,10 @@ async function main() {
 
   console.log("provider_url:", rpcUrl);
   console.log("record_pda:", recordPda.toBase58());
+  console.log("name_record_pda:", nameRecordPda.toBase58());
   console.log("toll_pass_pda:", tollPassPda.toBase58());
+  console.log("label:", label);
+  console.log("full_name:", fullName);
   console.log("name_hash:", Buffer.from(nameHash).toString("hex"));
   console.log("dest_hash:", Buffer.from(destHash).toString("hex"));
   console.log("ttl:", argv.ttl);
@@ -157,13 +179,10 @@ async function main() {
   }
   console.log("multi_rpc_ok:", { agreeing: guard.agreeingUrls, slot: guard.slot, dataHash: guard.dataHashHex });
 
-  const pageCidHash = destHash;
-  const metadataHash = new Uint8Array(32);
-
   // Load route + witnesses from wallet-cache (required for booth)
   const owner = payer.publicKey.toBase58();
   const routeId = findRouteIdByFields({
-    name: normalizedName,
+    name: fullName,
     dest: argv.dest,
     ttl: argv.ttl,
     owner,
@@ -185,17 +204,26 @@ async function main() {
   if (recordInfo && argv["create-only"]) {
     throw new Error("record already exists; use update or omit --create-only");
   }
-  const ixName = recordInfo ? "update_name_record" : "create_name_record";
+  const ixName = "set_route";
   const ixDef = idl.instructions?.find(
     (i: { name: string }) => i.name === ixName
   );
   if (!ixDef) {
     throw new Error(`IDL missing ${ixName} instruction`);
   }
+
+  const [configPda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("config")],
+    programId
+  );
+
   const accountMap: Record<string, PublicKey> = {
-    record: recordPda,
+    config: configPda,
+    route_record: recordPda,
+    name_record: nameRecordPda,
     toll_pass: tollPassPda,
-    owner: payer.publicKey,
+    owner_wallet: payer.publicKey,
+    authority: payer.publicKey,
     system_program: anchor.web3.SystemProgram.programId,
     systemProgram: anchor.web3.SystemProgram.programId,
   };
@@ -219,18 +247,12 @@ async function main() {
       };
     }
   );
-  const data =
-    ixName === "create_name_record"
-      ? ixCoder.encode("create_name_record", {
-          name: normalizedName,
-          name_hash: nameHash,
-          page_cid_hash: pageCidHash,
-          metadata_hash: metadataHash,
-        })
-      : ixCoder.encode("update_name_record", {
-          page_cid_hash: pageCidHash,
-          metadata_hash: metadataHash,
-        });
+  const data = ixCoder.encode("set_route", {
+    name: fullName,
+    name_hash: nameHash,
+    dest_hash: destHash,
+    ttl: argv.ttl,
+  });
   const ix = new TransactionInstruction({
     programId,
     keys,
@@ -247,7 +269,7 @@ async function main() {
       })),
       dataLength: ix.data.length,
     });
-    console.log("action:", ixName === "create_name_record" ? "create" : "update");
+    console.log("action:", "set_route");
     console.log("dry_run: not sending transaction");
     return;
   }
@@ -267,41 +289,36 @@ async function main() {
 
   const tx = await provider.sendAndConfirm(new Transaction().add(ix), []);
 
-  console.log("action:", ixName === "create_name_record" ? "create" : "update");
+  console.log("action:", "set_route");
   console.log("tx:", tx);
 
   const info = await connection.getAccountInfo(recordPda, "confirmed");
   if (!info) {
     throw new Error("record account not found after tx");
   }
-  const decoded = accountsCoder.decode("NameRecord", info.data) as any;
-  console.log(
-    "record_owner:",
-    decoded.owner?.toBase58?.() ?? decoded.owner?.toString?.() ?? "unknown"
-  );
+  const decoded = accountsCoder.decode("RouteRecord", info.data) as any;
+  const decodedOwner = decoded.owner;
   const decodedNameHash = decoded.nameHash ?? decoded.name_hash;
-  const decodedPageCidHash = decoded.pageCidHash ?? decoded.page_cid_hash;
-  const decodedMetadataHash = decoded.metadataHash ?? decoded.metadata_hash;
+  const decodedDestHash = decoded.destHash ?? decoded.dest_hash;
+  const decodedTtl = decoded.ttl;
+  const decodedUpdatedAt = decoded.updatedAt ?? decoded.updated_at;
+  if (decodedOwner) {
+    console.log(
+      "record_owner:",
+      decodedOwner?.toBase58?.() ?? decodedOwner?.toString?.() ?? "unknown"
+    );
+  }
   if (decodedNameHash) {
-    console.log(
-      "record_name_hash:",
-      Buffer.from(decodedNameHash).toString("hex")
-    );
+    console.log("record_name_hash:", Buffer.from(decodedNameHash).toString("hex"));
   }
-  if (decodedPageCidHash) {
-    console.log(
-      "record_dest_hash:",
-      Buffer.from(decodedPageCidHash).toString("hex")
-    );
+  if (decodedDestHash) {
+    console.log("record_dest_hash:", Buffer.from(decodedDestHash).toString("hex"));
   }
-  if (decodedMetadataHash) {
-    console.log(
-      "record_metadata_hash:",
-      Buffer.from(decodedMetadataHash).toString("hex")
-    );
+  if (decodedTtl !== undefined) {
+    console.log("record_ttl:", decodedTtl.toString());
   }
-  if (decoded.updatedAt) {
-    console.log("record_updated_at:", decoded.updatedAt.toString());
+  if (decodedUpdatedAt) {
+    console.log("record_updated_at:", decodedUpdatedAt.toString());
   }
 }
 

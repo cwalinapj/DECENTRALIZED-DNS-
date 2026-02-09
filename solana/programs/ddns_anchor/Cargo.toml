@@ -19,5 +19,5 @@ anchor-debug = []
 [dependencies]
 sha2 = "0.10"
 
-anchor-lang = "0.32.1"
+anchor-lang = { version = "0.32.1", features = ["init-if-needed"] }
 anchor-spl = { version = "0.32.1", default-features = false, features = ["token"] }

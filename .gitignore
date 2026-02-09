@@ -21,6 +21,9 @@ solana/test-ledger/
 **/test-ledger/
 wallet-cache/
 services/toll-booth/tollbooth-db/
+services/tollbooth/tollbooth-db/
+services/tollbooth/config/*keypair*.json
+services/tollbooth/config/test-client.json
 **/node_modules/
 **/.DS_Store
 **/.env

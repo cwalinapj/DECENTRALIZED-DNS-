@@ -50,9 +50,10 @@ function loadIdl() {
   // Patch missing account sizes if not present in IDL (Anchor JS expects size).
   const sizeMap: Record<string, number> = {
     Config: 8 + 36,
-    TollPass: 8 + 138,
+    TollPass: 8 + 178,
     TokenLock: 8 + 123,
-    NameRecord: 8 + 171,
+    NameRecord: 8 + 146,
+    RouteRecord: 8 + 117,
   };
   if (Array.isArray(idl.accounts)) {
     for (const acct of idl.accounts) {
@@ -62,6 +63,23 @@ function loadIdl() {
     }
   }
   return idl;
+}
+
+function normalizeAndValidateLabel(input: string): string {
+  const label = input.trim().toLowerCase();
+  if (label.length < 3 || label.length > 32) {
+    throw new Error("label must be 3..32 characters");
+  }
+  if (label.startsWith("-") || label.endsWith("-")) {
+    throw new Error("label must not start or end with '-'");
+  }
+  if (label.includes(".")) {
+    throw new Error("label must not include '.' (do not include the .dns suffix)");
+  }
+  if (!/^[a-z0-9-]+$/.test(label)) {
+    throw new Error("label must match /^[a-z0-9-]+$/");
+  }
+  return label;
 }
 
 function readProgramIdFromAnchorToml(rpcUrl: string): string | null {
@@ -81,10 +99,14 @@ function readProgramIdFromAnchorToml(rpcUrl: string): string | null {
 
 async function main() {
   const argv = await yargs(hideBin(process.argv))
+    .option("label", {
+      type: "string",
+      describe: "DNS label without .dns (3..32 chars, [a-z0-9-])",
+    })
+    // Back-compat: older scripts used --name.
     .option("name", {
       type: "string",
-      default: "DDNS Toll Pass",
-      describe: "Name to register in the toll pass record",
+      describe: "(deprecated) alias for --label",
     })
     .option("page-cid-hash", {
       type: "string",
@@ -109,6 +131,13 @@ async function main() {
     })
     .strict()
     .parse();
+
+  const labelInput = argv.label ?? argv.name;
+  if (!labelInput) {
+    throw new Error("missing required flag: --label <string>");
+  }
+  const label = normalizeAndValidateLabel(labelInput);
+  const fullName = `${label}.dns`;
 
   if (argv.rpc) {
     process.env.ANCHOR_PROVIDER_URL = argv.rpc;
@@ -156,20 +185,28 @@ async function main() {
 
   const pageCidHash = parseHash32(argv["page-cid-hash"]);
   const metadataHash = parseHash32(argv["metadata-hash"]);
-  const nameHash = crypto.createHash("sha256").update(argv.name).digest();
+  const nameHash = crypto.createHash("sha256").update(fullName).digest();
 
   const [tollPassPda] = PublicKey.findProgramAddressSync(
     [Buffer.from("toll_pass"), owner.toBuffer()],
     programId
   );
-  const [recordPda] = PublicKey.findProgramAddressSync(
+  const [configPda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("config")],
+    programId
+  );
+  const [nameRecordPda] = PublicKey.findProgramAddressSync(
     [Buffer.from("name"), Buffer.from(nameHash)],
     programId
   );
 
   console.log("provider_url:", rpcUrl);
+  console.log("label:", label);
+  console.log("full_name:", fullName);
+  console.log("name_hash:", Buffer.from(nameHash).toString("hex"));
+  console.log("pda_config:", configPda.toBase58());
   console.log("pda_toll_pass:", tollPassPda.toBase58());
-  console.log("pda_record:", recordPda.toBase58());
+  console.log("pda_name_record:", nameRecordPda.toBase58());
 
   // Attack-mode: fail closed for writes if RPCs disagree about the toll_pass account.
   const rpcUrls = parseRpcQuorumUrls(rpcUrl);
@@ -233,11 +270,13 @@ async function main() {
     throw new Error("IDL missing issue_toll_pass instruction");
   }
   const accountMap: Record<string, PublicKey> = {
+    config: configPda,
     toll_pass: tollPassPda,
-    record: recordPda,
+    name_record: nameRecordPda,
     nft_mint: mint,
     nft_token_account: tokenAccount,
-    owner: owner,
+    owner_wallet: owner,
+    authority: owner,
     system_program: anchor.web3.SystemProgram.programId,
     token_program: TOKEN_PROGRAM_ID,
   };
@@ -269,7 +308,7 @@ async function main() {
     }
   );
   const data = ixCoder.encode("issue_toll_pass", {
-    name: argv.name,
+    label: label,
     name_hash: nameHash,
     page_cid_hash: pageCidHash,
     metadata_hash: metadataHash,
@@ -299,14 +338,18 @@ async function main() {
       console.warn("toll_pass_fetch_failed: account not found");
     } else {
       // Skip Anchor account coder; decode manually from layout.
-      // Layout: discriminator(8) + owner(32) + issued_at(i64) + name_hash(32) + page_cid_hash(32) + metadata_hash(32) + bump(u8) + initialized(u8)
+      // Layout:
+      // discriminator(8) + owner(32) + issued_at(i64) + name_hash(32) + owner_mint(32) +
+      // page_cid_hash(32) + metadata_hash(32) + bump(u8) + initialized(u8)
       const data = info.data;
       const ownerPk = new PublicKey(data.slice(8, 40));
       const issuedAt = Number(data.readBigInt64LE(40));
       const nameHash = data.slice(48, 80);
+      const ownerMint = new PublicKey(data.slice(80, 112));
       console.log("toll_pass_owner:", ownerPk.toBase58());
       console.log("toll_pass_issued_at:", issuedAt.toString());
       console.log("toll_pass_name_hash:", Buffer.from(nameHash).toString("hex"));
+      console.log("toll_pass_owner_mint:", ownerMint.toBase58());
     }
   } catch (err) {
     console.warn("toll_pass_fetch_failed:", (err as Error).message);

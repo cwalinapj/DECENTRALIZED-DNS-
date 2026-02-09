@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "deploy:devnet": "anchor deploy --provider.cluster devnet",
     "apply-metadata": "tsx scripts/apply_metadata.ts",
     "apply-metadata:dry": "tsx scripts/apply_metadata.ts --dry-run",
     "metadata:sample": "node scripts/write_sample_metadata.mjs",
