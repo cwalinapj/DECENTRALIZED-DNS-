@@ -473,6 +473,7 @@ export function createApp() {
       if (!(await mintExists(identity))) {
         return res.status(400).json({ ok: false, error: "mint_not_found" });
       }
+      const accept = typeof req.headers.accept === "string" ? req.headers.accept : "";
       const name = typeof req.query.name === "string" ? req.query.name : "";
       const rrtype = typeof req.query.type === "string" ? req.query.type.toUpperCase() : "A";
       if (!name) return res.status(400).json({ ok: false, error: "missing_name" });
@@ -481,6 +482,16 @@ export function createApp() {
       const hit = idCache?.get(cacheKey);
       if (hit && hit.expiresAt > Date.now()) {
         const answers = [{ name, type: rrtype, TTL: hit.ttl, data: hit.value }];
+        if (accept.includes("application/dns-message")) {
+          const response = dnsPacket.encode({
+            type: "response",
+            id: Math.floor(Math.random() * 65535),
+            flags: dnsPacket.RECURSION_DESIRED,
+            questions: [{ type: rrtype, name, class: "IN" }],
+            answers: [{ type: rrtype, name, class: "IN", ttl: hit.ttl, data: hit.value }]
+          });
+          return res.set("content-type", "application/dns-message").send(Buffer.from(response));
+        }
         return res.json({ Status: 0, Answer: answers });
       }
       if (name.toLowerCase().endsWith(".dns")) {
@@ -488,6 +499,16 @@ export function createApp() {
       }
       const { records, ttl } = await resolveViaDoh(name);
       const answers = records.map((r) => ({ name, type: r.type, TTL: r.ttl ?? ttl, data: r.value }));
+      if (accept.includes("application/dns-message")) {
+        const response = dnsPacket.encode({
+          type: "response",
+          id: Math.floor(Math.random() * 65535),
+          flags: dnsPacket.RECURSION_DESIRED,
+          questions: [{ type: rrtype, name, class: "IN" }],
+          answers: answers.map((a) => ({ type: a.type, name: a.name, class: "IN", ttl: a.TTL, data: a.data }))
+        });
+        return res.set("content-type", "application/dns-message").send(Buffer.from(response));
+      }
       return res.json({ Status: 0, Answer: answers });
     } catch (err: any) {
       return res.status(500).json({ ok: false, error: String(err?.message || err) });
