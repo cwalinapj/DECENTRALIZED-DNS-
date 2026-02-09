@@ -6,7 +6,13 @@ import { verifyVoucherHeader } from "./voucher.js";
 import { buildMerkleRoot, buildProof, loadSnapshot, normalizeName, verifyProof } from "./registry.js";
 import { resolveEns, supportsEns } from "./adapters/ens.js";
 import { resolveSns, supportsSns } from "./adapters/sns.js";
-import { buildDefaultAdapters, resolveRouteAnswer } from "./route_adapters/index.js";
+import {
+  createAdapterRegistry,
+  createEnsAdapter,
+  createIpfsAdapter,
+  createPkdnsAdapter,
+  createSnsAdapter
+} from "./adapters/index.js";
 import { anchorRoot, loadAnchorStore, type AnchorRecord } from "./anchor.js";
 import { hash as blake3 } from "blake3";
 import * as ed from "@noble/ed25519";
@@ -34,6 +40,7 @@ const SNS_CLUSTER = process.env.SNS_CLUSTER || "devnet";
 const ANCHOR_STORE_PATH = process.env.ANCHOR_STORE_PATH || "settlement/anchors/anchors.json";
 const WATCHDOG_POLICY_PROGRAM_ID = process.env.DDNS_WATCHDOG_POLICY_PROGRAM_ID || "";
 const IPFS_HTTP_GATEWAY_BASE_URL = process.env.IPFS_HTTP_GATEWAY_BASE_URL || "https://ipfs.io/ipfs";
+const DDNS_REGISTRY_PROGRAM_ID = process.env.DDNS_REGISTRY_PROGRAM_ID || "";
 const REGISTRY_ADMIN_TOKEN = process.env.REGISTRY_ADMIN_TOKEN || "";
 const NODE_AGGREGATOR_ENABLED = process.env.NODE_AGGREGATOR_ENABLED === "1";
 const NODE_LIST_PATH = process.env.NODE_LIST_PATH || "config/example/nodes.json";
@@ -52,13 +59,15 @@ function logInfo(message: string) {
   }
 }
 
-const routeAdapters = buildDefaultAdapters({
-  registryPath: REGISTRY_PATH,
-  anchorStorePath: ANCHOR_STORE_PATH,
-  solanaRpcUrl: SOLANA_RPC_URL,
-  ethRpcUrl: ETH_RPC_URL,
-  policyProgramId: WATCHDOG_POLICY_PROGRAM_ID || undefined,
-  ipfsHttpGatewayBaseUrl: IPFS_HTTP_GATEWAY_BASE_URL
+const adapterRegistry = createAdapterRegistry({
+  pkdns: createPkdnsAdapter({
+    solanaRpcUrl: SOLANA_RPC_URL,
+    ddnsRegistryProgramId: DDNS_REGISTRY_PROGRAM_ID,
+    ddnsWatchdogPolicyProgramId: WATCHDOG_POLICY_PROGRAM_ID || undefined
+  }),
+  ipfs: createIpfsAdapter({ httpGateways: [IPFS_HTTP_GATEWAY_BASE_URL] }),
+  ens: createEnsAdapter({ rpcUrl: ETH_RPC_URL, chainId: 1 }),
+  sns: createSnsAdapter({ rpcUrl: SOLANA_RPC_URL })
 });
 
 const cache = new Map<string, { expiresAt: number; payload: ResolveResponse }>();
@@ -255,11 +264,15 @@ export function createApp() {
     try {
       const name = typeof req.query.name === "string" ? req.query.name : "";
       if (!name) return res.status(400).json({ error: "missing_name" });
-      const ans = await resolveRouteAnswer(routeAdapters, {
+      const ans = await adapterRegistry.resolveAuto({
         name,
         nowUnix: Math.floor(Date.now() / 1000),
         network: "gateway",
-        opts: { timeoutMs: REQUEST_TIMEOUT_MS }
+        opts: {
+          timeoutMs: REQUEST_TIMEOUT_MS,
+          // Optional "proof-of-observation" helper: if caller supplies dest, PKDNS can validate it against on-chain dest_hash.
+          dest: typeof req.query.dest === "string" ? req.query.dest : ""
+        }
       });
       return res.json(ans);
     } catch (err: any) {

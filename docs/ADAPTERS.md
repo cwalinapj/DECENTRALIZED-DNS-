@@ -13,7 +13,7 @@ In MVP, adapters are primarily a **read + normalization layer**. End-state adds 
 
 ## Normalized Output: RouteAnswer
 
-See: `gateway/src/route_adapters/types.ts`
+See: `gateway/src/adapters/types.ts`
 
 Key fields:
 - `name`, `nameHashHex` (sha256 of normalized name)
@@ -26,37 +26,38 @@ Key fields:
 ### PKDNS (`.dns`)
 
 Where:
-- Gateway implementation: `gateway/src/route_adapters/pkdns.ts`
+- Gateway implementation: `gateway/src/adapters/pkdns.ts`
 
 MVP verification:
-- loads local registry snapshot
-- verifies Merkle proof
-- optionally checks an anchored root (if present)
-- optional: reads watchdog policy state from `ddns_watchdog_policy` when configured
+- reads canonical route state from Solana `ddns_registry`
+  - CanonicalRoute PDA: `["canonical", name_hash]`
+  - `name_hash = sha256(normalized_name)`
+- optional: reads `NamePolicyState` from `ddns_watchdog_policy`
 
 Trust notes:
-- Snapshot availability is still an operational dependency in MVP.
-- Proofs make tampering detectable even if distribution is centralized.
+- MVP uses RPC reads (trust assumptions: RPC availability + correctness).
+- End-state can add multi-RPC and light client verification.
+- **MVP chain stores `dest_hash` only**. If you want `dest` returned, pass a `dest` string and the adapter will validate `sha256(dest)` matches the on-chain `dest_hash` (proof-of-observation).
 
 ### IPFS (CID)
 
 Where:
-- `gateway/src/route_adapters/ipfs.ts`
+- `gateway/src/adapters/ipfs.ts`
 
 MVP verification:
 - CID syntax validation only (no on-chain availability proofs)
-- returns both `ipfs://CID` and a configured HTTP gateway URL
+- optional: `HEAD` check against configured gateways to confirm availability
 
 ## MVP Adapters (Read-only, Basic Verification)
 
 ### ENS (`.eth`)
 
 Where:
-- `gateway/src/route_adapters/ens.ts`
+- `gateway/src/adapters/ens.ts`
 
 MVP verification:
 - reads ENS resolver via `eth_call`
-- returns addr/contenthash as normalized `dest`
+- returns `contenthash` preferred, then `text("url")`, then `addr()`
 
 Limitations:
 - No light client proofs in MVP. Upstream RPC trust is explicit.
@@ -64,11 +65,11 @@ Limitations:
 ### SNS (`.sol`)
 
 Where:
-- `gateway/src/route_adapters/sns.ts`
+- `gateway/src/adapters/sns.ts`
 
 MVP verification:
 - reads the SNS name account on Solana via RPC
-- returns an owner reference as `dest`
+- returns URL-like text from registry data if present, otherwise owner reference
 
 ## End-State (Planned / Stubs)
 
@@ -92,11 +93,9 @@ cd gateway
 npm i
 npm run build
 
-# .dns via PKDNS registry snapshot
-REGISTRY_ENABLED=1 REGISTRY_PATH=tests/fixtures/registry.json ANCHOR_STORE_PATH=tests/fixtures/anchors-empty.json \
-  node dist/server.js
-
-curl 'http://localhost:8054/v1/route?name=alice.dns'
+# normalized route answers (auto)
+node dist/server.js
+curl 'http://localhost:8054/v1/route?name=vitalik.eth'
+curl 'http://localhost:8054/v1/route?name=bonfida.sol'
 curl 'http://localhost:8054/v1/route?name=ipfs://bafy...'
 ```
-
