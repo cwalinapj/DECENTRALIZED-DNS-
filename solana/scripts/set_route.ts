@@ -11,6 +11,7 @@ import {
   readWitnesses,
   findRouteIdByFields,
 } from "./route_lib.js";
+import { guardWriteWithMultiRpc, parseRpcQuorumUrls } from "./_attack_mode.js";
 
 function loadKeypair(filePath: string): anchor.web3.Keypair {
   const raw = JSON.parse(fs.readFileSync(filePath, "utf8"));
@@ -145,6 +146,16 @@ async function main() {
   console.log("name_hash:", Buffer.from(nameHash).toString("hex"));
   console.log("dest_hash:", Buffer.from(destHash).toString("hex"));
   console.log("ttl:", argv.ttl);
+
+  // Attack-mode: fail closed for writes if RPCs disagree about the record account.
+  const rpcUrls = parseRpcQuorumUrls(rpcUrl);
+  const guard = await guardWriteWithMultiRpc({ account: recordPda.toBase58(), rpcUrls });
+  if (!guard.ok) {
+    console.error("attack_mode:", guard.mode, guard.reasons);
+    console.error("multi_rpc_evidence:", guard.evidence);
+    throw new Error("attack_mode_freeze_writes");
+  }
+  console.log("multi_rpc_ok:", { agreeing: guard.agreeingUrls, slot: guard.slot, dataHash: guard.dataHashHex });
 
   const pageCidHash = destHash;
   const metadataHash = new Uint8Array(32);
