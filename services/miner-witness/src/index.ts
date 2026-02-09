@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import crypto from "node:crypto";
-import express from "express";
+import express, { type Request, type Response } from "express";
 import nacl from "tweetnacl";
 import * as anchor from "@coral-xyz/anchor";
 import BN from "bn.js";
@@ -22,6 +22,22 @@ type ReceiptV1 = {
 
 type SubmitReceiptsBody = {
   receipts: ReceiptV1[];
+};
+
+// Witness receipts are gateway-signed and contain no client identifiers.
+type WitnessReceiptV1 = {
+  version: 1;
+  name: string;
+  name_hash: string; // hex
+  rrset_hash: string; // hex (MVP: dest_hash)
+  ttl_s: number;
+  observed_at_bucket: number; // unix seconds (bucketed)
+  witness_pubkey: string;
+  signature: string; // base64
+};
+
+type SubmitWitnessReceiptsBody = {
+  receipts: WitnessReceiptV1[];
 };
 
 const PORT = Number(process.env.PORT || 8790);
@@ -49,6 +65,8 @@ const MIN_RECEIPTS = Number(process.env.MIN_RECEIPTS || 1);
 const MIN_STAKE_WEIGHT = BigInt(process.env.MIN_STAKE_WEIGHT || 0);
 const MAX_RECEIPT_AGE_SECS = Number(process.env.MAX_RECEIPT_AGE_SECS || 10 * 60);
 const MAX_FUTURE_SKEW_SECS = Number(process.env.MAX_FUTURE_SKEW_SECS || 60);
+const WITNESS_BUCKET_SECS = Number(process.env.WITNESS_BUCKET_SECS || 600);
+const MAX_WITNESS_AGE_SECS = Number(process.env.MAX_WITNESS_AGE_SECS || 24 * 60 * 60);
 
 const BOOTSTRAP = process.env.BOOTSTRAP === "1";
 
@@ -98,6 +116,25 @@ function normalizeName(name: string): string {
   return n;
 }
 
+function normalizeAnyName(name: string): string {
+  // MVP: support `.dns` and ICANN fqdn (ASCII-only).
+  const n = name.trim().toLowerCase();
+  if (n.endsWith(".dns") || n.endsWith(".dns.")) return normalizeName(n);
+  let t = n;
+  if (t.endsWith(".")) t = t.slice(0, -1);
+  if (t.length < 1 || t.length > 253) throw new Error("fqdn length 1..253");
+  if (t.startsWith(".") || t.endsWith(".")) throw new Error("fqdn cannot start/end with '.'");
+  for (const ch of t) {
+    const ok =
+      (ch >= "a" && ch <= "z") ||
+      (ch >= "0" && ch <= "9") ||
+      ch === "-" ||
+      ch === ".";
+    if (!ok) throw new Error("fqdn contains invalid char");
+  }
+  return t;
+}
+
 function canonicalizeDest(dest: string): string {
   // MVP canonicalization: keep minimal; extend later.
   const d = dest.trim();
@@ -120,6 +157,41 @@ function parseHex32(s: string, label: string): Buffer {
   const hex = s.startsWith("0x") ? s.slice(2) : s;
   if (!/^[0-9a-fA-F]{64}$/.test(hex)) throw new Error(`${label} must be 32-byte hex`);
   return Buffer.from(hex, "hex");
+}
+
+function witnessMsgHash(r: WitnessReceiptV1, name_hash: Buffer, rrset_hash: Buffer): Buffer {
+  const prefix = Buffer.from("DDNS_WITNESS_V1", "utf8");
+  const ttl = Buffer.alloc(4);
+  ttl.writeUInt32LE(r.ttl_s >>> 0);
+  const ts = Buffer.alloc(8);
+  ts.writeBigInt64LE(BigInt(r.observed_at_bucket));
+  return sha256(Buffer.concat([prefix, name_hash, rrset_hash, ttl, ts]));
+}
+
+function verifyWitnessReceipt(r: WitnessReceiptV1): { name_norm: string; name_hash: Buffer; rrset_hash: Buffer } {
+  if (r.version !== 1) throw new Error("unsupported witness version");
+  if (!Number.isFinite(r.ttl_s) || r.ttl_s <= 0) throw new Error("bad ttl_s");
+  if (!Number.isFinite(r.observed_at_bucket)) throw new Error("bad observed_at_bucket");
+  if (r.observed_at_bucket % WITNESS_BUCKET_SECS !== 0) throw new Error("observed_at_bucket not bucket-aligned");
+
+  const now = Math.floor(Date.now() / 1000);
+  if (r.observed_at_bucket > now + MAX_FUTURE_SKEW_SECS) throw new Error("observed_at_bucket too far in future");
+  if (r.observed_at_bucket < now - MAX_WITNESS_AGE_SECS) throw new Error("witness too old");
+
+  const name_norm = normalizeAnyName(r.name);
+  const nh = nameHash(name_norm);
+  const nhProvided = parseHex32(r.name_hash, "name_hash");
+  if (!nhProvided.equals(nh)) throw new Error("name_hash mismatch");
+
+  const rh = parseHex32(r.rrset_hash, "rrset_hash");
+  const msg = witnessMsgHash(r, nh, rh);
+  const sig = Buffer.from(r.signature, "base64");
+  if (sig.length !== 64) throw new Error("bad signature length");
+
+  const witnessPk = new PublicKey(r.witness_pubkey);
+  const ok = nacl.sign.detached.verify(msg, sig, witnessPk.toBytes());
+  if (!ok) throw new Error("invalid signature");
+  return { name_norm, name_hash: nh, rrset_hash: rh };
 }
 
 function receiptMsgHash(r: ReceiptV1, name_hash: Buffer, dest_hash: Buffer): Buffer {
@@ -173,7 +245,7 @@ function merkleRoot(leaves: Buffer[]): Buffer {
 }
 
 async function main() {
-  const miner = loadKeypair(MINER_KEYPAIR);
+  const miner = loadKeypair(MINER_KEYPAIR as string);
   const connection = new Connection(SOLANA_RPC_URL, "confirmed");
   const provider = new anchor.AnchorProvider(connection, new anchor.Wallet(miner), {
     commitment: "confirmed",
@@ -205,7 +277,7 @@ async function main() {
   const [quorumAuthority] = PublicKey.findProgramAddressSync([Buffer.from("quorum_authority")], quorumPid);
 
   async function getEpochLenSlotsOrDefault(defaultVal: number): Promise<number> {
-    const cfg: any = await registryProgram.account.config.fetchNullable(registryConfig);
+    const cfg: any = await (registryProgram.account as any).config.fetchNullable(registryConfig);
     if (!cfg) return defaultVal;
     const v = Number(cfg.epochLenSlots?.toString?.() ?? cfg.epochLenSlots);
     return Number.isFinite(v) && v > 0 ? v : defaultVal;
@@ -269,7 +341,7 @@ async function main() {
         [Buffer.from("stake"), wallet.toBuffer()],
         stakePid
       );
-      const pos: any = await stakeProgram.account.stakePosition.fetchNullable(stakePosition);
+      const pos: any = await (stakeProgram.account as any).stakePosition.fetchNullable(stakePosition);
       if (!pos) return 0n;
       // Anchor BN -> string -> bigint
       return BigInt(pos.stakedAmount.toString());
@@ -281,7 +353,7 @@ async function main() {
   const app = express();
   app.use(express.json({ limit: "2mb" }));
 
-  app.get("/v1/health", (_req, res) => {
+  app.get("/v1/health", (_req: Request, res: Response) => {
     res.json({
       ok: true,
       rpc: SOLANA_RPC_URL,
@@ -294,7 +366,7 @@ async function main() {
     });
   });
 
-  app.post("/v1/submit-receipts", async (req, res) => {
+  app.post("/v1/submit-receipts", async (req: Request, res: Response) => {
     try {
       const body = req.body as SubmitReceiptsBody;
       if (!body || !Array.isArray(body.receipts) || body.receipts.length === 0) {
@@ -302,7 +374,7 @@ async function main() {
       }
 
       const slot = await connection.getSlot("confirmed");
-      const cfg: any = await registryProgram.account.config.fetchNullable(registryConfig);
+      const cfg: any = await (registryProgram.account as any).config.fetchNullable(registryConfig);
       if (!cfg) throw new Error("ddns_registry config missing; run with BOOTSTRAP=1 once");
       const epochLenSlots = Number(cfg.epochLenSlots?.toString?.() ?? cfg.epochLenSlots);
       if (!Number.isFinite(epochLenSlots) || epochLenSlots <= 0) throw new Error("bad epoch_len_slots in config");
@@ -387,7 +459,7 @@ async function main() {
         let totalStake = 0n;
         try {
           const [stakeConfig] = PublicKey.findProgramAddressSync([Buffer.from("stake_config")], stakePid);
-          const cfg: any = await stakeProgram.account.stakeConfig.fetchNullable(stakeConfig);
+          const cfg: any = await (stakeProgram.account as any).stakeConfig.fetchNullable(stakeConfig);
           if (cfg) totalStake = BigInt(cfg.totalStake.toString());
         } catch {
           totalStake = 0n;
@@ -465,7 +537,7 @@ async function main() {
           .rpc();
         console.log("tx_finalize_if_quorum", sigFin);
 
-        const route: any = await registryProgram.account.canonicalRoute.fetchNullable(canonicalRoute);
+        const route: any = await (registryProgram.account as any).canonicalRoute.fetchNullable(canonicalRoute);
 
         results.push({
           epoch_id: epochId,
@@ -491,6 +563,67 @@ async function main() {
     } catch (e: any) {
       console.error("submit-receipts error:", e);
       res.status(400).json({ ok: false, error: e?.message || "bad_request" });
+    }
+  });
+
+  // Gateway-signed witness receipts (no client identifiers).
+  // MVP: verify + aggregate off-chain only (no on-chain commitments yet).
+  app.post("/v1/submit-witness-receipts", async (req: Request, res: Response) => {
+    try {
+      const body = req.body as SubmitWitnessReceiptsBody;
+      if (!body || !Array.isArray(body.receipts) || body.receipts.length === 0) {
+        return res.status(400).json({ ok: false, error: "missing receipts" });
+      }
+
+      type GroupKey = string; // hex(name_hash)||hex(rrset_hash)
+      const groups = new Map<
+        GroupKey,
+        { name_hash: Buffer; rrset_hash: Buffer; ttl_s: number; receipts: WitnessReceiptV1[] }
+      >();
+
+      for (const r of body.receipts) {
+        const verified = verifyWitnessReceipt(r);
+        const k = verified.name_hash.toString("hex") + ":" + verified.rrset_hash.toString("hex");
+        const g = groups.get(k);
+        if (!g) {
+          groups.set(k, { name_hash: verified.name_hash, rrset_hash: verified.rrset_hash, ttl_s: r.ttl_s, receipts: [r] });
+        } else {
+          g.receipts.push(r);
+        }
+      }
+
+      const aggregates: any[] = [];
+      for (const g of groups.values()) {
+        // Dedupe by (witness_pubkey, name_hash, observed_at_bucket) within this batch.
+        const seen = new Set<string>();
+        const leaves: Buffer[] = [];
+        let receiptCount = 0;
+
+        for (const r of g.receipts) {
+          const dedupeKey =
+            r.witness_pubkey + ":" + g.name_hash.toString("hex") + ":" + String(r.observed_at_bucket);
+          if (seen.has(dedupeKey)) continue;
+          seen.add(dedupeKey);
+          receiptCount += 1;
+          const msg = witnessMsgHash(r, g.name_hash, g.rrset_hash);
+          const sig = Buffer.from(r.signature, "base64");
+          leaves.push(sha256(Buffer.concat([msg, sig])));
+        }
+
+        const root = merkleRoot(leaves);
+        aggregates.push({
+          name_hash: "0x" + g.name_hash.toString("hex"),
+          rrset_hash: "0x" + g.rrset_hash.toString("hex"),
+          ttl_s: g.ttl_s,
+          receipt_count: receiptCount,
+          receipts_root: "0x" + root.toString("hex"),
+        });
+      }
+
+      return res.json({ ok: true, aggregates });
+    } catch (e: any) {
+      console.error("submit-witness-receipts error:", e);
+      return res.status(400).json({ ok: false, error: String(e?.message || e) });
     }
   });
 

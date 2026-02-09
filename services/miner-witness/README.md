@@ -63,6 +63,7 @@ If your IDLs are not under `solana/target/idl`, set:
 
 - `GET /v1/health`
 - `POST /v1/submit-receipts`
+- `POST /v1/submit-witness-receipts` (gateway-signed, privacy-safe witness receipts)
 
 Example:
 
@@ -70,6 +71,14 @@ Example:
 curl -sS -X POST http://localhost:8790/v1/submit-receipts \\
   -H 'content-type: application/json' \\
   -d '{ "receipts": [ { "version":1, "name":"example.dns", "name_hash":"<hex32>", "dest":"https://example.com", "dest_hash":"<hex32>", "ttl_s":300, "observed_at_unix": 0, "wallet_pubkey":"...", "signature":"base64..." } ] }'
+```
+
+Witness receipts (no client identifiers):
+
+```bash
+curl -sS -X POST http://localhost:8790/v1/submit-witness-receipts \\
+  -H 'content-type: application/json' \\
+  -d '{ "receipts": [ { "version":1, "name":"example.dns", "name_hash":"<hex32>", "rrset_hash":"<hex32>", "ttl_s":300, "observed_at_bucket": 0, "witness_pubkey":"...", "signature":"base64..." } ] }'
 ```
 
 ## Devnet Quickstart (Copy/Paste)

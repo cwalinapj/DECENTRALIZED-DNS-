@@ -10,6 +10,11 @@ This MVP ships a working `.dns` flow on Solana devnet while explicitly allowing 
   - Passport/TollPass identity + `.dns` name claim (anti-sybil + uniqueness).
   - Route writes (current MVP: tollbooth or allowlisted miner submits).
   - Route reads (canonical route PDAs in Design 3; existing per-wallet records remain usable).
+- Privacy-safe witness logging (MVP):
+  - gateways can emit **WitnessReceiptV1** receipts containing only answer facts (no user identifiers).
+  - witness timestamps are bucketed (10-minute buckets) to reduce tracking.
+- Domain reward splits from toll events (MVP):
+  - `ddns_domain_rewards` lets a `DomainOwner` register a per-`name_hash` split (owner/miners/treasury) so toll payments can be split on-chain.
 - (Optional, MVP bootstrap) ICANN domain owner rewards:
   - domain owners can claim a `DomainClaim` and receive a revenue share in TOLL on paid tolls (see `solana/programs/ddns_rewards`).
   - verification is centralized in MVP (authority submits on-chain after off-chain TXT/HTTPS check).
@@ -80,6 +85,8 @@ Call-out:
 - Domain verification for ICANN rewards (authority performs TXT/HTTPS checks off-chain and submits `claim_domain`).
 - NS/DoH operators are not permissionless yet:
   - operator rewards are based on allowlisted watcher/miner submitted metrics (OFF-CHAIN verified in MVP).
+ - Domain reward splits from tolls (MVP):
+   - domain owner revenue share is paid on **toll events**, not per raw DNS query.
 
 Not yet decentralized in MVP:
 

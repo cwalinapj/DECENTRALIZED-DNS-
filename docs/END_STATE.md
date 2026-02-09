@@ -87,3 +87,14 @@ End-state direction (not implemented yet):
 - stake-weighted metrics submitters and/or multi-party attestation of metrics
 - slashing for provable fraud / downtime / equivocation
 - on-chain verification of receipts via Merkle proofs or zk (optional)
+
+## 9) Witness Logging + Revenue Splits (Domain Rewards)
+
+MVP (implemented):
+- gateways emit privacy-safe **WitnessReceiptV1** receipts (no user identifiers; time-bucketed)
+- domain owners can receive a configurable % of **toll events** (not per DNS query) via `ddns_domain_rewards` splits
+
+End-state direction (not implemented yet):
+- stake-weighted witnesses and slashing for provable false receipts
+- committing witness batches to IPFS with on-chain pointers and challenge windows
+- paying domain owners based on verified toll volume + stake-weighted witness support (not raw query counts)

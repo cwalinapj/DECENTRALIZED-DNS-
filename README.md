@@ -41,6 +41,7 @@ Protocol + roadmap docs:
 
 - `docs/MVP.md`
 - `docs/PROTOCOL_CACHE_WITNESS.md`
+- `docs/PROTOCOL_WITNESS_RECEIPT.md`
 - `docs/END_STATE.md`
 
 Miner-first decentralization:
