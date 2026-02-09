@@ -11,6 +11,7 @@ If you landed here to understand the `.dns` workstream (Passport/TollPass + rout
 - What exists today (MVP): `docs/MVP.md`
 - How it works (protocol): `docs/PROTOCOL_CACHE_WITNESS.md`
 - Where it’s going (end state): `docs/END_STATE.md`
+- Docs index: `docs/README.md`
 - Quickstart (devnet):
   - On-chain + scripts: `solana/README.md`
   - Miner witness daemon (lands in PR3): `services/miner-witness/README.md`
@@ -24,7 +25,7 @@ Trust model (MVP vs end state):
 - Censorship attempts are mitigated by client-side cache retention + quorum finalization of canonical changes.
 - DYDNS/IPFS snapshots are planned, not implemented yet.
 
-PR merge order (to keep main runnable): PR1 docs → PR2 on-chain → PR3 miner/client.
+PR merge order (to keep `main` runnable): PR-DOCS → PR-DESIGN3-ONCHAIN → PR-MINER-CLIENT → PR-DOMAIN-REWARDS-WITNESS → PR-OPERATORS.
 
 ---
 
