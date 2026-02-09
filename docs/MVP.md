@@ -1,5 +1,10 @@
 # Design 3 MVP: Cache-as-Witness + Staking (Ship Now)
 
+**This doc contains:** [MVP ✅] [End State 🔮]
+
+**MVP**: centralized pieces still exist (gateway availability, allowlisted miners).  
+**End State**: fully decentralized quorum + stake-weighted witnesses + optional IPFS receipt batches.
+
 This MVP ships a working `.dns` flow on Solana devnet while explicitly allowing centralized bootstrap components. The system is structured so clients can verify what matters and later migrate to full decentralization.
 
 ## 1) What MVP Delivers
@@ -33,6 +38,32 @@ Tollbooth / Gateway (explicitly centralized in MVP):
 
 - Convenience layer to submit Solana transactions and provide fast resolution.
 - Treated as untrusted: clients verify against chain and keep local cache.
+
+## 2.1) MVP Incentives
+
+MVP adoption wedge: domain owners get paid when the network is used.
+
+Toll payments split (basis points, bps; must sum to `10,000`):
+- `owner_bps`: paid to the domain owner payout wallet
+- `miners_bps`: paid to miners/verifiers (aggregation + availability)
+- `treasury_bps`: protocol treasury (funds rewards, ops, and safety budgets)
+
+Domain owner registers:
+- `name_hash` (e.g., `SHA256("example.com")` or `SHA256("alice.dns")`)
+- payout wallet / token account
+- desired split bps
+
+**Payments are triggered by toll events, NOT per DNS query.**
+
+Why not per-query?
+- per-query is trivial to bot and breaks economics
+- toll events represent scarce value (cache miss / acquisition / refresh), so revenue reflects real demand
+
+### Privacy (MVP hard rule)
+
+- Gateway witness receipts must not include client IP / user agent / wallet pubkeys / per-request IDs.
+- Use time-bucketed observations (e.g., 10-minute buckets) to reduce tracking risk.
+- Receipts are “answer facts” only (name_hash + rrset_hash + ttl + time bucket + witness signature).
 
 ## 3) MVP Resolution Flow (Cache-First)
 
@@ -81,3 +112,9 @@ Not yet decentralized in MVP:
 - Rotating stake-weighted committees and slashing.
 - Browser extension distribution (Firefox).
 
+---
+
+Boxed callout:
+
+**MVP**: allowlisted miners can submit aggregates; gateway/tollbooth is a bootstrap convenience layer.  
+**End State**: anyone can verify; canonical routes finalize by stake-weighted quorum; receipt batches can be audited publicly.

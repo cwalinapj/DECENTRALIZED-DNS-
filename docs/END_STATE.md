@@ -1,5 +1,10 @@
 # Design 3 End State: Miners-First Decentralized `.dns`
 
+**This doc contains:** [MVP ✅] [End State 🔮]
+
+**MVP**: centralized pieces still exist (gateway availability, allowlisted miners).  
+**End State**: fully decentralized quorum + stake-weighted witnesses + optional IPFS receipt batches.
+
 This document describes the end-product vision. Miners/verifiers get the full decentralized stack first; everyday users get a minimal client that still verifies canonical state.
 
 ## 1) End-State Objectives
@@ -60,3 +65,29 @@ Goal: parameter evolution without a single censor.
 - Verifier selection moves from allowlist to rotating stake-weighted committees.
 - Slashing and challenge windows enforce honest aggregation.
 
+## 7) End State: Trust-Minimized Adoption Flywheel
+
+End-state goal: adoption incentives remain strong while reducing trust in any one actor.
+
+Domain owner payouts (direction):
+
+- payouts can be backed by stake-weighted quorum and/or witness-backed auditability
+- miners/verifiers commit receipt batch roots and can be challenged in-window
+- provably fraudulent aggregates become slashable (future)
+
+Witness receipts (direction):
+
+- gateways/operators publish witness batches (e.g., IPFS) with deterministic roots
+- clients and third parties can sample-verify and audit (no user identifiers)
+
+Still end-state (not MVP):
+
+- DYDNS per NFT + local DoH endpoint
+- IPFS cache snapshots per identity
+
+---
+
+Boxed callout:
+
+**MVP**: allowlisted miners and centralized gateway/tollbooth are acceptable bootstrap trust points.  
+**End State**: multi-party attestations + stake-weighted quorum + slashing reduce censorship risk without tracking users.

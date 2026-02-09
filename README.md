@@ -35,6 +35,24 @@ TollDNS aims to reduce reliance on any single provider by funding **distributed,
 
 ---
 
+## Adoption Wedge: Domain Owners Get Paid
+
+If you control an ICANN domain (like `example.com`) or a `.dns` identity, you can delegate NS/DoH to the network and earn a **% of toll revenue**. This is the mass-adoption wedge: install once, earn continuously.
+
+Users pay toll only on **toll events** (cache misses / route acquisition / refresh), not per raw DNS query. Miners/verifiers do the heavy verification and aggregation work; everyday users get a light cache-first flow.
+
+To resist censorship without tracking users, gateways can emit **privacy-safe witness receipts** (no IP/UA/client identifiers; time-bucketed) that attest only to answer facts. These receipts let independent verifiers audit correctness and strengthen quorum finality over time.
+
+Callout:
+- **MVP** uses toll events as the payment surface (centralized gateway + allowlisted miners are acceptable).
+- **End state** can incorporate stake-weighted witnesses, slashing, and public receipt batch commitments.
+
+Start here:
+- `docs/MVP.md`
+- `docs/ADOPTION.md`
+- `docs/PROTOCOL_CACHE_WITNESS.md`
+- `docs/END_STATE.md`
+
 ## MVP vs End Product (Design 3: Cache-as-Witness + Staking)
 
 Protocol + roadmap docs:
