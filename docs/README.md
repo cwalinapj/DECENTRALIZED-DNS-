@@ -7,6 +7,8 @@ This folder mixes long-form concept docs with the Design 3 `.dns` MVP/end-state 
 - `05-tokenomics.md`
 - `THREAT_MODEL.md` (threats + mitigations)
 - `ATTACK_MODE.md` (degradation rules + thresholds)
+- `PROTOCOL_WATCHDOG_ATTESTATION.md` (watchdog attestation formats)
+- `ADAPTERS.md` (adapter layer: PKDNS/IPFS/ENS/SNS)
 - `ops/` (deployment + runbooks)
 - `specs/` (API/spec references)
 

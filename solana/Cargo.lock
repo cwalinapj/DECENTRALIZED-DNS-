@@ -500,6 +500,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "ddns_watchdog_policy"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+]
+
+[[package]]
 name = "digest"
 version = "0.10.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"

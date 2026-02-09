@@ -18,16 +18,16 @@ This document describes the end-product vision. Miners/verifiers get the full de
 
 Miners run:
 
-- Receipt ingestion + verification (off-chain)
-- Aggregation (Merkle roots, stake-weighted support, dedupe)
-- On-chain quorum submission + canonical finalization
-- Low-latency update feeds and reconciliation APIs
-- Audit/challenge tooling (serve receipts/roots when needed)
+- receipt ingestion + verification (off-chain initially; later verifiable)
+- aggregation (Merkle roots, stake-weighted support, dedupe)
+- on-chain quorum submission + canonical finalization
+- low-latency update feeds and reconciliation APIs
+- audit/challenge tooling (serve receipts/roots when needed)
 
-Rewards:
+Rewards direction:
 
-- Miners earn the majority of rewards for heavy lifting + uptime.
-- Invalid aggregates become slashable later (fraud proofs / equivocation proofs).
+- miners earn the majority of rewards for heavy lifting + uptime
+- invalid aggregates become slashable later (fraud proofs / equivocation proofs)
 
 ## 3) Everyday User Path (Lightweight)
 
@@ -36,7 +36,7 @@ User client (wallet/plugin):
 - cache-first resolution
 - periodic on-chain verification on refresh
 - mostly passive receipt emission
-- optional low/auto stake to earn rewards and fund tolls.
+- optional low/auto stake to earn rewards and fund tolls
 
 Goal: “DNS just works,” while remaining verifiable and gateway-independent.
 
@@ -52,31 +52,55 @@ Not implemented in MVP. Planned direction:
 
 Not implemented in MVP. Planned direction:
 
-- Wallet snapshots cache to an IPFS CAR file.
-- On-chain pointer account stores `(wallet, epoch) -> (CID, size, signature)`.
-- Miners sample-verify availability/integrity.
+- wallet snapshots cache to an IPFS CAR file
+- on-chain pointer account stores `(wallet, epoch) -> (CID, size, signature)`
+- miners sample-verify availability/integrity
 
 ## 6) Governance / Upgrades
 
 Goal: parameter evolution without a single censor.
 
-- Config changes controlled by governance with timelocks and epoch-boundary activation.
-- Verifier selection moves from allowlist to rotating stake-weighted committees.
-- Slashing and challenge windows enforce honest aggregation.
+- config changes controlled by governance with timelocks and epoch-boundary activation
+- verifier selection moves from allowlist to rotating stake-weighted committees
+- slashing and dispute windows enforce honest aggregation
 
-## 7) End State: Trust-Minimized Adoption Flywheel
+## 7) Trust-Minimized Adoption Flywheel (End State)
 
 End-state goal: strong adoption incentives while reducing trust in any single actor.
 
 Domain owner payouts (direction):
+
 - payouts backed by stake-weighted quorum and/or witness-backed auditability
 - miners/verifiers commit receipt batch roots and can be challenged within dispute windows
 - provably fraudulent aggregates become slashable
 
 Witness receipts (direction):
+
 - gateways/operators publish witness batches (e.g., IPFS) with deterministic roots
 - third parties can sample-verify and audit without user identifiers
 
-Still end-state (not MVP):
-- DYDNS per NFT + local DoH endpoint
-- IPFS cache snapshots per identity
+## 8) End-State: Permissionless Watchdogs + Dispute-Backed Policy
+
+Not fully implemented. Roadmap:
+
+1. Signed attestations accepted on-chain
+   - `submit_attestation_signed(payload_bytes, sig)` verifies ed25519 on-chain
+   - payload format is fixed and versioned
+2. Permissionless watchdog set
+   - watchdogs register by staking and meeting performance criteria
+   - reputations are computed from historical correctness and availability
+3. Dispute windows + slashing
+   - incorrect attestations can be challenged with evidence
+   - slashing/jailing for provably false or malicious behavior
+4. Stake-weighted / reputation-weighted thresholds
+   - policy transitions require quorum by stake-weight or reputation-weight (not allowlists)
+
+Policy outputs remain compact routing hints:
+
+- OK / WARN / QUARANTINE
+- TTL caps and penalty signals
+
+See:
+
+- `docs/PROTOCOL_WATCHDOG_ATTESTATION.md`
+

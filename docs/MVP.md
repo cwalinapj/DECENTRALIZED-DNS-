@@ -2,7 +2,7 @@
 
 > This doc contains: [MVP ✅] [End-State 🔮]
 >
-> - MVP ✅: what is shippable today on devnet (centralized bootstrap allowed)
+> - MVP ✅: what is shippable today (centralized bootstrap allowed)
 > - End-State 🔮: noted only as “future” and not implemented yet
 
 This MVP ships a working `.dns` flow on Solana devnet while explicitly allowing centralized bootstrap components. The system is structured so clients can verify what matters and later migrate to full decentralization.
@@ -18,10 +18,15 @@ This MVP ships a working `.dns` flow on Solana devnet while explicitly allowing 
   - Passport/TollPass identity + `.dns` name claim (anti-sybil + uniqueness).
   - Route writes (current MVP: tollbooth or allowlisted miner submits).
   - Route reads (canonical route PDAs in Design 3; existing per-wallet records remain usable).
-- Off-chain witness receipts (client-signed) collected and aggregated by miners.
-- Staking rewards (TOLL token) so users can earn funds to pay future tolls.
+- Off-chain witness receipts (client-signed) collected and aggregated by miners (MVP: off-chain verification).
+- Staking rewards (TOLL token) so users can earn funds to pay future tolls (mechanics are minimal in MVP).
 
-## Run The MVP (Devnet, Verified)
+Verification logs (devnet/localnet commands + tx signatures) live in:
+
+- `docs/STATUS.md`
+- `solana/VERIFIED.md`
+
+## Run The MVP (Devnet)
 
 Prereqs:
 
@@ -36,7 +41,15 @@ npm install
 anchor build
 ```
 
-Start toll-booth service (local):
+Start gateway (optional; for adapter-based resolves):
+
+```bash
+cd gateway
+npm install
+npm run dev
+```
+
+Start toll-booth service (optional; centralized bootstrap path):
 
 ```bash
 cd services/toll-booth
@@ -44,46 +57,11 @@ npm install
 npm run dev
 ```
 
-Mint TollPass (devnet) for a wallet:
+Proof pointers (what to look for on-chain):
 
-```bash
-cd solana
-npm run mint-toll-pass -- --rpc https://api.devnet.solana.com --wallet /path/to/wallet.json --name <label>
-```
-
-Create a route + have 2 trusted witnesses sign it:
-
-```bash
-cd solana
-npm run route:create -- --name <label>.dns --dest <dest> --ttl 300
-npm run route:sign-witness -- --route-id <route_id> --keypair /path/to/witness1.json
-npm run route:sign-witness -- --route-id <route_id> --keypair /path/to/witness2.json
-```
-
-Submit to toll-booth (quorum) and write on-chain name record (devnet):
-
-```bash
-cd solana
-ANCHOR_PROVIDER_URL=https://api.devnet.solana.com \
-ANCHOR_WALLET=/path/to/wallet.json \
-TOLL_BOOTH_URL=http://localhost:8787 \
-npm run set-route -- --name <label>.dns --dest <dest> --ttl 300
-```
-
-Proof pointers:
-
-- TollPass proof: PDA `["toll_pass", owner_wallet]` exists on-chain (owner identity)
-- NameRecord proof: PDA `["name", name_hash]` exists on-chain (name -> dest_hash metadata)
-
-## Verified Example (Devnet, 2026-02-09)
-
-This was run end-to-end on devnet (see `STATUS.md` for the full log of ids/sigs):
-
-- Mint TollPass tx: `4JFCsqiMwPZ5exhMvcSfXueuwBRXMVRM1QAb4soTncTrR7qmnBoRuC5nWNn6HJd68MKPW1YtAv2CzT8fEDGBjaUy`
-- Set route tx: `2uWiHYhNBwMU9cqwGsrgYd9XoAjrVAWA9n1fartoQb5UQrpLewBY9wFLnCAzN2DWVssuiPFd7HbeFkMGHPyqGLRE`
-- name: `ea5m123.dns`
-- `name_hash`: `32e1cdf368103a48f7c44807d5a2e1b9d1a949d481d4ea38f47a62c2fec9e3d7`
-- `dest_hash`: `100680ad546ce6a577f42f52df33b4cfdca756859e664b8d7de329b150d09ce9`
+- TollPass proof: PDA `["toll_pass", owner_wallet]` exists on-chain (owner identity).
+- Canonical route proof (Design 3): PDA `["canonical", name_hash]` exists on-chain (route hash + TTL).
+- Policy hint proof (optional): `NamePolicyState` PDA in `ddns_watchdog_policy` (OK/WARN/QUARANTINE + TTL cap + penalty).
 
 ## 2) Roles
 
@@ -91,7 +69,7 @@ Everyday user (MVP: CLI/scripts; later: browser extension):
 
 - Wallet/plugin + local cache.
 - Verifies canonical route state on cache refresh.
-- Generates witness receipts after verified observations.
+- Generates receipts (client-signed) after verified observations.
 - Pays tolls occasionally (MVP may be service-mediated).
 
 Miner / Verifier (most decentralized path; shipped first):
@@ -158,15 +136,41 @@ Not yet decentralized in MVP:
 MVP adoption wedge: domain owners get paid when the network is used.
 
 Toll-event payment split (basis points, bps; sums to `10,000`):
+
 - domain owner share (payout wallet)
 - miners/verifiers share (aggregation + availability)
 - treasury share (protocol funding)
 
 Why not “per-query payouts” in MVP:
+
 - raw query counts are trivial to bot and break economics
 - toll events represent scarce value (route acquisition/refresh), so wash behavior costs real funds.
 
 ## Privacy Notes (MVP)
 
-- Witness receipts (gateway-signed) must not include client IP, user agent, wallet pubkeys, or per-request IDs.
+- Witness receipts must not include client IP, user agent, wallet pubkeys, or per-request IDs.
 - Observations should be time-bucketed (e.g., 10-minute buckets) to reduce tracking surface.
+
+## MVP: Watchdogs + Policy (Bootstrap)
+
+MVP includes a lightweight policy layer to emit compact routing hints. In MVP, submissions are centralized/allowlisted and signatures can be verified off-chain.
+
+What’s implemented:
+
+- `ddns_watchdog_policy` on-chain program:
+  - allowlisted watchdog identities (who observations are attributed to)
+  - allowlisted submitters (who can post digests)
+  - per-name policy state: OK / WARN / QUARANTINE + penalty and TTL caps
+- Attestations are submitted as **digests** (no on-chain signature verification in MVP).
+
+How other components use policy:
+
+- resolvers/gateways read `NamePolicyState`
+  - `WARN`: prefer short TTL, show warning
+  - `QUARANTINE`: warn strongly; require explicit override
+- miners/operators can apply `penalty_bps` to rewards off-chain in MVP.
+
+See:
+
+- `docs/PROTOCOL_WATCHDOG_ATTESTATION.md`
+
