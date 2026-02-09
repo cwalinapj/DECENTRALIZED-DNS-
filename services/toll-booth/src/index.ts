@@ -5,6 +5,12 @@ import express from "express";
 import nacl from "tweetnacl";
 import bs58 from "bs58";
 import { Connection, PublicKey } from "@solana/web3.js";
+import {
+  AttackMode,
+  defaultThresholdsFromEnv,
+  evaluateAttackMode,
+  policyForMode
+} from "@ddns/attack-mode";
 
 type RouteRecordV1 = {
   v: 1;
@@ -45,6 +51,55 @@ const PROGRAM_ID =
   "9hwvtFzawMZ6R9eWJZ8YjC7rLCGgNK7PZBNeKMRCPBes";
 
 const QUORUM = Number(process.env.QUORUM || 2);
+const ATTACK_MODE_ENABLED = process.env.ATTACK_MODE_ENABLED === "1";
+const ATTACK_WINDOW_SECS = Number(process.env.ATTACK_WINDOW_SECS || "120");
+const attackThresholds = defaultThresholdsFromEnv(process.env);
+
+type AttackCounters = {
+  windowStartUnix: number;
+  totalWrites: number;
+  writeErrors: number;
+};
+
+const attackCounters: AttackCounters = {
+  windowStartUnix: Math.floor(Date.now() / 1000),
+  totalWrites: 0,
+  writeErrors: 0
+};
+
+let attackMode: AttackMode = AttackMode.NORMAL;
+let attackMemory: { lastStableUnix?: number } = {};
+let attackDecision: { score: number; reasons: string[] } = { score: 0, reasons: [] };
+
+function resetAttackWindow(nowUnix: number) {
+  if (nowUnix - attackCounters.windowStartUnix >= ATTACK_WINDOW_SECS) {
+    attackCounters.windowStartUnix = nowUnix;
+    attackCounters.totalWrites = 0;
+    attackCounters.writeErrors = 0;
+  }
+}
+
+function currentAttackPolicy(nowUnix: number) {
+  resetAttackWindow(nowUnix);
+  if (!ATTACK_MODE_ENABLED) {
+    attackMode = AttackMode.NORMAL;
+    attackDecision = { score: 0, reasons: ["disabled"] };
+    return policyForMode(attackMode);
+  }
+  const writeErrPct = attackCounters.totalWrites
+    ? (attackCounters.writeErrors * 100) / attackCounters.totalWrites
+    : 0;
+  const decision = evaluateAttackMode(
+    attackMode,
+    { gatewayErrorPct: writeErrPct, nowUnix },
+    attackThresholds,
+    attackMemory
+  );
+  attackMode = decision.nextMode;
+  attackMemory = decision.memory;
+  attackDecision = { score: decision.score, reasons: decision.reasons };
+  return policyForMode(attackMode);
+}
 
 function loadJson<T>(p: string, fallback: T): T {
   if (!fs.existsSync(p)) return fallback;
@@ -118,6 +173,13 @@ async function ownerHasTollPass(owner: string): Promise<boolean> {
 
 app.post("/v1/route/submit", async (req, res) => {
   try {
+    const now = Math.floor(Date.now() / 1000);
+    const policy = currentAttackPolicy(now);
+    attackCounters.totalWrites += 1;
+    if (policy.freezeWrites) {
+      return res.status(503).json({ ok: false, error: "attack_mode_freeze_writes", mode: attackMode, reasons: attackDecision.reasons });
+    }
+
     const route = req.body.route as RouteRecordV1;
     const witnesses = (req.body.witnesses || []) as WitnessAttestationV1[];
     const err = isValidRoute(route);
@@ -155,6 +217,7 @@ app.post("/v1/route/submit", async (req, res) => {
 
     return res.json({ ok: true, route_id: computedId });
   } catch (e: any) {
+    attackCounters.writeErrors += 1;
     return res.status(500).send(e?.message || "server_error");
   }
 });
@@ -164,6 +227,23 @@ app.get("/v1/route/:route_id", (req, res) => {
   const file = path.join(ROUTES_DIR, `${routeId}.json`);
   if (!fs.existsSync(file)) return res.status(404).send("not_found");
   return res.sendFile(file);
+});
+
+app.get("/v1/attack-mode", (_req, res) => {
+  const now = Math.floor(Date.now() / 1000);
+  const policy = currentAttackPolicy(now);
+  return res.json({
+    ok: true,
+    enabled: ATTACK_MODE_ENABLED,
+    mode: attackMode,
+    decision: attackDecision,
+    policy,
+    window: {
+      secs: ATTACK_WINDOW_SECS,
+      totalWrites: attackCounters.totalWrites,
+      writeErrors: attackCounters.writeErrors
+    }
+  });
 });
 
 app.listen(PORT, () => {
