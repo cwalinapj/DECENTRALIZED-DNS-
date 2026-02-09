@@ -17,7 +17,10 @@
     "cache:sign-upsert": "tsx scripts/cache_sign_upsert.ts",
     "cache:upsert": "tsx scripts/cache_upsert_post.ts",
     "watchdog": "tsx scripts/watchdog.ts",
-    "resolve": "tsx scripts/resolve.ts"
+    "resolve": "tsx scripts/resolve.ts",
+    "stake-gov": "tsx scripts/stake_gov.ts",
+    "stake-gov:snapshot": "tsx scripts/snapshot_gov.ts",
+    "stake-gov:slash": "tsx scripts/slash_gov.ts"
   },
   "devDependencies": {
     "@coral-xyz/anchor": "^0.32.1",
