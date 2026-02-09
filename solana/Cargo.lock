@@ -477,6 +477,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "ddns_quorum"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+ "ddns_registry",
+]
+
+[[package]]
+name = "ddns_registry"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+]
+
+[[package]]
+name = "ddns_stake"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+ "anchor-spl",
+]
+
+[[package]]
 name = "digest"
 version = "0.10.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
