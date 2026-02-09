@@ -9,6 +9,7 @@
     "metadata:sample": "node scripts/write_sample_metadata.mjs",
     "mint-toll-pass": "tsx scripts/mint_toll_pass.ts",
     "set-route": "tsx scripts/set_route.ts",
+    "domain-rewards": "tsx scripts/domain_rewards.ts",
     "route:create": "tsx scripts/route_create.ts",
     "route:sign-witness": "tsx scripts/route_sign_witness.ts",
     "route:status": "tsx scripts/route_status.ts",

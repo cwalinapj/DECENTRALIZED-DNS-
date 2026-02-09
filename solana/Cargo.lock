@@ -477,6 +477,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "ddns_domain_rewards"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+ "anchor-spl",
+ "spl-token",
+]
+
+[[package]]
+name = "ddns_operators"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+ "anchor-spl",
+ "spl-token",
+]
+
+[[package]]
 name = "ddns_quorum"
 version = "0.1.0"
 dependencies = [
@@ -489,6 +507,16 @@ name = "ddns_registry"
 version = "0.1.0"
 dependencies = [
  "anchor-lang",
+]
+
+[[package]]
+name = "ddns_rewards"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+ "anchor-spl",
+ "sha2",
+ "spl-token",
 ]
 
 [[package]]
