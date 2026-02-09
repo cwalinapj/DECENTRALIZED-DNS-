@@ -97,3 +97,60 @@ Blocked as of 2026-02-09:
 
 - Deploy wallet: `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5`
 - Error: insufficient funds (needed ~`2.905 SOL` + fee; wallet had ~`2.514 SOL`)
+
+## Devnet Deploy + Proof (ddns_domain_rewards)
+
+Program id:
+
+- `ddns_domain_rewards`: `7iFM5ZYPWpF2rK6dQkgeb4RLc2zTDnEgrTNVMp8n6s3m`
+
+Deploy command:
+
+```bash
+cd solana
+anchor deploy --provider.cluster devnet --program-name ddns_domain_rewards
+```
+
+Deploy tx signature:
+
+- `ddns_domain_rewards`: `3vzC7LhZH6eQzjYf6GhiVAcVpVHcVDsuQGSohaLFhxusBBZph95JQZqU1kmi5bjmGDLeaTzvL8s3yJm4udb4qtuc`
+
+Proof: register a DomainOwner split + pay a toll that auto-splits to owner/miners/treasury.
+
+Observed state (devnet):
+
+- `config_pda`: `8B9Ztaep66bifkNmo8UAiGWAstuaJu8k3fYzTYzhbaPo`
+- `toll_mint`: `834zbMe1ehALnMe6ZKKzd8rvU7PBgkPpoBPc45ZmewtS`
+- `treasury_vault`: `3iTweq1rWXFxG5LEgysjvByTUXXyd4Tchm3AqFUWGUyF`
+- `miners_vault`: `EjLzA6MK6ZsXikFNU2m2ZhRg5y8DYUVttvS7CpPqsvwS`
+
+Domain owner + payment proof:
+
+- `domain_owner_wallet`: `E5ai6dUZXJ5L52oS3jT2FCmABLL73QPvJ52tKB7RU7o8`
+- `fund_domain_owner_sig`: `4oygEih4NX46XwXueyVKSYTrRSbuGfzLzrZ17XkkFbY1oPfDL4Kqw5ftX2QyQ1btiGvWSJJHUf7NAK5SRDGXb3Yi`
+- `owner_ata`: `3na9qnbN7N9nGoZZhuvxwUimMVuFAgVGJRPA5GcfowKe`
+- `create_owner_ata_sig`: `5MseQrvrQxkMf9quv8kUza6pw2iHEUq91v1oQ6Cj34LQV3wjvkQRa8ihGYUDN7c1rPV5GDpxP4Y1DuePoA3QN7Dy`
+
+Name:
+
+- `name`: `proofdemo2.dns`
+- `name_hash_hex`: `400bc0165ad70651ffcfb5e6883392f20b84655297560ee423d641c40c2e73ca`
+- `domain_owner_pda`: `FruL8LhUiZMJijfkMfc1T8iYqVxynXHZFqfQ4QDWiRsC`
+- `tx_register_domain_owner`: `55AxamQwD2BoqgQDZ8qaVaUw4VfiXvKKFPVRphLewomyYvcdT8ncfWQuZm2xjfos9pJEcp83Fo93tHFk3BVgw6x5`
+
+Toll payment split:
+
+- `tx_toll_pay_for_route`: `22FYYNMrUCiNUCwuDbSb5dBWDpBLWFYUCkjAdmtzeHdDAJtX5TxXzz1baTqPBaVz5EZPcD8jQoS5nhLDayU26ZFb`
+
+Balances after the toll payment (human units):
+
+- payer ATA: `18.15`
+- owner ATA: `0.15`
+- treasury vault: `1.4`
+- miners vault: `0.3`
+
+Optional confirmation:
+
+```bash
+solana program show -u devnet 7iFM5ZYPWpF2rK6dQkgeb4RLc2zTDnEgrTNVMp8n6s3m
+```

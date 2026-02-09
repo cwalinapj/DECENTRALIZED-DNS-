@@ -12,6 +12,7 @@
     "stake": "tsx scripts/stake.ts",
     "rewards": "tsx scripts/rewards.ts",
     "operators": "tsx scripts/operators.ts",
+    "domain-rewards": "tsx scripts/domain_rewards.ts",
     "make-receipt": "tsx scripts/make_receipt.ts",
     "submit-receipts": "tsx scripts/submit_receipts.ts",
     "route:create": "tsx scripts/route_create.ts",
