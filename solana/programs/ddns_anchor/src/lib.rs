@@ -1,6 +1,9 @@
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::program_option::COption;
+use anchor_lang::solana_program::program_pack::Pack;
 use sha2::{Digest, Sha256};
 use anchor_spl::token::{self, Token, Transfer};
+use anchor_spl::token::spl_token::state::{Account as SplTokenAccount, Mint as SplMint};
 
 declare_id!("9hwvtFzawMZ6R9eWJZ8YjC7rLCGgNK7PZBNeKMRCPBes");
 
@@ -29,42 +32,23 @@ pub mod ddns_anchor {
 
     pub fn issue_toll_pass(
         ctx: Context<IssueTollPass>,
-        name: String,
+        label: String,
         name_hash: [u8; 32],
         page_cid_hash: [u8; 32],
         metadata_hash: [u8; 32],
     ) -> Result<()> {
-        validate_name(&name)?;
-        let computed = hash_name(&name);
+        validate_label(&label)?;
+        let computed = hash_label_dns(&label);
         require!(computed == name_hash, ErrorCode::InvalidNameHash);
 
-        let pass = &mut ctx.accounts.toll_pass;
-        if pass.initialized {
-            return err!(ErrorCode::AlreadyInitialized);
-        }
-        pass.owner = ctx.accounts.owner.key();
-        pass.issued_at = Clock::get()?.unix_timestamp;
-        pass.name_hash = name_hash;
-        pass.page_cid_hash = page_cid_hash;
-        pass.metadata_hash = metadata_hash;
-        pass.bump = ctx.bumps.toll_pass;
-        pass.initialized = true;
+        // Centralized MVP authority: all mints must be signed by config.admin (tollbooth).
+        require_keys_eq!(
+            ctx.accounts.config.admin,
+            ctx.accounts.authority.key(),
+            ErrorCode::Unauthorized
+        );
 
-        let record = &mut ctx.accounts.record;
-        if record.initialized {
-            return err!(ErrorCode::AlreadyInitialized);
-        }
-        record.owner = ctx.accounts.owner.key();
-        record.name_hash = name_hash;
-        let mut name_len = 0u8;
-        write_name(&name, &mut record.name_bytes, &mut name_len)?;
-        record.name_len = name_len;
-        record.page_cid_hash = page_cid_hash;
-        record.metadata_hash = metadata_hash;
-        record.updated_at = Clock::get()?.unix_timestamp;
-        record.bump = ctx.bumps.record;
-        record.initialized = true;
-
+        // Ensure the "soulbound" mint is actually controlled by the authority signer.
         require_keys_eq!(
             *ctx.accounts.nft_mint.owner,
             ctx.accounts.token_program.key(),
@@ -76,6 +60,53 @@ pub mod ddns_anchor {
             ErrorCode::InvalidTokenAccountOwner
         );
 
+        {
+            // Keep borrows scoped so CPI below can re-borrow safely.
+            let mint_ai = ctx.accounts.nft_mint.to_account_info();
+            let mint_data = mint_ai.try_borrow_data()?;
+            let mint_state = SplMint::unpack(&mint_data)?;
+            match mint_state.mint_authority {
+                COption::Some(k) => {
+                    require_keys_eq!(k, ctx.accounts.authority.key(), ErrorCode::Unauthorized)
+                }
+                COption::None => return err!(ErrorCode::Unauthorized),
+            }
+            match mint_state.freeze_authority {
+                COption::Some(k) => {
+                    require_keys_eq!(k, ctx.accounts.authority.key(), ErrorCode::Unauthorized)
+                }
+                COption::None => return err!(ErrorCode::Unauthorized),
+            }
+        }
+        {
+            let token_ai = ctx.accounts.nft_token_account.to_account_info();
+            let token_data = token_ai.try_borrow_data()?;
+            let token_state = SplTokenAccount::unpack(&token_data)?;
+            require_keys_eq!(token_state.mint, ctx.accounts.nft_mint.key(), ErrorCode::Unauthorized);
+            require_keys_eq!(token_state.owner, ctx.accounts.owner_wallet.key(), ErrorCode::Unauthorized);
+        }
+
+        let pass = &mut ctx.accounts.toll_pass;
+        pass.owner = ctx.accounts.owner_wallet.key();
+        pass.issued_at = Clock::get()?.unix_timestamp;
+        pass.name_hash = name_hash;
+        pass.owner_mint = ctx.accounts.nft_mint.key();
+        pass.page_cid_hash = page_cid_hash;
+        pass.metadata_hash = metadata_hash;
+        pass.bump = ctx.bumps.toll_pass;
+        pass.initialized = true;
+
+        // Name ownership claim. `init` enforces global uniqueness for `name_hash`.
+        let name_record = &mut ctx.accounts.name_record;
+        name_record.name_hash = name_hash;
+        name_record.owner_wallet = ctx.accounts.owner_wallet.key();
+        name_record.owner_mint = ctx.accounts.nft_mint.key();
+        let mut label_len = 0u8;
+        write_label(&label, &mut name_record.label_bytes, &mut label_len)?;
+        name_record.label_len = label_len;
+        name_record.created_at = Clock::get()?.unix_timestamp;
+        name_record.bump = ctx.bumps.name_record;
+
         // Mint soulbound NFT
         token::mint_to(
             CpiContext::new(
@@ -83,7 +114,7 @@ pub mod ddns_anchor {
                 token::MintTo {
                     mint: ctx.accounts.nft_mint.to_account_info(),
                     to: ctx.accounts.nft_token_account.to_account_info(),
-                    authority: ctx.accounts.owner.to_account_info(),
+                    authority: ctx.accounts.authority.to_account_info(),
                 },
             ),
             1,
@@ -94,7 +125,7 @@ pub mod ddns_anchor {
             token::FreezeAccount {
                 account: ctx.accounts.nft_token_account.to_account_info(),
                 mint: ctx.accounts.nft_mint.to_account_info(),
-                authority: ctx.accounts.owner.to_account_info(),
+                authority: ctx.accounts.authority.to_account_info(),
             },
         ))?;
         Ok(())
@@ -181,44 +212,56 @@ pub mod ddns_anchor {
         Ok(())
     }
 
-    pub fn create_name_record(
-        ctx: Context<CreateNameRecord>,
+    pub fn set_route(
+        ctx: Context<SetRoute>,
         name: String,
         name_hash: [u8; 32],
-        page_cid_hash: [u8; 32],
-        metadata_hash: [u8; 32],
+        dest_hash: [u8; 32],
+        ttl: u32,
     ) -> Result<()> {
-        validate_name(&name)?;
-        let computed = hash_name(&name);
+        // Deterministic name hashing: sha256(lowercase(name)).
+        // For MVP, require `.dns` and validate the label portion against [a-z0-9-]{3,32}.
+        let normalized = name.trim().to_ascii_lowercase();
+        require!(normalized.ends_with(".dns"), ErrorCode::InvalidNameChars);
+        let label = match normalized.strip_suffix(".dns") {
+            Some(v) => v,
+            None => return err!(ErrorCode::InvalidNameChars),
+        };
+        validate_label(label)?;
+        let computed = hash_full_name(&normalized);
         require!(computed == name_hash, ErrorCode::InvalidNameHash);
-        let record = &mut ctx.accounts.record;
-        if record.initialized {
-            return err!(ErrorCode::AlreadyInitialized);
-        }
-        require_keys_eq!(ctx.accounts.toll_pass.owner, ctx.accounts.owner.key(), ErrorCode::Unauthorized);
-        record.owner = ctx.accounts.owner.key();
-        record.name_hash = name_hash;
-        let mut name_len = 0u8;
-        write_name(&name, &mut record.name_bytes, &mut name_len)?;
-        record.name_len = name_len;
-        record.page_cid_hash = page_cid_hash;
-        record.metadata_hash = metadata_hash;
-        record.updated_at = Clock::get()?.unix_timestamp;
-        record.bump = ctx.bumps.record;
-        record.initialized = true;
-        Ok(())
-    }
 
-    pub fn update_name_record(
-        ctx: Context<UpdateNameRecord>,
-        page_cid_hash: [u8; 32],
-        metadata_hash: [u8; 32],
-    ) -> Result<()> {
-        let record = &mut ctx.accounts.record;
-        require_keys_eq!(record.owner, ctx.accounts.owner.key(), ErrorCode::Unauthorized);
-        record.page_cid_hash = page_cid_hash;
-        record.metadata_hash = metadata_hash;
+        // Centralized MVP authority: all writes must be signed by config.admin (tollbooth).
+        require_keys_eq!(
+            ctx.accounts.config.admin,
+            ctx.accounts.authority.key(),
+            ErrorCode::Unauthorized
+        );
+
+        require!(ctx.accounts.toll_pass.initialized, ErrorCode::Unauthorized);
+        require_keys_eq!(
+            ctx.accounts.toll_pass.owner,
+            ctx.accounts.owner_wallet.key(),
+            ErrorCode::Unauthorized
+        );
+        require_keys_eq!(
+            ctx.accounts.name_record.owner_wallet,
+            ctx.accounts.owner_wallet.key(),
+            ErrorCode::Unauthorized
+        );
+        require_keys_eq!(
+            ctx.accounts.name_record.owner_mint,
+            ctx.accounts.toll_pass.owner_mint,
+            ErrorCode::Unauthorized
+        );
+
+        let record = &mut ctx.accounts.route_record;
+        record.owner = ctx.accounts.owner_wallet.key();
+        record.name_hash = name_hash;
+        record.dest_hash = dest_hash;
+        record.ttl = ttl;
         record.updated_at = Clock::get()?.unix_timestamp;
+        record.bump = ctx.bumps.route_record;
         Ok(())
     }
 }
@@ -253,25 +296,31 @@ pub struct SetVersion<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(name: String, name_hash: [u8; 32])]
+#[instruction(label: String, name_hash: [u8; 32])]
 pub struct IssueTollPass<'info> {
     #[account(
+        seeds = [b"config"],
+        bump = config.bump
+    )]
+    pub config: Account<'info, Config>,
+
+    #[account(
         init,
-        payer = owner,
+        payer = authority,
         space = 8 + TollPass::SIZE,
-        seeds = [b"toll_pass", owner.key().as_ref()],
+        seeds = [b"toll_pass", owner_wallet.key().as_ref()],
         bump
     )]
     pub toll_pass: Account<'info, TollPass>,
 
     #[account(
         init,
-        payer = owner,
+        payer = authority,
         space = 8 + NameRecord::SIZE,
         seeds = [b"name", name_hash.as_ref()],
         bump
     )]
-    pub record: Account<'info, NameRecord>,
+    pub name_record: Account<'info, NameRecord>,
 
     /// CHECK: Pre-created mint for the NFT
     #[account(mut)]
@@ -281,8 +330,10 @@ pub struct IssueTollPass<'info> {
     #[account(mut)]
     pub nft_token_account: UncheckedAccount<'info>,
 
+    pub owner_wallet: SystemAccount<'info>,
+
     #[account(mut)]
-    pub owner: Signer<'info>,
+    pub authority: Signer<'info>,
 
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
@@ -352,39 +403,40 @@ pub struct UnlockTokens<'info> {
 
 #[derive(Accounts)]
 #[instruction(name: String, name_hash: [u8; 32])]
-pub struct CreateNameRecord<'info> {
+pub struct SetRoute<'info> {
     #[account(
-        init,
-        payer = owner,
-        space = 8 + NameRecord::SIZE,
-        seeds = [b"name", name_hash.as_ref()],
-        bump
+        seeds = [b"config"],
+        bump = config.bump
     )]
-    pub record: Account<'info, NameRecord>,
+    pub config: Account<'info, Config>,
 
     #[account(
-        seeds = [b"toll_pass", owner.key().as_ref()],
+        init_if_needed,
+        payer = authority,
+        space = 8 + RouteRecord::SIZE,
+        seeds = [b"record", owner_wallet.key().as_ref(), name_hash.as_ref()],
+        bump
+    )]
+    pub route_record: Account<'info, RouteRecord>,
+
+    #[account(
+        seeds = [b"name", name_hash.as_ref()],
+        bump = name_record.bump
+    )]
+    pub name_record: Account<'info, NameRecord>,
+
+    #[account(
+        seeds = [b"toll_pass", owner_wallet.key().as_ref()],
         bump = toll_pass.bump
     )]
     pub toll_pass: Account<'info, TollPass>,
 
+    pub owner_wallet: SystemAccount<'info>,
+
     #[account(mut)]
-    pub owner: Signer<'info>,
+    pub authority: Signer<'info>,
 
     pub system_program: Program<'info, System>,
-}
-
-#[derive(Accounts)]
-pub struct UpdateNameRecord<'info> {
-    #[account(
-        mut,
-        seeds = [b"name", record.name_hash.as_ref()],
-        bump = record.bump
-    )]
-    pub record: Account<'info, NameRecord>,
-
-    #[account(mut)]
-    pub owner: Signer<'info>,
 }
 
 #[account]
@@ -404,6 +456,7 @@ pub struct TollPass {
     pub owner: Pubkey,
     pub issued_at: i64,
     pub name_hash: [u8; 32],
+    pub owner_mint: Pubkey,
     pub page_cid_hash: [u8; 32],
     pub metadata_hash: [u8; 32],
     pub bump: u8,
@@ -411,7 +464,7 @@ pub struct TollPass {
 }
 
 impl TollPass {
-    pub const SIZE: usize = 32 + 8 + 32 + 32 + 32 + 1 + 1;
+    pub const SIZE: usize = 32 + 8 + 32 + 32 + 32 + 32 + 1 + 1;
 }
 
 #[account]
@@ -433,59 +486,69 @@ impl TokenLock {
 
 #[account]
 pub struct NameRecord {
-    pub owner: Pubkey,
     pub name_hash: [u8; 32],
-    pub name_len: u8,
-    pub name_bytes: [u8; 32],
-    pub page_cid_hash: [u8; 32],
-    pub metadata_hash: [u8; 32],
-    pub updated_at: i64,
+    pub label_len: u8,
+    pub label_bytes: [u8; 32],
+    pub owner_mint: Pubkey,
+    pub owner_wallet: Pubkey,
+    pub created_at: i64,
     pub bump: u8,
-    pub initialized: bool,
 }
 
 impl NameRecord {
-    pub const SIZE: usize = 32 + 32 + 1 + 32 + 32 + 32 + 8 + 1 + 1;
+    pub const SIZE: usize = 32 + 1 + 32 + 32 + 32 + 8 + 1;
 }
 
-fn hash_name(name: &str) -> [u8; 32] {
+#[account]
+pub struct RouteRecord {
+    pub owner: Pubkey,
+    pub name_hash: [u8; 32],
+    pub dest_hash: [u8; 32],
+    pub ttl: u32,
+    pub updated_at: i64,
+    pub bump: u8,
+}
+
+impl RouteRecord {
+    pub const SIZE: usize = 32 + 32 + 32 + 4 + 8 + 1;
+}
+
+fn hash_label_dns(label: &str) -> [u8; 32] {
+    let mut hasher = Sha256::new();
+    hasher.update(label.as_bytes());
+    hasher.update(b".dns");
+    hasher.finalize().into()
+}
+
+fn hash_full_name(name: &str) -> [u8; 32] {
     let mut hasher = Sha256::new();
     hasher.update(name.as_bytes());
     hasher.finalize().into()
 }
 
-fn validate_name(name: &str) -> Result<()> {
-    let bytes = name.as_bytes();
-    if bytes.len() < 4 || bytes.len() > 13 {
+fn validate_label(label: &str) -> Result<()> {
+    let bytes = label.as_bytes();
+    if bytes.len() < 3 || bytes.len() > 32 {
         return err!(ErrorCode::InvalidNameLength);
     }
     if bytes[0] == b'-' || bytes[bytes.len() - 1] == b'-' {
         return err!(ErrorCode::InvalidNameChars);
     }
-    if bytes[0] == b'.' || bytes[bytes.len() - 1] == b'.' {
-        return err!(ErrorCode::InvalidNameChars);
-    }
     for b in bytes {
-        let ok = (b'a'..=b'z').contains(b)
-            || (b'0'..=b'9').contains(b)
-            || *b == b'-'
-            || *b == b'.';
+        let ok = (b'a'..=b'z').contains(b) || (b'0'..=b'9').contains(b) || *b == b'-';
         if !ok {
             return err!(ErrorCode::InvalidNameChars);
         }
     }
-    let lower = name.to_ascii_lowercase();
-    if is_reserved(&lower) {
+    // bytes validation above enforces lowercase-only.
+    if is_reserved(label) {
         return err!(ErrorCode::ReservedName);
     }
     Ok(())
 }
 
-fn write_name(name: &str, out: &mut [u8; 32], len_out: &mut u8) -> Result<()> {
-    let bytes = name.as_bytes();
-    if bytes.len() > 32 {
-        return err!(ErrorCode::InvalidNameLength);
-    }
+fn write_label(label: &str, out: &mut [u8; 32], len_out: &mut u8) -> Result<()> {
+    let bytes = label.as_bytes();
     out.fill(0);
     out[..bytes.len()].copy_from_slice(bytes);
     *len_out = bytes.len() as u8;

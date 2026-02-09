@@ -33,6 +33,30 @@ TollDNS aims to reduce reliance on any single provider by funding **distributed,
 - **Composable backends**: integrate existing networks instead of reinventing them
 - - **Index Unit** is the usage/toll currency; **native token** is staked for business/dev/miner roles and used for incentives, governance, reserves, grants, and burns
 
+## Devnet Beta: Mint Passport + Assign Route + Resolve
+
+This is the MVP flow for `.dns` names using the Solana Anchor program + a local Tollbooth service.
+
+### 1) Build + Deploy Program to Devnet
+```bash
+npm -C solana install
+npm -C solana run deploy:devnet
+```
+
+### 2) Run Tollbooth (Local)
+```bash
+npm -C services/tollbooth install
+npm -C services/tollbooth run dev
+```
+
+### 3) End-to-End Flow (Local Client, Devnet Writes)
+This script creates a test client keypair, mints a passport for it, assigns a route, and resolves it.
+
+```bash
+solana-keygen new --no-bip39-passphrase -o services/tollbooth/config/test-client.json -f
+npm -C services/tollbooth run flow:devnet
+```
+
 ---
 
 ---

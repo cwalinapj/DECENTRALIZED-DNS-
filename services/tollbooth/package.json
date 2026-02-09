@@ -1,0 +1,22 @@
+{
+  "name": "tollbooth",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "flow:devnet": "tsx scripts/devnet_flow.ts"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.32.1",
+    "@solana/spl-token": "^0.4.9",
+    "@solana/web3.js": "^1.95.3",
+    "bs58": "^5.0.0",
+    "express": "^4.19.2",
+    "tweetnacl": "^1.0.3"
+  },
+  "devDependencies": {
+    "tsx": "^4.17.0",
+    "typescript": "^5.3.3"
+  }
+}
