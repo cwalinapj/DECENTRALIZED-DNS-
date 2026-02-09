@@ -10,6 +10,75 @@ The long-term goal is a “decentralized Cloudflare”: many independent operato
 
 ---
 
+## Start Here
+
+### MVP Status (What Works Today)
+
+Live/working on Solana **devnet** today:
+
+- Passport/TollPass NFT mint + on-chain identity PDA (`ddns_anchor`)
+- Route submission with witness quorum checks (centralized bootstrap service): `services/toll-booth`
+- On-chain route record write for a `.dns` name (current MVP): `create_name_record` / `update_name_record` in `ddns_anchor`
+
+Also shipped (MVP building blocks for Design 3):
+
+- On-chain programs deployed to devnet: `ddns_registry`, `ddns_quorum`, `ddns_stake`
+- Localnet test proving: stake -> claim -> submit aggregate -> finalize canonical route via CPI
+
+Not shipped yet (explicit):
+
+- Browser extension (Firefox)
+- Miner witness daemon + receipt batching CLI (PR3)
+- Trustless on-chain receipt verification (future; receipts verified off-chain in MVP)
+
+### End-State (Planned, Not Implemented Yet)
+
+- Cache-as-Witness: stake-weighted receipts drive canonical route changes via quorum
+- Miners-first decentralization: miners run heavy verification/aggregation; everyday users run a lightweight cache-first client
+- DYDNS per NFT + IPFS cache snapshots (future; documented only)
+
+### Architecture At A Glance
+
+- Wallet / client (later: Firefox extension) maintains a local cache and emits receipts after verified resolves
+- Gateway / tollbooth provides fast resolution and convenience writes (centralized in MVP bootstrap)
+- Miners/verifiers collect receipts, verify off-chain, aggregate, and submit quorum updates
+- Solana programs store verifiable truth (identity, route records, canonical routes, stake/rewards)
+- Clients never have to trust a gateway: proofs are on-chain (PDA accounts) and locally cacheable
+
+### Proofs / Hashes (What “Verifiable” Means)
+
+Example (deterministic):
+
+- `name = "example.dns"`
+- `name_hash = sha256(utf8(name)) = 8e01…dfa8`
+- `dest = "https://example.com"`
+- `dest_hash = sha256(utf8(dest)) = 1006…9ce9`
+
+In Design 3, the canonical proof is the on-chain PDA `["canonical", name_hash]` owned by `ddns_registry`.
+
+Verified MVP example on devnet (2026-02-09):
+
+- TollPass mint tx: `4JFCsqiMwPZ5exhMvcSfXueuwBRXMVRM1QAb4soTncTrR7qmnBoRuC5nWNn6HJd68MKPW1YtAv2CzT8fEDGBjaUy`
+- Route write tx: `2uWiHYhNBwMU9cqwGsrgYd9XoAjrVAWA9n1fartoQb5UQrpLewBY9wFLnCAzN2DWVssuiPFd7HbeFkMGHPyqGLRE`
+- NameRecord PDA (ddns_anchor): `9uK735cEkShaWjXw96tMVgWY4dtTT1e9cxzwEt7dr3N8`
+- `name_hash`: `32e1…e3d7` and `dest_hash`: `1006…9ce9`
+
+### Docs Map
+
+- `docs/README.md` (index)
+- `docs/MVP.md`
+- `docs/PROTOCOL_CACHE_WITNESS.md`
+- `docs/END_STATE.md`
+- `solana/README.md` (on-chain programs + scripts)
+
+### What This Repo Contains
+
+- `solana/`: Anchor workspace (programs + scripts)
+- `services/toll-booth/`: MVP tollbooth verifier service (witness quorum + on-chain toll pass check)
+- `gateway/`, `resolver/`, `core/`, `plugins/`, `adapters/`: resolver/gateway and backend integration surfaces (concept + WIP)
+
+---
+
 ## Why
 
 Internet reliability and security are increasingly concentrated in a small number of edge providers (DNS, DDoS absorption, gateways, caching). This creates systemic risk:

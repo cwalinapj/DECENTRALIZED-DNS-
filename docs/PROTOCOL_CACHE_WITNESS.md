@@ -1,5 +1,10 @@
 # Protocol: Cache-as-Witness + Quorum (v1)
 
+> This doc contains: [MVP ✅] [End-State 🔮]
+>
+> - MVP ✅: receipt format + off-chain aggregation rules + minimal on-chain commitments
+> - End-State 🔮: trustless proofs/slashing and deeper on-chain verification (not implemented yet)
+
 This spec defines the off-chain receipt format and the on-chain aggregate/quorum interface for Design 3.
 
 MVP rule: receipt verification is OFF-CHAIN (miners). On-chain stores only minimal aggregates + canonical route state.
@@ -156,4 +161,3 @@ If canonical differs from local cache:
 - keep last-known-good as active
 - store new answer as pending
 - promote pending only after chain shows the new canonical version
-
