@@ -35,6 +35,21 @@ TollDNS aims to reduce reliance on any single provider by funding **distributed,
 
 ---
 
+## MVP vs End Product (Design 3: Cache-as-Witness + Staking)
+
+Protocol + roadmap docs:
+
+- `docs/MVP.md`
+- `docs/PROTOCOL_CACHE_WITNESS.md`
+- `docs/END_STATE.md`
+
+Miner-first decentralization:
+
+- MVP uses a centralized gateway/tollbooth and allowlisted miners to bootstrap fast routing and quorum updates.
+- End-product removes those trust points via decentralized quorum and stake-weighted receipts.
+- Everyday users get a lightweight client (cache-first + verify on refresh); miners run the heavy infrastructure (verification, aggregation, feeds).
+- A browser extension (Firefox) is not shipped in MVP; MVP uses CLI/scripts and services.
+
 ---
 
 ---
