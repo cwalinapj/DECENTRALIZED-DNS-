@@ -238,5 +238,17 @@ npm run submit-receipts -- --url http://localhost:8790 --in /tmp/ddns-receipt.js
 
 Proof outputs (tx sigs, PDAs, hashes): see `/Users/root1/scripts/DECENTRALIZED-DNS-/services/miner-witness/VERIFIED.md`.
 
+## Nameserver Delegation Incentives (ICANN domains) (WIP)
+
+This module is not part of the `.dns` MVP flow yet. It is an incentive module to pay domain owners usage-based rewards in TOLL when they delegate their ICANN domain NS to DDNS infrastructure.
+
+Scripts:
+
+- `npm -C solana run ns:claim -- init-config ...`
+- `npm -C solana run ns:claim -- create --domain example.com`
+- `npm -C solana run ns:attest -- --domain example.com --control-proof-hash <hex32>`
+- `npm -C solana run ns:usage -- --domain example.com --query-count 1000 --receipts-root <hex32>`
+- `npm -C solana run ns:claim -- claim-rewards --domain example.com --from-epoch <n> --to-epoch <n> --toll-mint <MINT>`
+
 ## Build status
 Default build passes (no Metaplex CPI in-program).

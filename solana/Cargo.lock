@@ -477,6 +477,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ddns_ns_incentives"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+ "sha2",
+ "spl-token",
+]
+
+[[package]]
 name = "ddns_quorum"
 version = "0.1.0"
 dependencies = [

@@ -81,3 +81,6 @@ Not yet decentralized in MVP:
 - Rotating stake-weighted committees and slashing.
 - Browser extension distribution (Firefox).
 
+## 6) Future Incentive Modules (Not Implemented in MVP)
+
+- NS Incentives (ICANN domains): pay domain owners in TOLL for delegating their domain NS to DDNS infrastructure and generating real resolver usage (usage-based rewards).

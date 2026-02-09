@@ -157,3 +157,37 @@ If canonical differs from local cache:
 - store new answer as pending
 - promote pending only after chain shows the new canonical version
 
+## 7) Query Receipt Format (v1) (ICANN NS Incentives)
+
+This receipt type is used for usage-based rewards when an ICANN domain owner delegates NS to DDNS infrastructure.
+
+Definitions:
+
+- `domain_norm`: lowercase, strip trailing dot (MVP: ASCII `a-z0-9.-`)
+- `domain_hash = SHA256(UTF8(domain_norm))`
+
+Receipt fields (off-chain):
+
+- `version: u8 = 1`
+- `domain_hash: [u8;32]`
+- `observed_at_unix: i64`
+- `wallet_pubkey: Pubkey`
+- `signature: [u8;64]` (ed25519)
+
+Canonical signing bytes:
+
+```
+msg = SHA256(
+  "DDNS_QUERY_RECEIPT_V1" ||
+  domain_hash ||
+  LE64(observed_at_unix)
+)
+signature = ed25519_sign(wallet_sk, msg)
+```
+
+Aggregation (off-chain, MVP):
+
+- group by `(domain_hash, epoch_id)`
+- dedupe by `wallet_pubkey`
+- compute `query_count` and `receipts_root` (Merkle root)
+- submit `query_count` + `receipts_root` on-chain as the usage commitment (MVP trust: allowlisted miner)

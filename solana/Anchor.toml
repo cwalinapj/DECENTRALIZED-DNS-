@@ -7,12 +7,14 @@ ddns_anchor = "9hwvtFzawMZ6R9eWJZ8YjC7rLCGgNK7PZBNeKMRCPBes"
 ddns_registry = "5zg8CsxpRKyurnTg539wr2nVtS6zritQDTGy4uAUerdx"
 ddns_quorum = "9gyHsemmJfujZEqH1o4VhefxvbUJFQkPko8ASAteX5YB"
 ddns_stake = "6gT4zHNpU4PtXL4LRv1sW8MwkFu254Z7gQM7wKqnmZYF"
+ddns_ns_incentives = "8mC8Kvky9Jir4Lxe5R5L6ppoexaYtDJKe8JP8xA9JUuM"
 
 [programs.devnet]
 ddns_anchor = "9hwvtFzawMZ6R9eWJZ8YjC7rLCGgNK7PZBNeKMRCPBes"
 ddns_registry = "5zg8CsxpRKyurnTg539wr2nVtS6zritQDTGy4uAUerdx"
 ddns_quorum = "9gyHsemmJfujZEqH1o4VhefxvbUJFQkPko8ASAteX5YB"
 ddns_stake = "6gT4zHNpU4PtXL4LRv1sW8MwkFu254Z7gQM7wKqnmZYF"
+ddns_ns_incentives = "8mC8Kvky9Jir4Lxe5R5L6ppoexaYtDJKe8JP8xA9JUuM"
 
 [provider]
 cluster = "devnet"
