@@ -52,6 +52,25 @@ Miner-first decentralization:
 
 ---
 
+## Quick Demo (Devnet)
+
+This is the shortest devnet demo path that exercises real transactions and produces verifiable on-chain proof objects.
+
+```bash
+cd solana
+npm install
+anchor build
+```
+
+Then follow `docs/MVP.md` to:
+
+1. Mint a TollPass on devnet (`solana/scripts/mint_toll_pass.ts`)
+2. Write a route record on devnet (`solana/scripts/set_route.ts`)
+
+Devnet is the reference environment. Localnet is optional for MVP.
+
+---
+
 ---
 
 ## Miner Onboarding Path: Docker (Beta) → Pi Firmware → Router Firmware → ASIC Edge Routers
