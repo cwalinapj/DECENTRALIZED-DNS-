@@ -58,3 +58,6 @@ Example JSON query:
 curl -H "accept: application/dns-json" \
   "https://<MINT>.trdl.<DOMAIN>/dns-query?name=example.com&type=A"
 ```
+
+## Firefox TRR
+See `docs/FIREFOX_TRR.md` for step‑by‑step setup and screenshots.
