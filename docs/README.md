@@ -2,6 +2,14 @@
 
 This folder mixes long-form concept docs with the Design 3 `.dns` MVP/end-state pathway.
 
+## Canonical Docs
+- `MVP.md` / `PROTOCOL_CACHE_WITNESS.md` / `END_STATE.md` (Design 3: `.dns`)
+- `05-tokenomics.md`
+- `THREAT_MODEL.md` (threats + mitigations)
+- `ATTACK_MODE.md` (degradation rules + thresholds)
+- `ops/` (deployment + runbooks)
+- `specs/` (API/spec references)
+
 ## Start Here (Design 3)
 
 - `MVP.md` (what is shippable today; what is centralized vs decentralized)
@@ -35,4 +43,3 @@ MVP tollbooth service lives under:
 - Stake: locked value that weights receipts and earns rewards
 - Toll: fee to propose/accelerate updates (MVP: can be service-mediated)
 - Passport/TollPass: NFT identity used for anti-sybil gating (MVP bootstrap)
-

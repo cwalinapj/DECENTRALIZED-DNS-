@@ -3,6 +3,7 @@
 Repo: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 
 - 📄 Prospectus: `PROSPECTUS.md`
+- Security: `docs/THREAT_MODEL.md` and `docs/ATTACK_MODE.md`
 
 ## Start Here (Origin DDNS: `.dns`)
 
