@@ -106,12 +106,23 @@ async function main() {
   anchor.setProvider(provider);
 
   const idl = loadIdl();
-  const programId = new PublicKey(
-    readProgramIdFromAnchorToml(rpcUrl) ??
-      idl.metadata?.address ??
-      idl.address ??
-      "9hwvtFzawMZ6R9eWJZ8YjC7rLCGgNK7PZBNeKMRCPBes"
-  );
+  let programId: PublicKey | null = null;
+  try {
+    const program = anchor.workspace.DdnsAnchor as anchor.Program;
+    programId = program.programId;
+  } catch {
+    const fromToml = readProgramIdFromAnchorToml(rpcUrl);
+    if (fromToml) programId = new PublicKey(fromToml);
+  }
+  if (!programId) {
+    throw new Error("program id not found in Anchor workspace or Anchor.toml");
+  }
+  console.log("program_id:", programId.toBase58());
+
+  const programInfo = await connection.getAccountInfo(programId, "confirmed");
+  if (!programInfo) {
+    throw new Error(`program id not found on this cluster: ${programId.toBase58()}`);
+  }
   const accountsCoder = new anchor.BorshAccountsCoder(idl);
   const ixCoder = new anchor.BorshInstructionCoder(idl);
 
@@ -129,7 +140,6 @@ async function main() {
   );
 
   console.log("provider_url:", rpcUrl);
-  console.log("program_id:", programId.toBase58());
   console.log("record_pda:", recordPda.toBase58());
   console.log("toll_pass_pda:", tollPassPda.toBase58());
   console.log("name_hash:", Buffer.from(nameHash).toString("hex"));
