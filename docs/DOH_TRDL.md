@@ -37,6 +37,11 @@ Generate a signed payload with:
 npm -C solana run cache:sign-upsert -- --mint <MINT> --name example.dns --rrtype A --value 1.2.3.4 --ttl 300
 ```
 
+Or send directly:
+```bash
+npm -C solana run cache:upsert -- --mint <MINT> --name example.dns --rrtype A --value 1.2.3.4 --ttl 300 --url http://localhost:8054/cache/upsert
+```
+
 **Firefox**
 Set DoH URL to:
 ```
