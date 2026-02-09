@@ -1,0 +1,25 @@
+{
+  "name": "miner-witness",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "test": "vitest run",
+    "build": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@ddns/attack-mode": "file:../../packages/attack-mode",
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.25",
+    "@types/supertest": "^6.0.2",
+    "@types/node": "^22.13.4",
+    "supertest": "^7.0.0",
+    "tsx": "^4.17.0",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.3"
+  }
+}
+
