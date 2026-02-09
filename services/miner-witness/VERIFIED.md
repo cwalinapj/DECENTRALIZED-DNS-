@@ -28,42 +28,46 @@ This file records a successful end-to-end Design 3 MVP flow on Solana devnet:
 - `claim_rewards` tx: `4avFzxYf6asy1RHdWvfEmmPwJsb24ut6Jpdxd2ymS4hjfPRir38Sb3tiTWjWSorEF23Cpo9j6XtXhFHdbkzMj3CC`
   - user reward ATA: `F2ySS7w6EYUKHtgDVmxGgonMuEhopwq8x22ykop88VBP`
 
-## Receipt Inputs
+## Receipt Inputs (ReceiptV1)
 
-- name: `example123.dns`
+- name: `example124.dns`
 - dest: `https://example.com`
 - ttl_s: `300`
 
 Computed (client-side, from `solana/scripts/make_receipt.ts`):
 
-- `name_hash` (sha256(name_lc)): `7637f6abf851b8c774a1ef91a2b875c4a28684898266879ec3cad6f69a9cd261`
+- `name_hash` (sha256(name_lc)): `c3aebb7f8605f1e20ede7fc0f0a0d439517cca813858c3b37838802a284daaf0`
 - `dest_hash` (sha256(dest_c)): `100680ad546ce6a577f42f52df33b4cfdca756859e664b8d7de329b150d09ce9`
+
+Domain-separated signature bytes:
+
+`SHA256("DDNS_RECEIPT_V1" || name_hash || dest_hash || observed_at_unix_le_i64 || ttl_le_u32)`
 
 ## Miner Witness Submission + Finalization
 
 From `POST /v1/submit-receipts`:
 
-- epoch_id: `4409017`
+- epoch_id: `4409032`
 - receipt_count: `1`
 - stake_weight: `100000000`
-- receipts_root: `eb48d10894c6f5a1c632507cd25ea716a70d705f5ba7119ebede8809cb4144ac`
+- receipts_root: `0c7799a7d167167a872a9fa9aaf4dfeace6d0c720f54ed7e56e1dfc1184f11b7`
 
 Transactions:
 
-- init verifier set tx (for current epoch): `4bMAHyaaT1YgjdLtADpJfDqY4qUQDZ48uhtufGWFZ71BvGuWzre7wPuwCbJVdvC1ZNNkFxKhpThiDTqyWVy8mS8X`
-- submit stake snapshot tx: `24r6SGkUJmqXRVUp2vPWRfJcdVLDFqgts8RnwZq2AfLnpjSScobnnL7pkb6b7t6qDUmgsVxuvDvrJkARZbzFsXgj`
-- submit aggregate tx: `4v7ffeNj3E2Dei1gjPW8Bqg492teCJCELtLCBvByE2tWBSFqSRdH6GdoJD4ZGXPCqwtnx6Wom34PUvrwHJEhM2uS`
-- finalize if quorum tx: `3fmZXyeZEpBryW8FbaGHZKT9m1wTh5fcG7h8ATcUrQsk2PrCNPDzP5GPU9cPssq5pd8P5gXF9FwfkXC3thPJuWoW`
+- init verifier set tx (for current epoch): `3dy9M66BBHDWBTEP2qYDJZxpajsETus2LAeVtGRZ4dmm2c3vbirWEZs4qrNUEGSiT3BZ1nYDS1bbVGWHShiKhuAv`
+- submit stake snapshot tx: `4CZGRcJ5BtdzKAeRQX88GFbWQLezAr6HCkkirLTxYLDuXmReCQqpAsiiwMvpYo76G6WVzwi7BaN3v4WGhtod9CVZ`
+- submit aggregate tx: `daXgYrT66LARAHWPbfXLfsdohk8Prp3kzJorBP7kcQgF2AhVt1MWqTEP4DxL4xt7fop2vW62URGBsDfmBcYitEu`
+- finalize if quorum tx: `4rGgqzVMZ8P5ukZcEL8PkDZkMqQR1wQAR31cMzEbnjj6wZKCbQ85aQmzXbwosMbJjcv55zWCAXTXqfqVPAFRXizb`
 
 PDAs:
 
-- AggregateSubmission PDA: `CHNXfQgN1rJgK3YG3Tr6xjtwkdFvJZZrqcegJaTxWwEs`
-- CanonicalRoute PDA: `8NxgnTf1RgvpvnpoksUBfTfJcdHJXLWUaf6KVfXNBkqM`
+- AggregateSubmission PDA: `DcmoT398PHTPFxqpnf39ts5PBFSaEqUwjgMrQRdmgqvk`
+- CanonicalRoute PDA: `76mHffJodZijfPtb47fyENwALVz7q6vNoMCccrsX2fBk`
 
 On-chain existence check:
 
 ```bash
-solana account -u devnet 8NxgnTf1RgvpvnpoksUBfTfJcdHJXLWUaf6KVfXNBkqM --output json
+solana account -u devnet 76mHffJodZijfPtb47fyENwALVz7q6vNoMCccrsX2fBk --output json
 ```
 
 Expected:
@@ -91,7 +95,6 @@ MINER_KEYPAIR=~/.config/solana/id.json SOLANA_RPC_URL=https://api.devnet.solana.
 
 # make + submit receipt
 cd ../../solana
-npm run make-receipt -- --name example123.dns --dest https://example.com --ttl 300 --out /tmp/ddns-receipt.json
+npm run make-receipt -- --name example124.dns --dest https://example.com --ttl 300 --out /tmp/ddns-receipt.json
 npm run submit-receipts -- --url http://localhost:8790 --in /tmp/ddns-receipt.json
 ```
-

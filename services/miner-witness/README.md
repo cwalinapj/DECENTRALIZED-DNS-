@@ -19,7 +19,8 @@ Devnet proof outputs (tx sigs, PDAs, hashes): see `VERIFIED.md`.
 
 Prereqs:
 
-- `anchor build` has been run at least once in `solana/` (so IDLs exist at `solana/target/idl/*.json`)
+- Solana CLI configured for devnet and a funded wallet keypair (miner keypair)
+- `anchor build` has been run at least once in `solana/` (IDLs at `solana/target/idl/*.json`)
 
 Install + run:
 
@@ -68,5 +69,35 @@ Example:
 ```bash
 curl -sS -X POST http://localhost:8790/v1/submit-receipts \\
   -H 'content-type: application/json' \\
-  -d '{ "receipts": [ { "version":1, "name":"example.dns", "dest":"https://example.com", "ttl_s":300, "observed_at_unix": 0, "wallet_pubkey":"...", "signature":"base64..." } ] }'
+  -d '{ "receipts": [ { "version":1, "name":"example.dns", "name_hash":"<hex32>", "dest":"https://example.com", "dest_hash":"<hex32>", "ttl_s":300, "observed_at_unix": 0, "wallet_pubkey":"...", "signature":"base64..." } ] }'
+```
+
+## Devnet Quickstart (Copy/Paste)
+
+From repo root (clean clone):
+
+```bash
+# 1) build IDLs locally (required by miner in MVP)
+cd solana
+npm install
+anchor build
+
+# 2) start miner
+cd ../services/miner-witness
+npm install
+BOOTSTRAP=1 MINER_KEYPAIR=~/.config/solana/id.json SOLANA_RPC_URL=https://api.devnet.solana.com npm run dev
+```
+
+In another shell:
+
+```bash
+cd solana
+
+# 3) init stake config (once), stake, and (optionally) claim rewards later
+npm run stake -- init
+npm run stake -- stake --amount-sol 0.1
+
+# 4) create a receipt + submit to miner
+npm run make-receipt -- --name example124.dns --dest https://example.com --ttl 300 --out /tmp/ddns-receipt.json
+npm run submit-receipts -- --url http://localhost:8790 --in /tmp/ddns-receipt.json
 ```

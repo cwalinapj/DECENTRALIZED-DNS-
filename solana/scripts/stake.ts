@@ -108,6 +108,7 @@ async function main() {
 
   const programIdStr =
     argv["program-id"] ||
+    process.env.DDNS_STAKE_PROGRAM_ID ||
     readProgramIdFromAnchorToml(rpcUrl, "ddns_stake") ||
     "6gT4zHNpU4PtXL4LRv1sW8MwkFu254Z7gQM7wKqnmZYF";
   const programId = new PublicKey(programIdStr);
