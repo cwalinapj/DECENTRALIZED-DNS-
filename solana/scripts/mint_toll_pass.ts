@@ -19,6 +19,7 @@ import {
   getMint,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
+import { guardWriteWithMultiRpc, parseRpcQuorumUrls } from "./_attack_mode.js";
 
 function loadKeypair(filePath: string): Keypair {
   const raw = JSON.parse(fs.readFileSync(filePath, "utf8"));
@@ -169,6 +170,16 @@ async function main() {
   console.log("provider_url:", rpcUrl);
   console.log("pda_toll_pass:", tollPassPda.toBase58());
   console.log("pda_record:", recordPda.toBase58());
+
+  // Attack-mode: fail closed for writes if RPCs disagree about the toll_pass account.
+  const rpcUrls = parseRpcQuorumUrls(rpcUrl);
+  const guard = await guardWriteWithMultiRpc({ account: tollPassPda.toBase58(), rpcUrls });
+  if (!guard.ok) {
+    console.error("attack_mode:", guard.mode, guard.reasons);
+    console.error("multi_rpc_evidence:", guard.evidence);
+    throw new Error("attack_mode_freeze_writes");
+  }
+  console.log("multi_rpc_ok:", { agreeing: guard.agreeingUrls, slot: guard.slot, dataHash: guard.dataHashHex });
 
   let mint: PublicKey;
   let tokenAccount: PublicKey;
