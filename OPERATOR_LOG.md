@@ -53,5 +53,5 @@
   - cache-rollup build: PASS
   - solana cargo checks/tests: PASS (`ddns_cache_head`, `ddns_rep`)
   - full Anchor TS suite: PASS (11 passing)
-- PR link: (to be added)
+- PR link: https://github.com/cwalinapj/DECENTRALIZED-DNS-/pull/72
 - Merge commit hash: (to be added after merge)
