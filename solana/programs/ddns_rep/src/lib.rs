@@ -4,6 +4,10 @@ declare_id!("DWV9QLGWmsrteqpbKb55JmHTsdtqgLukvnzQgEq36pQ9");
 
 const BONUS_DENOM: u128 = 10_000;
 const MAX_BONUS_BPS: u16 = 2_000; // +20%
+const MAX_BOND_STRIKES_FOR_WITHDRAW: u32 = 3;
+const TIER1_MIN_REP: u64 = 1_000;
+const TIER2_MIN_REP: u64 = 10_000;
+const TIER3_MIN_REP: u64 = 50_000;
 
 #[program]
 pub mod ddns_rep {
@@ -66,7 +70,9 @@ pub mod ddns_rep {
             .bond_lamports
             .checked_add(lamports)
             .ok_or(error!(RepError::MathOverflow))?;
-        bond.last_deposit_slot = Clock::get()?.slot;
+        let now = Clock::get()?.slot;
+        bond.deposited_at_slot = now;
+        bond.withdraw_available_slot = now.saturating_add(ctx.accounts.config.cooldown_slots);
         bond.bump = ctx.bumps.bond;
         Ok(())
     }
@@ -75,11 +81,14 @@ pub mod ddns_rep {
         require!(lamports > 0, RepError::InvalidAmount);
         let now = Clock::get()?.slot;
 
-        let cfg = &ctx.accounts.config;
         let current = ctx.accounts.bond.to_account_info().lamports();
         let bond_view = &ctx.accounts.bond;
         require!(
-            now >= bond_view.last_deposit_slot.saturating_add(cfg.cooldown_slots),
+            bond_view.strikes < MAX_BOND_STRIKES_FOR_WITHDRAW,
+            RepError::BondStrikesExceeded
+        );
+        require!(
+            now >= bond_view.withdraw_available_slot,
             RepError::CooldownNotMet
         );
         require!(bond_view.bond_lamports >= lamports, RepError::InsufficientBond);
@@ -176,6 +185,14 @@ pub mod ddns_rep {
         rep.last_claim_slot = now_slot;
         rep.last_receipts_root = receipts_root;
 
+        let caps = &mut ctx.accounts.caps;
+        if caps.miner == Pubkey::default() {
+            caps.miner = ctx.accounts.miner.key();
+            caps.bump = ctx.bumps.caps;
+        }
+        require!(caps.miner == ctx.accounts.miner.key(), RepError::InvalidMiner);
+        update_caps_from_rep(caps, rep.rep_total, now_slot);
+
         emit!(RepAwarded {
             miner: ctx.accounts.miner.key(),
             epoch_id,
@@ -217,8 +234,8 @@ pub mod ddns_rep {
         }
 
         if strike_inc > 0 {
-            let rep = &mut ctx.accounts.rep;
-            rep.strikes = rep.strikes.saturating_add(strike_inc);
+            let bond = &mut ctx.accounts.bond;
+            bond.strikes = bond.strikes.saturating_add(strike_inc);
         }
 
         Ok(())
@@ -306,6 +323,14 @@ pub struct AwardRep<'info> {
         bump
     )]
     pub rep: Account<'info, MinerRep>,
+    #[account(
+        init_if_needed,
+        payer = miner,
+        space = 8 + MinerCapabilities::SIZE,
+        seeds = [b"miner_caps", miner.key().as_ref()],
+        bump
+    )]
+    pub caps: Account<'info, MinerCapabilities>,
     pub system_program: Program<'info, System>,
 }
 
@@ -362,12 +387,14 @@ impl RepConfig {
 pub struct MinerBond {
     pub miner: Pubkey,
     pub bond_lamports: u64,
-    pub last_deposit_slot: u64,
+    pub deposited_at_slot: u64,
+    pub withdraw_available_slot: u64,
+    pub strikes: u32,
     pub bump: u8,
 }
 
 impl MinerBond {
-    pub const SIZE: usize = 32 + 8 + 8 + 1;
+    pub const SIZE: usize = 32 + 8 + 8 + 8 + 4 + 1;
 }
 
 #[account]
@@ -377,14 +404,29 @@ pub struct MinerRep {
     pub rep_today: u64,
     pub rep_today_day_id: u64,
     pub last_epoch_seen: u64,
-    pub strikes: u32,
     pub last_claim_slot: u64,
     pub last_receipts_root: [u8; 32],
     pub bump: u8,
 }
 
 impl MinerRep {
-    pub const SIZE: usize = 32 + 8 + 8 + 8 + 8 + 4 + 8 + 32 + 1;
+    pub const SIZE: usize = 32 + 8 + 8 + 8 + 8 + 8 + 32 + 1;
+}
+
+#[account]
+pub struct MinerCapabilities {
+    pub miner: Pubkey,
+    pub tier: u8,
+    pub max_edge_bytes_per_day: u64,
+    pub max_relay_rps: u32,
+    pub eligible_edge_host: bool,
+    pub eligible_gateway: bool,
+    pub last_tier_update_slot: u64,
+    pub bump: u8,
+}
+
+impl MinerCapabilities {
+    pub const SIZE: usize = 32 + 1 + 8 + 4 + 1 + 1 + 8 + 1;
 }
 
 #[event]
@@ -425,6 +467,8 @@ pub enum RepError {
     DuplicateRoot,
     #[msg("Bad epoch")]
     BadEpoch,
+    #[msg("Bond strikes exceed withdrawal threshold")]
+    BondStrikesExceeded,
 }
 
 fn day_id(unix_ts: i64) -> Result<u64> {
@@ -438,4 +482,24 @@ fn compute_diversity_bonus_bps(cfg: &RepConfig, names: u32, colos: u16) -> u16 {
     let name_bonus = name_excess.saturating_mul(20); // 0.2% per extra unique name
     let colo_bonus = (colo_excess as u32).saturating_mul(100); // 1% per extra colo
     (name_bonus.saturating_add(colo_bonus) as u16).min(MAX_BONUS_BPS)
+}
+
+fn update_caps_from_rep(caps: &mut MinerCapabilities, rep_total: u64, now_slot: u64) {
+    let (tier, eligible_gateway, eligible_edge_host, max_edge_bytes_per_day, max_relay_rps) =
+        if rep_total >= TIER3_MIN_REP {
+            (3u8, true, true, 50_000_000_000u64, 2_000u32)
+        } else if rep_total >= TIER2_MIN_REP {
+            (2u8, true, true, 10_000_000_000u64, 500u32)
+        } else if rep_total >= TIER1_MIN_REP {
+            (1u8, true, false, 0u64, 100u32)
+        } else {
+            (0u8, false, false, 0u64, 0u32)
+        };
+
+    caps.tier = tier;
+    caps.eligible_gateway = eligible_gateway;
+    caps.eligible_edge_host = eligible_edge_host;
+    caps.max_edge_bytes_per_day = max_edge_bytes_per_day;
+    caps.max_relay_rps = max_relay_rps;
+    caps.last_tier_update_slot = now_slot;
 }

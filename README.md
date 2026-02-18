@@ -14,6 +14,7 @@ Repo: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 - Adapter layer (PKDNS/IPFS/ENS/SNS): `docs/ADAPTERS.md`
 - Watchdogs + policy attestation formats: `docs/PROTOCOL_WATCHDOG_ATTESTATION.md`
 - Security: `docs/THREAT_MODEL.md` and `docs/ATTACK_MODE.md`
+- REP + edge-host roadmap: `docs/REP_AND_EDGE_HOSTING.md`
 
 ### Adoption Wedge: Domain Owners Get Paid
 
@@ -161,6 +162,10 @@ Anti-sybil gates for REP are enforced on-chain by `ddns_rep`:
 - cooldown between awards
 - daily cap per miner
 - diversity minimums (names + colos)
+
+REP-to-capability roadmap (MVP implemented as account state, hosting flow later):
+- tiered gateway/edge-host eligibility is derived from `rep_total`
+- see `docs/REP_AND_EDGE_HOSTING.md`
 
 ---
 

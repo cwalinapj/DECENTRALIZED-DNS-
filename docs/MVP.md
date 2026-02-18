@@ -20,6 +20,7 @@ This MVP ships a working `.dns` flow on Solana devnet while explicitly allowing 
   - Route reads (canonical route PDAs in Design 3; existing per-wallet records remain usable).
 - Off-chain witness receipts (client-signed) collected and aggregated by miners (MVP: off-chain verification).
 - Staking rewards (TOLL token) so users can earn funds to pay future tolls (mechanics are minimal in MVP).
+- REP capability accrual via `ddns_rep` (bonded, capped, diversity-gated) for miner status and future edge-host eligibility.
 
 Verification logs (devnet/localnet commands + tx signatures) live in:
 
@@ -146,6 +147,11 @@ Why not “per-query payouts” in MVP:
 - raw query counts are trivial to bot and break economics
 - toll events represent scarce value (route acquisition/refresh), so wash behavior costs real funds.
 
+REP in MVP:
+- REP is non-transferable reputation for miners.
+- REP is awarded per aggregate with anti-sybil controls (bond + cooldown + daily cap + diversity gates).
+- REP currently grants status and future capability tiers; it does not mint free TOLL.
+
 ## Privacy Notes (MVP)
 
 - Witness receipts must not include client IP, user agent, wallet pubkeys, or per-request IDs.
@@ -173,4 +179,3 @@ How other components use policy:
 See:
 
 - `docs/PROTOCOL_WATCHDOG_ATTESTATION.md`
-

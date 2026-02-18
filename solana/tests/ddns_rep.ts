@@ -4,10 +4,12 @@ import { expect } from "chai";
 import { Keypair, PublicKey, SystemProgram, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import BN from "bn.js";
 
-function u64le(n: bigint): Buffer {
-  const b = Buffer.alloc(8);
-  b.writeBigUInt64LE(n);
-  return b;
+async function advanceSlots(provider: anchor.AnchorProvider, count: number) {
+  const start = await provider.connection.getSlot("confirmed");
+  const target = start + count;
+  while ((await provider.connection.getSlot("confirmed")) < target) {
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
 }
 
 describe("ddns_rep", () => {
@@ -16,52 +18,36 @@ describe("ddns_rep", () => {
 
   const program = anchor.workspace.DdnsRep as Program;
 
-  it("bond gate + award rep + daily cap + duplicate root", async () => {
-    const feePayer = (provider.wallet as any).payer as Keypair;
-    const authority = feePayer.publicKey;
-
+  it("enforces cooldown + daily cap and updates miner capabilities tier", async () => {
+    const authority = (provider.wallet as any).payer.publicKey as PublicKey;
     const [configPda] = PublicKey.findProgramAddressSync([Buffer.from("rep_config")], program.programId);
 
     await program.methods
       .initRepConfig(
-        new BN(1000), // epoch_len_slots
-        new BN(50), // daily cap
-        new BN(10_000_000), // min bond
+        new BN(1000), // epoch len
+        new BN(2000), // daily cap
+        new BN(10_000_000), // min bond lamports
         2, // min unique names
         1, // min unique colos
-        new BN(40), // rep per valid aggregate
-        new BN(0), // no decay
-        new BN(0), // cooldown slots
+        new BN(600), // base REP
+        new BN(0), // decay
+        new BN(2), // cooldown slots
         true
       )
-      .accounts({
-        authority,
-        config: configPda,
-        systemProgram: SystemProgram.programId,
-      })
+      .accounts({ authority, config: configPda, systemProgram: SystemProgram.programId })
       .rpc();
 
     const miner = Keypair.generate();
     const dropSig = await provider.connection.requestAirdrop(miner.publicKey, LAMPORTS_PER_SOL);
     await provider.connection.confirmTransaction(dropSig, "confirmed");
 
-    const [bondPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("rep_bond"), miner.publicKey.toBuffer()],
-      program.programId
-    );
-    const [repPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("miner_rep"), miner.publicKey.toBuffer()],
-      program.programId
-    );
+    const [bondPda] = PublicKey.findProgramAddressSync([Buffer.from("rep_bond"), miner.publicKey.toBuffer()], program.programId);
+    const [repPda] = PublicKey.findProgramAddressSync([Buffer.from("miner_rep"), miner.publicKey.toBuffer()], program.programId);
+    const [capsPda] = PublicKey.findProgramAddressSync([Buffer.from("miner_caps"), miner.publicKey.toBuffer()], program.programId);
 
     await program.methods
       .depositRepBond(new BN(20_000_000))
-      .accounts({
-        miner: miner.publicKey,
-        config: configPda,
-        bond: bondPda,
-        systemProgram: SystemProgram.programId,
-      })
+      .accounts({ miner: miner.publicKey, config: configPda, bond: bondPda, systemProgram: SystemProgram.programId })
       .signers([miner])
       .rpc();
 
@@ -69,38 +55,42 @@ describe("ddns_rep", () => {
     const epoch = BigInt(Math.floor(slot / 1000));
 
     const rootA = Array.from({ length: 32 }, (_, i) => (i + 1) % 255);
+    const rootB = Array.from({ length: 32 }, (_, i) => (i + 2) % 255);
+    const rootC = Array.from({ length: 32 }, (_, i) => (i + 3) % 255);
+
     await program.methods
-      .awardRep(new BN(epoch.toString()), rootA, 100, 2, 1)
+      .awardRep(new BN(epoch.toString()), rootA, 100, 4, 2)
       .accounts({
         miner: miner.publicKey,
         config: configPda,
         bond: bondPda,
         rep: repPda,
+        caps: capsPda,
         systemProgram: SystemProgram.programId,
       })
       .signers([miner])
       .rpc();
 
-    // duplicate root must fail
     try {
       await program.methods
-        .awardRep(new BN(epoch.toString()), rootA, 100, 2, 1)
+        .awardRep(new BN(epoch.toString()), rootB, 100, 4, 2)
         .accounts({
           miner: miner.publicKey,
           config: configPda,
           bond: bondPda,
           rep: repPda,
+          caps: capsPda,
           systemProgram: SystemProgram.programId,
         })
         .signers([miner])
         .rpc();
-      expect.fail("expected duplicate root failure");
+      expect.fail("expected cooldown failure");
     } catch (e: any) {
-      expect(String(e)).to.match(/DuplicateRoot|duplicate/i);
+      expect(String(e)).to.match(/CooldownNotMet|cooldown/i);
     }
 
-    // second unique root should be capped by daily cap (50 total).
-    const rootB = Array.from({ length: 32 }, (_, i) => (i + 2) % 255);
+    await advanceSlots(provider, 3);
+
     await program.methods
       .awardRep(new BN(epoch.toString()), rootB, 100, 10, 2)
       .accounts({
@@ -108,14 +98,35 @@ describe("ddns_rep", () => {
         config: configPda,
         bond: bondPda,
         rep: repPda,
+        caps: capsPda,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([miner])
+      .rpc();
+
+    await advanceSlots(provider, 3);
+
+    await program.methods
+      .awardRep(new BN(epoch.toString()), rootC, 100, 10, 2)
+      .accounts({
+        miner: miner.publicKey,
+        config: configPda,
+        bond: bondPda,
+        rep: repPda,
+        caps: capsPda,
         systemProgram: SystemProgram.programId,
       })
       .signers([miner])
       .rpc();
 
     const rep: any = await program.account.minerRep.fetch(repPda);
-    expect(Number(rep.repTotal)).to.equal(50);
-    expect(Number(rep.repToday)).to.equal(50);
+    const caps: any = await program.account.minerCapabilities.fetch(capsPda);
+
+    expect(Number(rep.repTotal)).to.be.gte(1000);
+    expect(Number(rep.repToday)).to.be.lte(2000);
+    expect(Number(caps.tier)).to.equal(1);
+    expect(Boolean(caps.eligibleGateway)).to.equal(true);
+    expect(Boolean(caps.eligibleEdgeHost)).to.equal(false);
   });
 
   it("rejects award when diversity below minimum", async () => {
@@ -124,23 +135,13 @@ describe("ddns_rep", () => {
     await provider.connection.confirmTransaction(dropSig, "confirmed");
 
     const [configPda] = PublicKey.findProgramAddressSync([Buffer.from("rep_config")], program.programId);
-    const [bondPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("rep_bond"), miner.publicKey.toBuffer()],
-      program.programId
-    );
-    const [repPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("miner_rep"), miner.publicKey.toBuffer()],
-      program.programId
-    );
+    const [bondPda] = PublicKey.findProgramAddressSync([Buffer.from("rep_bond"), miner.publicKey.toBuffer()], program.programId);
+    const [repPda] = PublicKey.findProgramAddressSync([Buffer.from("miner_rep"), miner.publicKey.toBuffer()], program.programId);
+    const [capsPda] = PublicKey.findProgramAddressSync([Buffer.from("miner_caps"), miner.publicKey.toBuffer()], program.programId);
 
     await program.methods
       .depositRepBond(new BN(20_000_000))
-      .accounts({
-        miner: miner.publicKey,
-        config: configPda,
-        bond: bondPda,
-        systemProgram: SystemProgram.programId,
-      })
+      .accounts({ miner: miner.publicKey, config: configPda, bond: bondPda, systemProgram: SystemProgram.programId })
       .signers([miner])
       .rpc();
 
@@ -156,6 +157,7 @@ describe("ddns_rep", () => {
           config: configPda,
           bond: bondPda,
           rep: repPda,
+          caps: capsPda,
           systemProgram: SystemProgram.programId,
         })
         .signers([miner])

@@ -64,6 +64,15 @@ Goal: parameter evolution without a single censor.
 - verifier selection moves from allowlist to rotating stake-weighted committees
 - slashing and dispute windows enforce honest aggregation
 
+## REP-Gated Edge Hosting (End State)
+
+`ddns_rep` evolves from miner reputation tracking into permissionless edge-host gating.
+
+Direction:
+- REP thresholds gate who can run high-throughput gateway/edge relay roles.
+- REP influences routing preference and future hosting-fee participation.
+- Slashing shifts from centralized authorities to evidence-driven, challenge-based mechanisms.
+
 ## 7) Trust-Minimized Adoption Flywheel (End State)
 
 End-state goal: strong adoption incentives while reducing trust in any single actor.

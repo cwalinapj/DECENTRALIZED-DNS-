@@ -56,6 +56,7 @@ async function main() {
         .option("unique-colos", { type: "number", default: 1 })
     )
     .command("status", "show config + bond + rep")
+    .option("miner", { type: "string", describe: "miner pubkey for status lookup (defaults to wallet pubkey)" })
     .option("rpc", { type: "string", default: process.env.ANCHOR_PROVIDER_URL || "https://api.devnet.solana.com" })
     .option("wallet", { type: "string", default: process.env.ANCHOR_WALLET || path.join(process.env.HOME || ".", ".config/solana/id.json") })
     .option("program-id", { type: "string", default: process.env.DDNS_REP_PROGRAM_ID || "" })
@@ -75,8 +76,10 @@ async function main() {
   const program = new anchor.Program(idl as any, programId, provider);
 
   const [configPda] = PublicKey.findProgramAddressSync([Buffer.from("rep_config")], programId);
-  const [bondPda] = PublicKey.findProgramAddressSync([Buffer.from("rep_bond"), wallet.publicKey.toBuffer()], programId);
-  const [repPda] = PublicKey.findProgramAddressSync([Buffer.from("miner_rep"), wallet.publicKey.toBuffer()], programId);
+  const minerPk = argv.miner ? new PublicKey(String(argv.miner)) : wallet.publicKey;
+  const [bondPda] = PublicKey.findProgramAddressSync([Buffer.from("rep_bond"), minerPk.toBuffer()], programId);
+  const [repPda] = PublicKey.findProgramAddressSync([Buffer.from("miner_rep"), minerPk.toBuffer()], programId);
+  const [capsPda] = PublicKey.findProgramAddressSync([Buffer.from("miner_caps"), minerPk.toBuffer()], programId);
 
   const cmd = argv._[0];
 
@@ -131,7 +134,14 @@ async function main() {
         argv["unique-names"] as number,
         argv["unique-colos"] as number
       )
-      .accounts({ miner: wallet.publicKey, config: configPda, bond: bondPda, rep: repPda, systemProgram: SystemProgram.programId })
+      .accounts({
+        miner: wallet.publicKey,
+        config: configPda,
+        bond: bondPda,
+        rep: repPda,
+        caps: capsPda,
+        systemProgram: SystemProgram.programId,
+      })
       .signers([wallet])
       .rpc();
     console.log(JSON.stringify({ tx: sig, repPda: repPda.toBase58(), root: root.toString("hex") }, null, 2));
@@ -141,7 +151,24 @@ async function main() {
   const config = await program.account.repConfig.fetchNullable(configPda);
   const bond = await program.account.minerBond.fetchNullable(bondPda);
   const rep = await program.account.minerRep.fetchNullable(repPda);
-  console.log(JSON.stringify({ configPda: configPda.toBase58(), bondPda: bondPda.toBase58(), repPda: repPda.toBase58(), config, bond, rep }, null, 2));
+  const caps = await program.account.minerCapabilities.fetchNullable(capsPda);
+  console.log(
+    JSON.stringify(
+      {
+        miner: minerPk.toBase58(),
+        configPda: configPda.toBase58(),
+        bondPda: bondPda.toBase58(),
+        repPda: repPda.toBase58(),
+        capsPda: capsPda.toBase58(),
+        config,
+        bond,
+        rep,
+        caps,
+      },
+      null,
+      2
+    )
+  );
 }
 
 main().catch((e) => {

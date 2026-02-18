@@ -96,6 +96,7 @@ async function submitAward(
   const [configPda] = PublicKey.findProgramAddressSync([Buffer.from("rep_config")], program.programId);
   const [bondPda] = PublicKey.findProgramAddressSync([Buffer.from("rep_bond"), wallet.publicKey.toBuffer()], program.programId);
   const [repPda] = PublicKey.findProgramAddressSync([Buffer.from("miner_rep"), wallet.publicKey.toBuffer()], program.programId);
+  const [capsPda] = PublicKey.findProgramAddressSync([Buffer.from("miner_caps"), wallet.publicKey.toBuffer()], program.programId);
 
   const root = merkleRoot(leaves);
   const sig = await program.methods
@@ -105,6 +106,7 @@ async function submitAward(
       config: configPda,
       bond: bondPda,
       rep: repPda,
+      caps: capsPda,
       systemProgram: SystemProgram.programId,
     })
     .signers([wallet])
