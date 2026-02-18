@@ -16,7 +16,6 @@
     "domain-rewards": "tsx scripts/domain_rewards.ts",
     "make-receipt": "tsx scripts/make_receipt.ts",
     "submit-receipts": "tsx scripts/submit_receipts.ts",
-    "domain-rewards": "tsx scripts/domain_rewards.ts",
     "ns:claim": "tsx scripts/ns_claim.ts",
     "ns:attest": "tsx scripts/ns_attest.ts",
     "ns:usage": "tsx scripts/ns_usage.ts",
@@ -35,7 +34,8 @@
     "escrow:deposit": "tsx scripts/escrow_deposit.ts",
     "domain:register": "tsx scripts/domain_owner_register.ts",
     "voucher:issue-toll": "tsx scripts/voucher_issue_toll.ts",
-    "voucher:redeem-toll": "tsx scripts/voucher_redeem_toll.ts"
+    "voucher:redeem-toll": "tsx scripts/voucher_redeem_toll.ts",
+    "miner-score": "tsx scripts/miner_score.ts"
   },
   "devDependencies": {
     "@coral-xyz/anchor": "^0.32.1",
