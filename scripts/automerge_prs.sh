@@ -31,13 +31,15 @@ is_conflicted_state() {
 }
 
 require_clean_repo() {
+  local dirty
   if is_conflicted_state; then
     log "ERROR: merge/rebase/cherry-pick in progress"
     exit 1
   fi
-  if [[ -n "$(git status --porcelain)" ]]; then
+  dirty="$(git status --porcelain | rg -v 'MERGE_LOG\.md$|MERGE_LOG\.jsonl$' || true)"
+  if [[ -n "$dirty" ]]; then
     log "ERROR: uncommitted changes present"
-    git status --porcelain
+    printf '%s\n' "$dirty"
     exit 1
   fi
 }
