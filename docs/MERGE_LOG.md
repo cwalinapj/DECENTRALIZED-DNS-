@@ -13,3 +13,8 @@ Each run appends:
 - mode: n/a
 - detail: merge log initialized
 
+## 2026-02-18T08:37:49Z
+- status: blocked
+- mode: label:ddns-merge-queue
+- detail: main-ci-not-green:failure
+
