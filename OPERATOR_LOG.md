@@ -52,3 +52,20 @@
   - ddns_rep anchor build: PASS
 - PR link: https://github.com/cwalinapj/DECENTRALIZED-DNS-/pull/64
 - Merge commit hash: pending
+
+## 2026-02-18T09:35:00Z — Branch: codex/rep-miner-integration
+- Scope: REP capability-tier extension (`MinerCapabilities`), test coverage updates (cooldown/cap/tier), docs for REP -> edge-host roadmap.
+- Commands run:
+  - `cd solana && anchor build --program-name ddns_rep`
+  - `cd solana && cargo test -p ddns_rep`
+  - `cd solana && anchor test --skip-build tests/ddns_rep.ts`
+  - `npm -C services/miner-node run build`
+  - `npm -C solana run rep -- status --help`
+- Results:
+  - ddns_rep build: PASS
+  - ddns_rep cargo tests: PASS
+  - workspace Anchor suite: ddns_rep tests PASS; suite has pre-existing unrelated failure in `ddns_miner_score` (DeclaredProgramIdMismatch)
+  - miner-node build: PASS
+  - rep CLI status command: PASS (`--miner` support visible)
+- PR link: https://github.com/cwalinapj/DECENTRALIZED-DNS-/pull/64
+- Merge commit hash: pending
