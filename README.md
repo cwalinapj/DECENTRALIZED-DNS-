@@ -124,6 +124,7 @@ Miner-first decentralization:
 
 - MVP uses a centralized gateway/tollbooth and allowlisted miners to bootstrap fast routing and quorum updates.
 - End-product removes those trust points via decentralized quorum and stake-weighted receipts.
+- End-state also includes Nameserver Delegation Incentives for ICANN domains (usage-based rewards in TOLL; not in MVP).
 - Everyday users get a lightweight client (cache-first + verify on refresh); miners run the heavy infrastructure (verification, aggregation, feeds).
 - A browser extension (Firefox) is not shipped in MVP; MVP uses CLI/scripts and services.
 
