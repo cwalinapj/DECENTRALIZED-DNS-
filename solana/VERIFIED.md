@@ -175,3 +175,59 @@ npm -C solana run witness-rewards -- claim \
   --program-id AVsmrpWUMLsdaHr5Y8p2N96fBMPTHVV7WLz8iiu4nBge \
   --epoch 4430603
 ```
+
+### Permissionless Miner Proof (Second Wallet)
+
+Miner keypair file (not committed): `~/.config/solana/ddns_miner_devnet.json`
+
+- Miner pubkey: `8R3YkaD34TT41jcCdK4LiGwa3qXUWsQfFpXBto2bWWMN`
+- Funding transfer (authority -> miner 0.05 SOL): `5qq1bfduCuZuSE3jcHvJLNTnh9krgWeGNhRSSrJMc6buFkFQ5q582X1WvT6MRdeFuL2AMxytUBskw5dzNp5bCUCg`
+
+Bond:
+
+- Bond PDA: `7igky1yZjoVx17yFNaEoYRV4PKoKoPuMZY3syCf7eedV`
+- Tx deposit_bond: `2J8U8qfcUD2WgTATXSYMUmEso8M2MRivFUvp54zTGjUCHcRTvYbyFbDZ5wuxWW1ZhDbgLbibauKtYtfdW3wG3EhY`
+
+Batch + claim:
+
+- Epoch ID: `4430638`
+- Epoch state PDA: `7kFjLrZ1Cr3LM9SnjvXjqaj5oyJQa4Ar5PAiYidurTAK`
+- Epoch stats PDA: `5ii66GBN3Nc7Np4oo2TMMW25EaLcfpFFfdQVtWFinG8G`
+- Tx submit_batch: `EmhTKsD2CP861CKi7fKTMNppnKQKXr2UAjCwdPaq34muXA7M69Et2jEp2TCNLkXifmAvdp7LsAoYpTJXbUnVECk`
+- Miner ATA (TOLL): `B1btLse5QsiRFWTa2XZfrSUyhXi7HPmYo5mFHx18yYYJ`
+- Tx claim: `3TgsSADsegfFNJhWA6xVpTd6YATjkHvTummghrxr2JtRvJ1EWGpLehcgxTojqCiVAfoFknHDZuFyughW2Ja71VZS`
+
+Proof commands:
+
+```bash
+# preflight
+solana config set -u https://api.devnet.solana.com
+solana address
+solana balance
+
+# verify program
+solana program show -u devnet AVsmrpWUMLsdaHr5Y8p2N96fBMPTHVV7WLz8iiu4nBge
+
+# verify PDAs (config + reward vault)
+solana account -u devnet D6JJXiAKeKUnf6eY3Q7NKG3VfZAbGvntCfq3JiQUXzV8 --output json
+spl-token supply 5uCfjyvp6AWHgGgwuNAssSNtWLzJYsWZrUdG56h5Dcxz -u devnet
+spl-token account-info -u devnet --address 2XjteyGkbhuPxBjtjvEif2oV8ND4o9UKoam5v4TKNnNV --output json
+
+# verify second-miner bond + epoch accounts
+solana account -u devnet 7igky1yZjoVx17yFNaEoYRV4PKoKoPuMZY3syCf7eedV --output json
+solana balance -u devnet 7igky1yZjoVx17yFNaEoYRV4PKoKoPuMZY3syCf7eedV
+solana account -u devnet 7kFjLrZ1Cr3LM9SnjvXjqaj5oyJQa4Ar5PAiYidurTAK --output json
+solana account -u devnet 5ii66GBN3Nc7Np4oo2TMMW25EaLcfpFFfdQVtWFinG8G --output json
+
+# verify token balances
+spl-token balance 5uCfjyvp6AWHgGgwuNAssSNtWLzJYsWZrUdG56h5Dcxz --owner 8R3YkaD34TT41jcCdK4LiGwa3qXUWsQfFpXBto2bWWMN -u devnet
+spl-token balance -u devnet --address 2XjteyGkbhuPxBjtjvEif2oV8ND4o9UKoam5v4TKNnNV
+spl-token account-info -u devnet --address B1btLse5QsiRFWTa2XZfrSUyhXi7HPmYo5mFHx18yYYJ --output json
+```
+
+### Negative Test (Devnet)
+
+Attempted to claim twice (expected failure):
+
+- Command: re-run `claim --epoch 4430638`
+- Error: `AlreadyClaimed` (Error Number: 6009)
