@@ -33,3 +33,22 @@
   - gateway build: PASS (tsc)
 - PR link: https://github.com/cwalinapj/DECENTRALIZED-DNS-/pull/55
 - Merge commit hash: (to be added after merge)
+
+## 2026-02-18T09:22:00Z — Branch: codex/rep-miner-integration
+- Scope: PR-C miner integration for REP (`ddns_rep`) with node relay + cloudflare worker sender + CLI wiring.
+- Commands run:
+  - `npm -C services/miner-node install`
+  - `npm -C services/miner-node run build`
+  - `npm -C services/miner-node test`
+  - `npm -C services/miner-worker-cloudflare install`
+  - `npm -C services/miner-worker-cloudflare exec wrangler --version`
+  - `npm -C solana run rep -- --help`
+  - `cd solana && anchor build --program-name ddns_rep`
+- Results:
+  - miner-node build: PASS
+  - miner-node test: PASS (`no tests yet` placeholder)
+  - worker toolchain check: PASS (`wrangler --version`)
+  - solana rep CLI compile/run: PASS (`--help` output)
+  - ddns_rep anchor build: PASS
+- PR link: https://github.com/cwalinapj/DECENTRALIZED-DNS-/pull/64
+- Merge commit hash: pending
