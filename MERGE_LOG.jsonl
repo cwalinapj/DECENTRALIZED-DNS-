@@ -106,3 +106,39 @@
   "decision": "SKIP",
   "reason": "ci gate"
 }
+{
+  "timestamp": "2026-02-18T08:51:16Z",
+  "pr": "60",
+  "title": "ops: strict zero-approval automerge hard gates",
+  "url": "https://github.com/cwalinapj/DECENTRALIZED-DNS-/pull/60",
+  "author": "cwalinapj",
+  "base": "main",
+  "head": "codex/automerge-hard-gates",
+  "head_sha": "ea60c21ecf671d7e3a2a6baf4d26227a06f24ebf",
+  "labels": "automerge-ok",
+  "has_automerge_label": "yes",
+  "risk_low": "yes",
+  "checklist_complete": "yes",
+  "mergeable": "MERGEABLE",
+  "ci": {
+    "status": "fallback-pass",
+    "failing": "MVP resolver checks:FAILURE:https://github.com/cwalinapj/DECENTRALIZED-DNS-/actions/runs/22132858579/job/63977022605\nDocs formatting (markdownlint):FAILURE:https://github.com/cwalinapj/DECENTRALIZED-DNS-/actions/runs/22132858579/job/63977022524\nRaspi TS package builds:FAILURE:https://github.com/cwalinapj/DECENTRALIZED-DNS-/actions/runs/22132858579/job/63977022478\nCompat MVP validation:FAILURE:https://github.com/cwalinapj/DECENTRALIZED-DNS-/actions/runs/22132858579/job/63977022499\nMVP root tests:FAILURE:https://github.com/cwalinapj/DECENTRALIZED-DNS-/actions/runs/22132858579/job/63977022472"
+  },
+  "diffstat": {
+    "solana": 0,
+    "gateway": 0,
+    "services": 0,
+    "docs": 4,
+    "packages": 0,
+    "other": 4
+  },
+  "file_count": 7,
+  "dependency_changes": "",
+  "local_checks": {
+    "status": "pass",
+    "commands": "npm ci\nnpm test",
+    "results": "npm ci => DRY\nnpm test => DRY"
+  },
+  "decision": "WOULD MERGE",
+  "reason": "all gates passed"
+}
