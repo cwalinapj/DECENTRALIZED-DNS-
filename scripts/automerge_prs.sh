@@ -375,6 +375,7 @@ for pr in "${PRS[@]}"; do
   wt="/tmp/ddns-automerge-${pr}-$$"
   run_cmd "git fetch origin '$head_ref'"
   run_cmd "git worktree add '$wt' '$head_sha'"
+  run_cmd "cd '$wt' && git fetch origin main && git rebase origin/main"
   if run_local_checks_and_collect "$wt" "${files[@]}"; then
     local_status="pass"
   else
