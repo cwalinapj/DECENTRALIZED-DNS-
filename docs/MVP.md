@@ -131,6 +131,10 @@ Not yet decentralized in MVP:
 - Rotating stake-weighted committees and slashing.
 - Browser extension distribution (Firefox).
 
+Compat validation note:
+- `scripts/validate-compat-mvp.sh` intentionally skips when compat harness inputs are missing (`docker-compose.validation.yml`, `workers/compat-runner`) during MVP bootstrap.
+- Set `STRICT_COMPAT=1` to enforce hard failure once compat assets are present.
+
 ## MVP Incentives (Adoption Wedge)
 
 MVP adoption wedge: domain owners get paid when the network is used.
@@ -173,4 +177,3 @@ How other components use policy:
 See:
 
 - `docs/PROTOCOL_WATCHDOG_ATTESTATION.md`
-
