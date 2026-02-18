@@ -118,6 +118,7 @@ Protocol + roadmap docs:
 
 - `docs/MVP.md`
 - `docs/PROTOCOL_CACHE_WITNESS.md`
+- `docs/PROTOCOL_WITNESS_RECEIPT.md`
 - `docs/END_STATE.md`
 
 Miner-first decentralization:
@@ -126,6 +127,7 @@ Miner-first decentralization:
 - End-product removes those trust points via decentralized quorum and stake-weighted receipts.
 - End-state also includes Nameserver Delegation Incentives for ICANN domains (usage-based rewards in TOLL; not in MVP).
 - Everyday users get a lightweight client (cache-first + verify on refresh); miners run the heavy infrastructure (verification, aggregation, feeds).
+- (Optional) ICANN domain incentives: domain owners can claim a revenue share in TOLL for NS adoption (MVP uses centralized verification; end-state moves to verifier/oracle attestations).
 - A browser extension (Firefox) is not shipped in MVP; MVP uses CLI/scripts and services.
 
 ---
