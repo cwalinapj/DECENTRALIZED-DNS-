@@ -125,6 +125,7 @@ Protocol + roadmap docs:
 - `docs/MVP.md`
 - `docs/PROTOCOL_CACHE_WITNESS.md`
 - `docs/PROTOCOL_WITNESS_RECEIPT.md`
+- `docs/PROTOCOL_CACHE_LOG_V1.md`
 - `docs/END_STATE.md`
 
 Miner-first decentralization:
@@ -132,6 +133,10 @@ Miner-first decentralization:
 - MVP uses a centralized gateway/tollbooth and allowlisted miners to bootstrap fast routing and quorum updates.
 - End-product removes those trust points via decentralized quorum and stake-weighted receipts.
 - End-state also includes Nameserver Delegation Incentives for ICANN domains (usage-based rewards in TOLL; not in MVP).
+- Premium `.dns` parents can run chronological cache rollups:
+  - gateway emits privacy-safe `CacheEntryV1` observations (RRset-only; no client identifiers)
+  - rollups are published to IPFS and anchored on-chain via `ddns_cache_head`
+  - accepted contributors accrue non-transferable REP (`ddns_rep`) for useful cache contribution
 - Everyday users get a lightweight client (cache-first + verify on refresh); miners run the heavy infrastructure (verification, aggregation, feeds).
 - (Optional) ICANN domain incentives: domain owners can claim a revenue share in TOLL for NS adoption (MVP uses centralized verification; end-state moves to verifier/oracle attestations).
 - A browser extension (Firefox) is not shipped in MVP; MVP uses CLI/scripts and services.

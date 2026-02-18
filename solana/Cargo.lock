@@ -553,6 +553,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "ddns_cache_head"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+]
+
+[[package]]
 name = "ddns_domain_rewards"
 version = "0.1.0"
 dependencies = [
@@ -615,6 +622,13 @@ dependencies = [
 
 [[package]]
 name = "ddns_registry"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+]
+
+[[package]]
+name = "ddns_rep"
 version = "0.1.0"
 dependencies = [
  "anchor-lang",

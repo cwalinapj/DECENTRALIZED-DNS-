@@ -36,6 +36,7 @@
     "voucher:issue-toll": "tsx scripts/voucher_issue_toll.ts",
     "voucher:redeem-toll": "tsx scripts/voucher_redeem_toll.ts",
     "miner-score": "tsx scripts/miner_score.ts",
+    "cache-head": "tsx scripts/cache_head.ts",
     "names": "tsx scripts/names.ts"
   },
   "devDependencies": {

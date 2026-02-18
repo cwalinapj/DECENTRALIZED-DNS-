@@ -14,6 +14,8 @@ members = [
   "programs/ddns_operators",
   "programs/ddns_miner_score",
   "programs/ddns_names",
+  "programs/ddns_cache_head",
+  "programs/ddns_rep",
 ]
 
 [patch.crates-io]
