@@ -612,6 +612,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "ddns_rep"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+]
+
+[[package]]
 name = "ddns_rewards"
 version = "0.1.0"
 dependencies = [

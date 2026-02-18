@@ -13,6 +13,7 @@ members = [
   "programs/ddns_rewards",
   "programs/ddns_operators",
   "programs/ddns_miner_score",
+  "programs/ddns_rep",
 ]
 
 [patch.crates-io]
