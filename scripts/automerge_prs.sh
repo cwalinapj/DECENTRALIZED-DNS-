@@ -145,6 +145,7 @@ run_cmd() {
 
 LAST_LOCAL_CMDS=""
 LAST_LOCAL_RESULTS=""
+LAST_LOCAL_STATUS="pass"
 
 main_baseline_failures() {
   local run_id
@@ -165,6 +166,11 @@ ci_gate_with_fallback() {
   local check_json baseline_fail failing_names baseline_sorted failing_sorted
   check_json="$(pr_check_summary "$pr")"
   [[ -n "$check_json" && "$check_json" != "[]" ]] || { echo "no-checks"; return 1; }
+
+  if echo "$check_json" | jq -r '.[] | select(.state == "PENDING" or .state == "QUEUED" or .state == "IN_PROGRESS") | .name' | rg . >/dev/null 2>&1; then
+    echo "pending"
+    return 1
+  fi
 
   failing_names="$(echo "$check_json" | jq -r '.[] | select(.state != "SUCCESS") | .name' | sort -u)"
   if [[ -z "$failing_names" ]]; then
@@ -287,7 +293,8 @@ run_local_checks_and_collect() {
 
   LAST_LOCAL_CMDS="$(printf '%s\n' "${cmds[@]}")"
   LAST_LOCAL_RESULTS="$(printf '%s\n' "${run_results[@]}")"
-  printf '%s\n' "$status"
+  LAST_LOCAL_STATUS="$status"
+  [[ "$status" == "pass" ]]
 }
 
 while [[ $# -gt 0 ]]; do
@@ -368,7 +375,11 @@ for pr in "${PRS[@]}"; do
   wt="/tmp/ddns-automerge-${pr}-$$"
   run_cmd "git fetch origin '$head_ref'"
   run_cmd "git worktree add '$wt' '$head_sha'"
-  local_status="$(run_local_checks_and_collect "$wt" "${files[@]}")"
+  if run_local_checks_and_collect "$wt" "${files[@]}"; then
+    local_status="pass"
+  else
+    local_status="fail"
+  fi
   local_cmds="$LAST_LOCAL_CMDS"
   local_results="$LAST_LOCAL_RESULTS"
   run_cmd "git worktree remove '$wt' --force"
@@ -455,5 +466,5 @@ for pr in "${PRS[@]}"; do
     '{timestamp:$timestamp,pr:$pr,title:$title,url:$url,author:$author,base:$base,head:$head,head_sha:$head_sha,labels:$labels,has_automerge_label:$has_label,risk_low:$risk_low,checklist_complete:$checklist_complete,mergeable:$mergeable,ci:{status:$ci_status,failing:$failing_checks},diffstat:$diffstat,file_count:$file_count,dependency_changes:$dep_changes,local_checks:{status:$local_status,commands:$local_cmds,results:$local_results},decision:$decision,reason:$reason}')"
   append_logs "$json_obj"
 
-  ((processed++))
+  processed=$((processed + 1))
 done
