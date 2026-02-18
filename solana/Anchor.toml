@@ -5,17 +5,6 @@ anchor_version = "0.32.1"
 seeds = false
 skip-lint = false
 
-[programs.localnet]
-ddns_anchor = "9hwvtFzawMZ6R9eWJZ8YjC7rLCGgNK7PZBNeKMRCPBes"
-ddns_registry = "5zg8CsxpRKyurnTg539wr2nVtS6zritQDTGy4uAUerdx"
-ddns_quorum = "9gyHsemmJfujZEqH1o4VhefxvbUJFQkPko8ASAteX5YB"
-ddns_stake = "6gT4zHNpU4PtXL4LRv1sW8MwkFu254Z7gQM7wKqnmZYF"
-ddns_watchdog_policy = "6iveVkjqRiVpbSM3GmktMhGvqN7WConK5NrM6tvRZnnc"
-ddns_stake_gov = "86XQF9V51Z8L8MLUP7yMU6ZWPzfaK1nhFsr3Hd8mYFgt"
-ddns_escrow = "4jtDN5gqUqpmu1nBfLwPBAz8jBYjP6Nba4yZ8Am75M2J"
-ddns_domain_rewards = "7iFM5ZYPWpF2rK6dQkgeb4RLc2zTDnEgrTNVMp8n6s3m"
-ddns_ns_incentives = "8mC8Kvky9Jir4Lxe5R5L6ppoexaYtDJKe8JP8xA9JUuM"
-
 [programs.devnet]
 ddns_anchor = "9hwvtFzawMZ6R9eWJZ8YjC7rLCGgNK7PZBNeKMRCPBes"
 ddns_registry = "5zg8CsxpRKyurnTg539wr2nVtS6zritQDTGy4uAUerdx"
@@ -26,6 +15,24 @@ ddns_stake_gov = "86XQF9V51Z8L8MLUP7yMU6ZWPzfaK1nhFsr3Hd8mYFgt"
 ddns_escrow = "4jtDN5gqUqpmu1nBfLwPBAz8jBYjP6Nba4yZ8Am75M2J"
 ddns_domain_rewards = "7iFM5ZYPWpF2rK6dQkgeb4RLc2zTDnEgrTNVMp8n6s3m"
 ddns_ns_incentives = "8mC8Kvky9Jir4Lxe5R5L6ppoexaYtDJKe8JP8xA9JUuM"
+ddns_rewards = "8GQJrUpNhCFodqKdhEvWub6pjTtgoXBtBZUqxeEDujAY"
+ddns_operators = "3Q5VCoAT4TZ9xMrpbt4jbN9LhHfihxGH3TiD6PmSqHhp"
+
+[programs.localnet]
+ddns_anchor = "9hwvtFzawMZ6R9eWJZ8YjC7rLCGgNK7PZBNeKMRCPBes"
+ddns_registry = "5zg8CsxpRKyurnTg539wr2nVtS6zritQDTGy4uAUerdx"
+ddns_quorum = "9gyHsemmJfujZEqH1o4VhefxvbUJFQkPko8ASAteX5YB"
+ddns_stake = "6gT4zHNpU4PtXL4LRv1sW8MwkFu254Z7gQM7wKqnmZYF"
+ddns_watchdog_policy = "6iveVkjqRiVpbSM3GmktMhGvqN7WConK5NrM6tvRZnnc"
+ddns_stake_gov = "86XQF9V51Z8L8MLUP7yMU6ZWPzfaK1nhFsr3Hd8mYFgt"
+ddns_escrow = "4jtDN5gqUqpmu1nBfLwPBAz8jBYjP6Nba4yZ8Am75M2J"
+ddns_domain_rewards = "7iFM5ZYPWpF2rK6dQkgeb4RLc2zTDnEgrTNVMp8n6s3m"
+ddns_ns_incentives = "8mC8Kvky9Jir4Lxe5R5L6ppoexaYtDJKe8JP8xA9JUuM"
+ddns_rewards = "8GQJrUpNhCFodqKdhEvWub6pjTtgoXBtBZUqxeEDujAY"
+ddns_operators = "3Q5VCoAT4TZ9xMrpbt4jbN9LhHfihxGH3TiD6PmSqHhp"
+
+[registry]
+url = "https://api.apr.dev"
 
 [provider]
 cluster = "localnet"
