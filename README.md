@@ -14,6 +14,7 @@ Repo: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 - Adapter layer (PKDNS/IPFS/ENS/SNS): `docs/ADAPTERS.md`
 - Watchdogs + policy attestation formats: `docs/PROTOCOL_WATCHDOG_ATTESTATION.md`
 - Security: `docs/THREAT_MODEL.md` and `docs/ATTACK_MODE.md`
+- Witness rewards MVP runbook: `docs/WITNESS_REWARDS_MVP.md`
 
 ### Adoption Wedge: Domain Owners Get Paid
 
@@ -216,4 +217,3 @@ Optional supporting docs (add/expand over time):
 - [Flow diagrams (Mermaid)](docs/flow-diagram.md)
 - [Threat model](docs/08-threat-model.md)
 - [Roadmap](docs/09-roadmap.md)
-

@@ -5,6 +5,7 @@ This index is intentionally short and categorized.
 ## MVP (What Works / How To Run)
 - `docs/MVP.md`
 - `docs/PROTOCOL_CACHE_WITNESS.md`
+- `docs/WITNESS_REWARDS_MVP.md`
 - `docs/PR1_VERIFIED.md` (docs-only verification notes)
 - `solana/VERIFIED.md` (devnet/local verification log for on-chain work, once merged)
 - `docs/QUICKSTART.md`
@@ -25,4 +26,3 @@ This index is intentionally short and categorized.
 ## Tokenomics / Settlement (Background)
 - `docs/05-tokenomics.md`
 - `docs/VOUCHER_ESCROW.md`
-
