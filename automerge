@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+MODE="--dry-run"
+ARGS=()
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --run)
+      MODE="--run"
+      shift
+      ;;
+    --dry-run)
+      MODE="--dry-run"
+      shift
+      ;;
+    *)
+      ARGS+=("$1")
+      shift
+      ;;
+  esac
+done
+
+exec bash scripts/automerge_prs.sh "$MODE" "${ARGS[@]}"
