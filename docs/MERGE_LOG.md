@@ -18,3 +18,8 @@ Each run appends:
 - mode: label:ddns-merge-queue
 - detail: main-ci-not-green:failure
 
+## 2026-02-18T08:38:09Z
+- status: blocked
+- mode: label:ddns-merge-queue
+- detail: main-ci-not-green:failure
+
