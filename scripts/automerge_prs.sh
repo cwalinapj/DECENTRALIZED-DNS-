@@ -3,6 +3,8 @@ set -euo pipefail
 
 ROOT="$(git rev-parse --show-toplevel)"
 cd "$ROOT"
+MERGE_LOG_MD="$ROOT/MERGE_LOG.md"
+MERGE_LOG_JSONL="$ROOT/MERGE_LOG.jsonl"
 
 MODE="dry-run"   # dry-run | run
 LABEL=""
@@ -41,14 +43,14 @@ require_clean_repo() {
 }
 
 ensure_logs() {
-  if [[ ! -f MERGE_LOG.md ]]; then
-    cat > MERGE_LOG.md <<'HDR'
+  if [[ ! -f "$MERGE_LOG_MD" ]]; then
+    cat > "$MERGE_LOG_MD" <<'HDR'
 # Merge Log
 
 HDR
   fi
-  if [[ ! -f MERGE_LOG.jsonl ]]; then
-    : > MERGE_LOG.jsonl
+  if [[ ! -f "$MERGE_LOG_JSONL" ]]; then
+    : > "$MERGE_LOG_JSONL"
   fi
 }
 
@@ -68,9 +70,9 @@ append_logs() {
     echo "- ci: $(echo "$json" | jq -r '.ci.status')"
     echo "- local_checks: $(echo "$json" | jq -r '.local_checks.status')"
     echo
-  } >> MERGE_LOG.md
+  } >> "$MERGE_LOG_MD"
 
-  echo "$json" >> MERGE_LOG.jsonl
+  echo "$json" >> "$MERGE_LOG_JSONL"
 }
 
 checklist_missing_items() {
@@ -140,7 +142,7 @@ run_cmd() {
     log "[dry-run] $cmd"
     return 0
   fi
-  eval "$cmd"
+  ( eval "$cmd" )
 }
 
 LAST_LOCAL_CMDS=""
