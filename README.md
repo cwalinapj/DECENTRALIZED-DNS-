@@ -31,6 +31,14 @@ Domain owners can delegate NS/DoH to the network and earn a **% of toll-event re
   - allowlisted miner/verifier submitters
   - gateway/tollbooth services (clients verify on-chain and keep local cache).
 
+### Gateway DNS Behavior (MVP)
+
+- `.dns` resolution goes through PKDNS (Solana verification path).
+- ICANN domains use recursive DoH pass-through with local TTL cache.
+- ICANN answers are never written into canonical on-chain consensus.
+- Cache policy: TTL-respecting entries, stale-if-error fallback, and near-expiry prefetch.
+- Details and env vars: `gateway/README.md`.
+
 ### Quick Verify (Devnet)
 
 ```bash
@@ -216,4 +224,3 @@ Optional supporting docs (add/expand over time):
 - [Flow diagrams (Mermaid)](docs/flow-diagram.md)
 - [Threat model](docs/08-threat-model.md)
 - [Roadmap](docs/09-roadmap.md)
-
