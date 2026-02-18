@@ -31,5 +31,5 @@
 - Tests/build results:
   - gateway tests: PASS (8 files, 21 tests)
   - gateway build: PASS (tsc)
-- PR link: (to be added after PR create)
+- PR link: https://github.com/cwalinapj/DECENTRALIZED-DNS-/pull/55
 - Merge commit hash: (to be added after merge)
