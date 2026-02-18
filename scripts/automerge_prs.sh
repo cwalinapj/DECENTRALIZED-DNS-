@@ -100,8 +100,8 @@ run_required_checks() {
 body_has_checklist() {
   local body="$1"
 
-  printf '%s\n' "$body" | rg -x -- "Risk: Low" >/dev/null || return 1
-  printf '%s\n' "$body" | rg -F -- "### Auto-merge Checklist" >/dev/null || return 1
+  printf '%s\n' "$body" | grep -Fx -- "Risk: Low" >/dev/null || return 1
+  printf '%s\n' "$body" | grep -F -- "### Auto-merge Checklist" >/dev/null || return 1
 
   local required_items=(
     "Required CI checks are green"
@@ -113,7 +113,7 @@ body_has_checklist() {
 
   local item
   for item in "${required_items[@]}"; do
-    printf '%s\n' "$body" | rg -x -- "- \[x\] ${item}" >/dev/null || return 1
+    printf '%s\n' "$body" | grep -Fx -- "- [x] ${item}" >/dev/null || return 1
   done
 
   return 0
