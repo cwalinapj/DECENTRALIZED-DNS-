@@ -19,7 +19,7 @@ This MVP ships a working `.dns` flow on Solana devnet while explicitly allowing 
   - Route writes (current MVP: tollbooth or allowlisted miner submits).
   - Route reads (canonical route PDAs in Design 3; existing per-wallet records remain usable).
 - Off-chain witness receipts (client-signed) collected and aggregated by miners (MVP: off-chain verification).
-- Staking rewards (TOLL token) so users can earn funds to pay future tolls (mechanics are minimal in MVP).
+- Miner rewards in MVP are **REP points** (reputation), not free liquid TOLL emissions.
 
 Verification logs (devnet/localnet commands + tx signatures) live in:
 
@@ -141,10 +141,22 @@ Toll-event payment split (basis points, bps; sums to `10,000`):
 - miners/verifiers share (aggregation + availability)
 - treasury share (protocol funding)
 
-Why not “per-query payouts” in MVP:
+Token roles in MVP:
+
+- `TOLL` is utility only: toll payments, route writes/updates, treasury/domain-owner settlement.
+- `REP` is the early-adopter miner reward: on-chain reputation points with caps/guardrails.
+
+Why not “per-query payouts” or free TOLL mining in MVP:
 
 - raw query counts are trivial to bot and break economics
+- free cloud infrastructure makes permissionless liquid-token mining easy to sybil
 - toll events represent scarce value (route acquisition/refresh), so wash behavior costs real funds.
+
+MVP anti-sybil gates for REP accrual:
+- bond requirement
+- daily cap per miner
+- diversity minimums (unique names + colos)
+- cooldown between rewardable aggregate submissions
 
 ## Privacy Notes (MVP)
 
@@ -173,4 +185,3 @@ How other components use policy:
 See:
 
 - `docs/PROTOCOL_WATCHDOG_ATTESTATION.md`
-

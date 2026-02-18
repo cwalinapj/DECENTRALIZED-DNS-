@@ -23,6 +23,12 @@ Domain owners can delegate NS/DoH to the network and earn a **% of toll-event re
 - To resist censorship without tracking users, gateways can emit **privacy-safe witness receipts** (no IP/UA/client identifiers; time-bucketed) that attest only to answer facts.
 - End-state can incorporate stake-weighted witnesses + slashing and public receipt batch commitments.
 
+### Miner Rewards (MVP)
+
+- Miners earn **REP** (reputation points) now; REP is anti-sybil gated (bond + caps + diversity + cooldown).
+- **TOLL** is utility: toll payments and protocol settlement flows.
+- No free permissionless TOLL emissions in MVP (prevents low-cost cloud sybil farming).
+
 ### Status (MVP)
 
 - Devnet: reference environment for MVP demos. See `docs/STATUS.md` and `solana/VERIFIED.md`.
@@ -125,6 +131,7 @@ Miner-first decentralization:
 
 - MVP uses a centralized gateway/tollbooth and allowlisted miners to bootstrap fast routing and quorum updates.
 - End-product removes those trust points via decentralized quorum and stake-weighted receipts.
+- Miners earn REP now; TOLL remains utility until stronger anti-sybil primitives are live.
 - End-state also includes Nameserver Delegation Incentives for ICANN domains (usage-based rewards in TOLL; not in MVP).
 - Everyday users get a lightweight client (cache-first + verify on refresh); miners run the heavy infrastructure (verification, aggregation, feeds).
 - (Optional) ICANN domain incentives: domain owners can claim a revenue share in TOLL for NS adoption (MVP uses centralized verification; end-state moves to verifier/oracle attestations).
@@ -216,4 +223,3 @@ Optional supporting docs (add/expand over time):
 - [Flow diagrams (Mermaid)](docs/flow-diagram.md)
 - [Threat model](docs/08-threat-model.md)
 - [Roadmap](docs/09-roadmap.md)
-
