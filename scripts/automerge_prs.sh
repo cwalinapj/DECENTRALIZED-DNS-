@@ -143,6 +143,9 @@ run_cmd() {
   eval "$cmd"
 }
 
+LAST_LOCAL_CMDS=""
+LAST_LOCAL_RESULTS=""
+
 main_baseline_failures() {
   local run_id
   run_id="$(gh run list --branch main -L 1 --json databaseId --jq '.[0].databaseId // empty')"
@@ -282,9 +285,9 @@ run_local_checks_and_collect() {
     fi
   done
 
+  LAST_LOCAL_CMDS="$(printf '%s\n' "${cmds[@]}")"
+  LAST_LOCAL_RESULTS="$(printf '%s\n' "${run_results[@]}")"
   printf '%s\n' "$status"
-  printf '%s\n' "${cmds[@]}" > "$wt/.automerge_cmds"
-  printf '%s\n' "${run_results[@]}" > "$wt/.automerge_results"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -366,8 +369,8 @@ for pr in "${PRS[@]}"; do
   run_cmd "git fetch origin '$head_ref'"
   run_cmd "git worktree add '$wt' '$head_sha'"
   local_status="$(run_local_checks_and_collect "$wt" "${files[@]}")"
-  local_cmds="$(cat "$wt/.automerge_cmds" 2>/dev/null || true)"
-  local_results="$(cat "$wt/.automerge_results" 2>/dev/null || true)"
+  local_cmds="$LAST_LOCAL_CMDS"
+  local_results="$LAST_LOCAL_RESULTS"
   run_cmd "git worktree remove '$wt' --force"
 
   decision="SKIP"
