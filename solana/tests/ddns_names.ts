@@ -13,176 +13,217 @@ function hashName(name: string): Buffer {
   return crypto.createHash("sha256").update(normalize(name)).digest();
 }
 
-function hashLabel(label: string): Buffer {
-  return crypto.createHash("sha256").update(label.trim().toLowerCase()).digest();
+async function sleep(ms: number) {
+  await new Promise((r) => setTimeout(r, ms));
 }
 
-describe("ddns_names", () => {
+describe("ddns_names premium auctions", () => {
   const provider = anchor.AnchorProvider.env();
   anchor.setProvider(provider);
-
   const names = anchor.workspace.DdnsNames as Program;
 
-  it("enforces subdomain transfer policy (user.dns non-transferable; premium parent co-sign path)", async () => {
-    const feePayer = provider.wallet.publicKey;
-
-    const walletA = Keypair.generate();
-    const walletB = Keypair.generate();
-    await provider.connection.requestAirdrop(walletA.publicKey, 3e9);
-    await provider.connection.requestAirdrop(walletB.publicKey, 3e9);
-    await new Promise((r) => setTimeout(r, 1200));
+  it("enforces 3-4 char auction flow; reserves <=2 to treasury; keeps >=5 normal path", async () => {
+    const authority = provider.wallet.publicKey;
+    const bidder1 = Keypair.generate();
+    const bidder2 = Keypair.generate();
+    await provider.connection.requestAirdrop(bidder1.publicKey, 5e9);
+    await provider.connection.requestAirdrop(bidder2.publicKey, 5e9);
+    await sleep(1500);
 
     const [namesConfig] = PublicKey.findProgramAddressSync([Buffer.from("names_config")], names.programId);
-    const existingConfig = await names.account.namesConfig.fetchNullable(namesConfig);
-    if (!existingConfig) {
+    const [premiumConfig] = PublicKey.findProgramAddressSync([Buffer.from("premium_config")], names.programId);
+
+    if (!(await names.account.namesConfig.fetchNullable(namesConfig))) {
       await names.methods
-        .initNamesConfig(feePayer, "user.dns", new BN(1_000_000), new BN(0), true, true)
+        .initNamesConfig(authority, "user.dns", new BN(100_000_000), new BN(0), true, true)
         .accounts({
           config: namesConfig,
-          authority: feePayer,
+          authority,
           systemProgram: anchor.web3.SystemProgram.programId,
         })
         .rpc();
     }
 
-    // alice.user.dns is always non-transferable.
-    const userParent = "user.dns";
-    const userParentHash = hashName(userParent);
-    const aliceLabelHash = hashLabel("alice");
-    const [aliceUserPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("sub"), userParentHash, aliceLabelHash],
-      names.programId
-    );
-    const [primaryA] = PublicKey.findProgramAddressSync(
-      [Buffer.from("primary"), walletA.publicKey.toBuffer()],
-      names.programId
-    );
+    if (!(await names.account.premiumConfig.fetchNullable(premiumConfig))) {
+      await names.methods
+        .initPremiumConfig(authority, authority, new BN(50_000_000), new BN(2), new BN(0), true)
+        .accounts({
+          premiumConfig,
+          authority,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .rpc();
+    }
 
+    const token = bidder1.publicKey
+      .toBase58()
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "")
+      .slice(0, 6);
+
+    // L>=5 stays normal premium path.
+    const longName = `${token.slice(0, 5)}.dns`;
+    const longHash = hashName(longName);
+    const [longPremium] = PublicKey.findProgramAddressSync([Buffer.from("premium"), longHash], names.programId);
+    const [longPolicy] = PublicKey.findProgramAddressSync([Buffer.from("parent_policy"), longHash], names.programId);
+    const [authPrimary] = PublicKey.findProgramAddressSync([Buffer.from("primary"), authority.toBuffer()], names.programId);
     await names.methods
-      .claimSubdomain(userParent, "alice", [...userParentHash], [...aliceLabelHash])
+      .purchasePremium(longName, [...longHash])
       .accounts({
         config: namesConfig,
-        treasury: feePayer,
-        subName: aliceUserPda,
-        primary: primaryA,
-        owner: walletA.publicKey,
+        premiumConfig,
+        treasury: authority,
+        premiumName: longPremium,
+        parentPolicy: longPolicy,
+        primary: authPrimary,
+        owner: authority,
         systemProgram: anchor.web3.SystemProgram.programId,
       })
-      .signers([walletA])
       .rpc();
 
-    let nonTransferableFailed = false;
+    // L=3 blocked on normal path (auction required).
+    const threeName = `${token.slice(0, 3)}.dns`;
+    const threeHash = hashName(threeName);
+    const [threePremium] = PublicKey.findProgramAddressSync([Buffer.from("premium"), threeHash], names.programId);
+    const [threePolicy] = PublicKey.findProgramAddressSync([Buffer.from("parent_policy"), threeHash], names.programId);
+    let auctionRequired = false;
     try {
       await names.methods
-        .transferSubdomain(userParent, "alice", [...userParentHash], [...aliceLabelHash])
+        .purchasePremium(threeName, [...threeHash])
         .accounts({
-          subName: aliceUserPda,
-          currentOwner: walletA.publicKey,
-          newOwner: walletB.publicKey,
-          parentOwner: null,
-          parentPolicy: null,
+          config: namesConfig,
+          premiumConfig,
+          treasury: authority,
+          premiumName: threePremium,
+          parentPolicy: threePolicy,
+          primary: authPrimary,
+          owner: authority,
+          systemProgram: anchor.web3.SystemProgram.programId,
         })
-        .signers([walletA])
         .rpc();
     } catch {
-      nonTransferableFailed = true;
+      auctionRequired = true;
     }
-    expect(nonTransferableFailed).to.equal(true);
+    expect(auctionRequired).to.equal(true);
 
-    // bob.alice.dns is parent-controlled.
-    const aliceDnsHash = hashName("alice.dns");
-    const [alicePremiumPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("premium"), aliceDnsHash],
-      names.programId
-    );
-    const [alicePolicyPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("parent_policy"), aliceDnsHash],
-      names.programId
-    );
-
-    await names.methods
-      .purchasePremium("alice.dns", [...aliceDnsHash])
-      .accounts({
-        config: namesConfig,
-        treasury: feePayer,
-        premiumName: alicePremiumPda,
-        parentPolicy: alicePolicyPda,
-        primary: primaryA,
-        owner: walletA.publicKey,
-        systemProgram: anchor.web3.SystemProgram.programId,
-      })
-      .signers([walletA])
-      .rpc();
-
-    const bobLabelHash = hashLabel("bob");
-    const [bobAlicePda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("sub"), aliceDnsHash, bobLabelHash],
-      names.programId
-    );
-
-    await names.methods
-      .claimDelegatedSubdomain("alice.dns", "bob", [...aliceDnsHash], [...bobLabelHash], walletB.publicKey)
-      .accounts({
-        config: namesConfig,
-        premiumParent: alicePremiumPda,
-        parentPolicy: alicePolicyPda,
-        subName: bobAlicePda,
-        parentOwner: walletA.publicKey,
-        systemProgram: anchor.web3.SystemProgram.programId,
-      })
-      .signers([walletA])
-      .rpc();
-
-    const walletC = Keypair.generate();
-    await provider.connection.requestAirdrop(walletC.publicKey, 2e9);
-    await new Promise((r) => setTimeout(r, 800));
-
-    let parentCosignRequired = false;
+    // Reserve <=2 for treasury authority.
+    const twoName = `${token.slice(0, 2)}.dns`;
+    const twoHash = hashName(twoName);
+    const [twoPremium] = PublicKey.findProgramAddressSync([Buffer.from("premium"), twoHash], names.programId);
+    const [twoPolicy] = PublicKey.findProgramAddressSync([Buffer.from("parent_policy"), twoHash], names.programId);
+    const [bidder1Primary] = PublicKey.findProgramAddressSync([Buffer.from("primary"), bidder1.publicKey.toBuffer()], names.programId);
+    let reservedFailed = false;
     try {
       await names.methods
-        .transferSubdomain("alice.dns", "bob", [...aliceDnsHash], [...bobLabelHash])
+        .purchasePremium(twoName, [...twoHash])
         .accounts({
-          subName: bobAlicePda,
-          currentOwner: walletB.publicKey,
-          newOwner: walletC.publicKey,
-          parentOwner: null,
-          parentPolicy: alicePolicyPda,
+          config: namesConfig,
+          premiumConfig,
+          treasury: authority,
+          premiumName: twoPremium,
+          parentPolicy: twoPolicy,
+          primary: bidder1Primary,
+          owner: bidder1.publicKey,
+          systemProgram: anchor.web3.SystemProgram.programId,
         })
-        .signers([walletB])
+        .signers([bidder1])
         .rpc();
     } catch {
-      parentCosignRequired = true;
+      reservedFailed = true;
     }
-    expect(parentCosignRequired).to.equal(true);
+    expect(reservedFailed).to.equal(true);
 
+    // Treasury authority can still mint <=2.
     await names.methods
-      .transferSubdomain("alice.dns", "bob", [...aliceDnsHash], [...bobLabelHash])
+      .purchasePremium(twoName, [...twoHash])
       .accounts({
-        subName: bobAlicePda,
-        currentOwner: walletB.publicKey,
-        newOwner: walletC.publicKey,
-        parentOwner: walletA.publicKey,
-        parentPolicy: alicePolicyPda,
+        config: namesConfig,
+        premiumConfig,
+        treasury: authority,
+        premiumName: twoPremium,
+        parentPolicy: twoPolicy,
+        primary: authPrimary,
+        owner: authority,
+        systemProgram: anchor.web3.SystemProgram.programId,
       })
-      .signers([walletB, walletA])
       .rpc();
 
-    const bobAliceAfter: any = await names.account.subName.fetch(bobAlicePda);
-    expect(new PublicKey(bobAliceAfter.owner).equals(walletC.publicKey)).to.equal(true);
-
-    // Premium names remain transferable.
+    // Auction flow for 3-char.
+    const [auctionPda] = PublicKey.findProgramAddressSync([Buffer.from("auction"), threeHash], names.programId);
     await names.methods
-      .transferPremium()
+      .createAuction(threeName, [...threeHash], new BN(10_000_000), new BN(10))
       .accounts({
-        premiumName: alicePremiumPda,
-        parentPolicy: alicePolicyPda,
-        currentOwner: walletA.publicKey,
-        newOwner: walletB.publicKey,
+        premiumConfig,
+        auction: auctionPda,
+        authority,
+        systemProgram: anchor.web3.SystemProgram.programId,
       })
-      .signers([walletA])
       .rpc();
 
-    const premiumAfter: any = await names.account.premiumName.fetch(alicePremiumPda);
-    expect(new PublicKey(premiumAfter.owner).equals(walletB.publicKey)).to.equal(true);
+    const [escrow1] = PublicKey.findProgramAddressSync(
+      [Buffer.from("escrow"), threeHash, bidder1.publicKey.toBuffer()],
+      names.programId
+    );
+    const [escrowVault1] = PublicKey.findProgramAddressSync(
+      [Buffer.from("escrow_vault"), threeHash, bidder1.publicKey.toBuffer()],
+      names.programId
+    );
+    const [escrow2] = PublicKey.findProgramAddressSync(
+      [Buffer.from("escrow"), threeHash, bidder2.publicKey.toBuffer()],
+      names.programId
+    );
+    const [escrowVault2] = PublicKey.findProgramAddressSync(
+      [Buffer.from("escrow_vault"), threeHash, bidder2.publicKey.toBuffer()],
+      names.programId
+    );
+
+    await names.methods
+      .placeBid([...threeHash], new BN(11_000_000))
+      .accounts({
+        premiumConfig,
+        auction: auctionPda,
+        bidEscrow: escrow1,
+        escrowVault: escrowVault1,
+        bidder: bidder1.publicKey,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([bidder1])
+      .rpc();
+
+    await names.methods
+      .placeBid([...threeHash], new BN(12_000_000))
+      .accounts({
+        premiumConfig,
+        auction: auctionPda,
+        bidEscrow: escrow2,
+        escrowVault: escrowVault2,
+        bidder: bidder2.publicKey,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([bidder2])
+      .rpc();
+
+    await sleep(15000);
+    const [bidder2Primary] = PublicKey.findProgramAddressSync([Buffer.from("primary"), bidder2.publicKey.toBuffer()], names.programId);
+    await names.methods
+      .settleAuction([...threeHash])
+      .accounts({
+        config: namesConfig,
+        premiumConfig,
+        auction: auctionPda,
+        winnerEscrow: escrow2,
+        winnerEscrowVault: escrowVault2,
+        treasury: authority,
+        premiumName: threePremium,
+        parentPolicy: threePolicy,
+        primary: bidder2Primary,
+        winner: bidder2.publicKey,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([bidder2])
+      .rpc();
+
+    const threePremiumAcct: any = await names.account.premiumName.fetch(threePremium);
+    expect(new PublicKey(threePremiumAcct.owner).equals(bidder2.publicKey)).to.equal(true);
   });
 });
