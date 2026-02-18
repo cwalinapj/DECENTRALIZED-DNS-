@@ -62,6 +62,13 @@ Attack Mode is a resilience layer that makes the system degrade safely under act
 - A PR is eligible only with label `automerge-ok`, `Risk: Low`, required checklist, green CI, and passing local-equivalent checks.
 - See `MERGE_QUEUE.md`, `MERGE_GUARDRAILS.md`, and `MERGE_LOG.md`.
 
+### Compat MVP Validation (CI)
+
+CI includes a "compat" harness intended to validate a WordPress + control-plane stack.
+
+- MVP behavior: `scripts/validate-compat-mvp.sh` skips with exit 0 when its required inputs are not present.
+- Enforced later: set `STRICT_COMPAT=1` to fail CI if inputs are missing.
+- Inputs (not in repo yet): `docker-compose.validation.yml`, `workers/compat-runner/`.
 ### What This Repo Contains
 
 - `solana/`: Anchor workspace (programs + scripts)

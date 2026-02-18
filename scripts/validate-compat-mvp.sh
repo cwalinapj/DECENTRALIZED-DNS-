@@ -3,6 +3,25 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMPOSE_FILE="$ROOT/docker-compose.validation.yml"
+STRICT_COMPAT="${STRICT_COMPAT:-0}"
+
+missing_required_inputs=0
+if [ ! -f "$COMPOSE_FILE" ]; then
+  echo "[compat] docker-compose.validation.yml not found; skipping compat validation (MVP)." >&2
+  missing_required_inputs=1
+fi
+if [ ! -d "$ROOT/workers/compat-runner" ]; then
+  echo "[compat] workers/compat-runner not found; skipping compat validation (MVP)." >&2
+  missing_required_inputs=1
+fi
+
+if [ "$missing_required_inputs" -eq 1 ]; then
+  if [ "$STRICT_COMPAT" = "1" ]; then
+    echo "[compat] STRICT_COMPAT=1 set and required inputs are missing; failing." >&2
+    exit 1
+  fi
+  exit 0
+fi
 
 cleanup() {
   docker compose -f "$COMPOSE_FILE" down -v --remove-orphans
