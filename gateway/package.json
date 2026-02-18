@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "prelint": "npm --prefix ../packages/attack-mode ci && npm --prefix ../packages/attack-mode run build",
+    "prebuild": "npm --prefix ../packages/attack-mode ci && npm --prefix ../packages/attack-mode run build",
     "build": "tsc -p tsconfig.json",
     "lint": "tsc -p tsconfig.json --noEmit",
     "start": "node dist/server.js",
