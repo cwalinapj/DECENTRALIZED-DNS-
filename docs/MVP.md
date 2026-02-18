@@ -19,7 +19,7 @@ This MVP ships a working `.dns` flow on Solana devnet while explicitly allowing 
   - Route writes (current MVP: tollbooth or allowlisted miner submits).
   - Route reads (canonical route PDAs in Design 3; existing per-wallet records remain usable).
 - Off-chain witness receipts (client-signed) collected and aggregated by miners (MVP: off-chain verification).
-- Staking rewards (TOLL token) so users can earn funds to pay future tolls (mechanics are minimal in MVP).
+- Miner rewards in MVP are **REP points** (reputation), not free liquid TOLL emissions.
 
 Verification logs (devnet/localnet commands + tx signatures) live in:
 
@@ -167,9 +167,15 @@ Toll-event payment split (basis points, bps; sums to `10,000`):
 - miners/verifiers share (aggregation + availability)
 - treasury share (protocol funding)
 
-Why not “per-query payouts” in MVP:
+Token roles in MVP:
+
+- `TOLL` is utility only: toll payments, route writes/updates, treasury/domain-owner settlement.
+- `REP` is the early-adopter miner reward: on-chain reputation points with caps/guardrails.
+
+Why not “per-query payouts” or free TOLL mining in MVP:
 
 - raw query counts are trivial to bot and break economics
+- free cloud infrastructure makes permissionless liquid-token mining easy to sybil
 - toll events represent scarce value (route acquisition/refresh), so wash behavior costs real funds.
 
 ## Premium Chronological Cache Rollup (MVP)
@@ -183,6 +189,12 @@ Why not “per-query payouts” in MVP:
 - `services/cache-rollup` ingests entries, computes `cache_root`, writes rollup JSON, and publishes to IPFS (or stub CID in MVP fallback).
 - On-chain head (`ddns_cache_head`) stores latest `{cache_root, cid_hash, epoch_id}` per premium parent.
 - Accepted contributor entries (subdomain users/miners/witnesses) earn non-transferable REP points in `ddns_rep`.
+
+MVP anti-sybil gates for REP accrual:
+- bond requirement
+- daily cap per miner
+- diversity minimums (unique names + colos)
+- cooldown between rewardable aggregate submissions
 
 ## Privacy Notes (MVP)
 

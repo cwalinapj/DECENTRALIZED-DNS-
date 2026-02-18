@@ -26,7 +26,8 @@ Miners run:
 
 Rewards direction:
 
-- miners earn the majority of rewards for heavy lifting + uptime
+- miners start with REP (reputation) and later earn stake-weighted economic rewards
+- liquid token emissions are introduced only after strong anti-sybil cost-of-identity exists
 - invalid aggregates become slashable later (fraud proofs / equivocation proofs)
 
 ## 3) Everyday User Path (Lightweight)
@@ -78,6 +79,12 @@ Witness receipts (direction):
 
 - gateways/operators publish witness batches (e.g., IPFS) with deterministic roots
 - third parties can sample-verify and audit without user identifiers
+
+Utility vs reputation in the end-state:
+
+- `TOLL` remains the utility/payment token.
+- `REP` becomes a durable signal for eligibility, governance influence, and fee discounts.
+- REP-to-economic conversion stays constrained by slashing risk, stake, and proof quality.
 
 ## 8) End-State: Permissionless Watchdogs + Dispute-Backed Policy
 
