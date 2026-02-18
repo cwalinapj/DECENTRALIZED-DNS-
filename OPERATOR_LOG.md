@@ -33,3 +33,25 @@
   - gateway build: PASS (tsc)
 - PR link: https://github.com/cwalinapj/DECENTRALIZED-DNS-/pull/55
 - Merge commit hash: (to be added after merge)
+
+## 2026-02-18T20:50:00Z — Branch: codex/pr-cache-rollup-ipfs-head
+- Scope: Add chronological cache rollup + IPFS head MVP (`CacheEntryV1`, `cache-rollup` service, `ddns_cache_head`, `ddns_rep`, gateway emission hooks, docs).
+- Commands run:
+  - `npm -C gateway test`
+  - `npm -C gateway run build`
+  - `npm -C services/cache-rollup run build`
+  - `cd solana && cargo generate-lockfile`
+  - `cd solana && cargo check -p ddns_cache_head`
+  - `cd solana && cargo check -p ddns_rep`
+  - `cd solana && cargo test -p ddns_cache_head`
+  - `cd solana && cargo test -p ddns_rep`
+  - `cd solana && anchor build --program-name ddns_cache_head`
+  - `cd solana && anchor build --program-name ddns_rep`
+  - `cd solana && anchor test --skip-build`
+- Tests/build results:
+  - gateway tests/build: PASS
+  - cache-rollup build: PASS
+  - solana cargo checks/tests: PASS (`ddns_cache_head`, `ddns_rep`)
+  - full Anchor TS suite: PASS (11 passing)
+- PR link: (to be added)
+- Merge commit hash: (to be added after merge)
