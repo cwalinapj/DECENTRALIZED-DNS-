@@ -56,6 +56,12 @@ Attack Mode is a resilience layer that makes the system degrade safely under act
 2. PR2: on-chain programs
 3. PR3: miner + client
 
+### Auto-merge Policy
+
+- Auto-merge is executed by `scripts/automerge_prs.sh` (zero human approval flow).
+- A PR is eligible only with label `automerge-ok`, `Risk: Low`, required checklist, green CI, and passing local-equivalent checks.
+- See `MERGE_QUEUE.md`, `MERGE_GUARDRAILS.md`, and `MERGE_LOG.md`.
+
 ### What This Repo Contains
 
 - `solana/`: Anchor workspace (programs + scripts)
@@ -216,4 +222,3 @@ Optional supporting docs (add/expand over time):
 - [Flow diagrams (Mermaid)](docs/flow-diagram.md)
 - [Threat model](docs/08-threat-model.md)
 - [Roadmap](docs/09-roadmap.md)
-
