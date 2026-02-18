@@ -20,7 +20,7 @@ Examples:
 USAGE
 }
 
-log() { printf '[merge-guard] %s\n' "$*"; }
+log() { printf '[merge-guard] %s\n' "$*" >&2; }
 
 run() {
   if [[ "$DRY_RUN" -eq 1 ]]; then
