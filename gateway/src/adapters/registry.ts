@@ -8,6 +8,7 @@ export type AdapterRegistry = {
 
 export function createAdapterRegistry(adapters: Record<string, Adapter | undefined>): AdapterRegistry {
   const pkdns = must(adapters.pkdns, "pkdns");
+  const recursive = must(adapters.recursive, "recursive");
   const ipfs = must(adapters.ipfs, "ipfs");
   const ens = must(adapters.ens, "ens");
   const sns = must(adapters.sns, "sns");
@@ -17,6 +18,7 @@ export function createAdapterRegistry(adapters: Record<string, Adapter | undefin
 
   const byKind: Record<RouteAnswer["source"]["kind"], Adapter | undefined> = {
     pkdns,
+    recursive,
     ipfs,
     ens,
     sns,
@@ -60,18 +62,27 @@ export function createAdapterRegistry(adapters: Record<string, Adapter | undefin
         return enrichContent(ans, input);
       }
 
-      // Otherwise: choose likely adapter by suffix/protocol.
-      const candidates: Adapter[] = [];
-      if (lowered.startsWith("ipfs://")) candidates.push(ipfs);
-      if (lowered.endsWith(".eth")) candidates.push(ens);
-      if (lowered.endsWith(".sol")) candidates.push(sns);
-      candidates.push(pkdns, ipfs, ens, sns);
-
-      for (const a of candidates) {
-        const ans = await a.resolve(input);
-        if (ans) return enrichContent(ans, input);
+      // Preserve explicit non-domain adapter semantics.
+      if (lowered.startsWith("ipfs://")) {
+        const ans = await ipfs.resolve(input);
+        if (!ans) throw new Error("NOT_FOUND");
+        return enrichContent(ans, input);
       }
-      throw new Error("NO_ADAPTER_MATCH");
+      if (lowered.endsWith(".eth")) {
+        const ans = await ens.resolve(input);
+        if (!ans) throw new Error("NOT_FOUND");
+        return enrichContent(ans, input);
+      }
+      if (lowered.endsWith(".sol")) {
+        const ans = await sns.resolve(input);
+        if (!ans) throw new Error("NOT_FOUND");
+        return enrichContent(ans, input);
+      }
+
+      // Non-.dns ICANN domains: recursive adapter first.
+      const ans = await recursive.resolve(input);
+      if (!ans) throw new Error("NO_ADAPTER_MATCH");
+      return enrichContent(ans, input);
     },
 
     async resolveWithSource(input) {

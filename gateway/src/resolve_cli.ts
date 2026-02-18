@@ -5,6 +5,7 @@ import {
   createEnsAdapter,
   createIpfsAdapter,
   createPkdnsAdapter,
+  createRecursiveAdapter,
   createSnsAdapter,
   type RouteAnswer
 } from "./adapters/index.js";
@@ -12,8 +13,9 @@ import {
 async function main() {
   const argv = await yargs(hideBin(process.argv))
     .option("name", { type: "string", demandOption: true })
-    .option("source", { type: "string", choices: ["auto", "pkdns", "ens", "sns", "ipfs"] as const, default: "auto" })
+    .option("source", { type: "string", choices: ["auto", "pkdns", "recursive", "ens", "sns", "ipfs"] as const, default: "auto" })
     .option("timeout-ms", { type: "number", default: 5000 })
+    .option("qtype", { type: "string", default: "A" })
     .option("solana-rpc", { type: "string", default: process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com" })
     .option("ddns-registry-program-id", { type: "string", default: process.env.DDNS_REGISTRY_PROGRAM_ID || "" })
     .option("ddns-watchdog-policy-program-id", { type: "string", default: process.env.DDNS_WATCHDOG_POLICY_PROGRAM_ID || "" })
@@ -31,6 +33,17 @@ async function main() {
       ddnsRegistryProgramId: argv["ddns-registry-program-id"],
       ddnsWatchdogPolicyProgramId: argv["ddns-watchdog-policy-program-id"] || undefined
     }),
+    recursive: createRecursiveAdapter({
+      upstreamDohUrls: (process.env.UPSTREAM_DOH_URLS || "https://cloudflare-dns.com/dns-query,https://dns.google/dns-query")
+        .split(",")
+        .map((v) => v.trim())
+        .filter(Boolean),
+      cachePath: process.env.CACHE_PATH || "gateway/.cache/rrset.json",
+      staleMaxS: Number(process.env.STALE_MAX_S || "1800"),
+      prefetchFraction: Number(process.env.PREFETCH_FRACTION || "0.1"),
+      cacheMaxEntries: Number(process.env.CACHE_MAX_ENTRIES || "50000"),
+      requestTimeoutMs: argv["timeout-ms"]
+    }),
     ipfs: createIpfsAdapter({ httpGateways: [argv["ipfs-gateway"]] }),
     ens: createEnsAdapter({ rpcUrl: argv["evm-rpc"], chainId: argv["evm-chain-id"] }),
     sns: createSnsAdapter({ rpcUrl: argv["solana-rpc"] })
@@ -45,6 +58,7 @@ async function main() {
       solanaRpcUrl: argv["solana-rpc"],
       evmRpcUrl: argv["evm-rpc"],
       chainId: argv["evm-chain-id"],
+      qtype: argv.qtype,
       dest: argv.dest,
       witnessUrl: argv["witness-url"] || undefined
     }

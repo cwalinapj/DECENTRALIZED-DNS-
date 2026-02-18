@@ -21,7 +21,7 @@ export type RouteAnswer = {
   };
   error?: { code: string; message: string };
   source: {
-    kind: "pkdns" | "ens" | "sns" | "handshake" | "ipfs" | "filecoin" | "arweave";
+    kind: "pkdns" | "recursive" | "ens" | "sns" | "handshake" | "ipfs" | "filecoin" | "arweave";
     ref: string;                // tx sig, PDA, chain height, record key, CID, etc.
     confidenceBps: number;      // 0..10000
     policy?: { status: PolicyStatus; flags: number; penaltyBps: number; recommendedTtlCap?: number };
