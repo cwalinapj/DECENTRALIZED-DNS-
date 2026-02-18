@@ -14,6 +14,7 @@ Repo: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 - Adapter layer (PKDNS/IPFS/ENS/SNS): `docs/ADAPTERS.md`
 - Watchdogs + policy attestation formats: `docs/PROTOCOL_WATCHDOG_ATTESTATION.md`
 - Security: `docs/THREAT_MODEL.md` and `docs/ATTACK_MODE.md`
+- Merge guardrails + queue: `docs/MERGE_QUEUE.md` and `docs/MERGE_LOG.md`
 
 ### Adoption Wedge: Domain Owners Get Paid
 
@@ -61,6 +62,12 @@ Attack Mode is a resilience layer that makes the system degrade safely under act
 - Auto-merge is executed by `scripts/automerge_prs.sh` (zero human approval flow).
 - A PR is eligible only with label `automerge-ok`, `Risk: Low`, required checklist, green CI, and passing local-equivalent checks.
 - See `MERGE_QUEUE.md`, `MERGE_GUARDRAILS.md`, and `MERGE_LOG.md`.
+
+### How Merges Happen
+
+- Merges run one PR at a time via `scripts/merge_prs_one_by_one.sh` in an isolated worktree.
+- The workflow refuses to merge unless PR checks pass and `main` CI is green.
+- Any dirty/conflicted git state is cleaned/aborted before integration work starts.
 
 ### What This Repo Contains
 
