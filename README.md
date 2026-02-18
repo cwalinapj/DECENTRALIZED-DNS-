@@ -14,6 +14,7 @@ Repo: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 - Adapter layer (PKDNS/IPFS/ENS/SNS): `docs/ADAPTERS.md`
 - Watchdogs + policy attestation formats: `docs/PROTOCOL_WATCHDOG_ATTESTATION.md`
 - Security: `docs/THREAT_MODEL.md` and `docs/ATTACK_MODE.md`
+- Merge guardrails + queue: `docs/MERGE_QUEUE.md` and `docs/MERGE_LOG.md`
 
 ### Adoption Wedge: Domain Owners Get Paid
 
@@ -61,6 +62,14 @@ Attack Mode is a resilience layer that makes the system degrade safely under act
 - Auto-merge is executed by `scripts/automerge_prs.sh` (zero human approval flow).
 - A PR is eligible only with label `automerge-ok`, `Risk: Low`, required checklist, green CI, and passing local-equivalent checks.
 - See `MERGE_QUEUE.md`, `MERGE_GUARDRAILS.md`, and `MERGE_LOG.md`.
+
+### How Merges Happen
+
+- Codex runs one PR at a time via `scripts/merge_prs_one_by_one.sh` in isolated worktrees.
+- CI must be green on both the PR and `main` before anything is marked ready.
+- No automatic merge by default: script stops at `READY TO MERGE`.
+- Override is explicit only via `OVERRIDE_MERGE_OK` token.
+- Queue + run logs: `docs/MERGE_QUEUE.md` and `docs/MERGE_LOG.md`.
 
 ### What This Repo Contains
 
