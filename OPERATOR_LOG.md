@@ -55,3 +55,13 @@
   - full Anchor TS suite: PASS (11 passing)
 - PR link: https://github.com/cwalinapj/DECENTRALIZED-DNS-/pull/72
 - Merge commit hash: (to be added after merge)
+
+## 2026-02-18 22:03:59 UTC — Phase 0 baseline + Phase 1 audit snapshot
+- Branch: `codex/fix-ci-baseline`
+- Main baseline status: latest CI run successful (workflow: ci, all jobs success).
+- Audit artifacts refreshed under `docs/audit/`:
+  - baseline CI logs and local proof
+  - PR inventory + per-PR summaries
+  - codex branch-without-PR summaries
+  - CI checks + failing run logs for open PRs
+- No merges executed in this iteration.
