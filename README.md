@@ -65,9 +65,11 @@ Attack Mode is a resilience layer that makes the system degrade safely under act
 
 ### How Merges Happen
 
-- Merges run one PR at a time via `scripts/merge_prs_one_by_one.sh` in an isolated worktree.
-- The workflow refuses to merge unless PR checks pass and `main` CI is green.
-- Any dirty/conflicted git state is cleaned/aborted before integration work starts.
+- Codex runs one PR at a time via `scripts/merge_prs_one_by_one.sh` in isolated worktrees.
+- CI must be green on both the PR and `main` before anything is marked ready.
+- No automatic merge by default: script stops at `READY TO MERGE`.
+- Override is explicit only via `OVERRIDE_MERGE_OK` token.
+- Queue + run logs: `docs/MERGE_QUEUE.md` and `docs/MERGE_LOG.md`.
 
 ### What This Repo Contains
 

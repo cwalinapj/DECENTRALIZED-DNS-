@@ -1,7 +1,15 @@
 # Merge Log
 
-This file records PR merges executed under the merge guardrails workflow.
+Append-only execution log for `scripts/merge_prs_one_by_one.sh`.
 
-| Date (UTC) | PR | Merge Commit | Checks |
-|---|---:|---|---|
-| _pending_ | _n/a_ | _n/a_ | _No guarded merges recorded yet._ |
+Each run appends:
+- UTC timestamp
+- status (`noop`, `ready`, `merged`, `blocked`)
+- mode (`--label` or PR list)
+- detail summary
+
+## 2026-02-18T00:00:00Z
+- status: seed
+- mode: n/a
+- detail: merge log initialized
+
