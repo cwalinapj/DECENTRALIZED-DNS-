@@ -26,25 +26,33 @@ pub mod ddns_names {
     #[allow(clippy::too_many_arguments)]
     pub fn init_names_config(
         ctx: Context<InitNamesConfig>,
-        treasury_pubkey: Pubkey,
+        treasury_vault_pubkey: Pubkey,
+        treasury_authority: Pubkey,
         parent_zone: String,
-        premium_price_lamports: u64,
+        premium_p4_lamports: u64,
+        premium_r_bps: u64,
         subdomain_bond_lamports: u64,
         enable_subdomains: bool,
         enable_premium: bool,
     ) -> Result<()> {
         let normalized_parent = normalize_full_name(&parent_zone)?;
         require!(normalized_parent.ends_with(".dns"), NamesError::InvalidName);
-        require!(normalized_parent.len() <= MAX_PARENT_ZONE, NamesError::InvalidName);
+        require!(
+            normalized_parent.len() <= MAX_PARENT_ZONE,
+            NamesError::InvalidName
+        );
 
         let cfg = &mut ctx.accounts.config;
         cfg.authority = ctx.accounts.authority.key();
-        cfg.treasury = treasury_pubkey;
+        cfg.treasury = treasury_vault_pubkey;
+        cfg.treasury_authority = treasury_authority;
         cfg.parent_zone_hash = hash_name(&normalized_parent);
         cfg.parent_zone_len = normalized_parent.len() as u8;
         cfg.parent_zone_bytes = [0u8; MAX_PARENT_ZONE];
-        cfg.parent_zone_bytes[..normalized_parent.len()].copy_from_slice(normalized_parent.as_bytes());
-        cfg.premium_price_lamports = premium_price_lamports;
+        cfg.parent_zone_bytes[..normalized_parent.len()]
+            .copy_from_slice(normalized_parent.as_bytes());
+        cfg.premium_p4_lamports = premium_p4_lamports;
+        cfg.premium_r_bps = premium_r_bps;
         cfg.subdomain_bond_lamports = subdomain_bond_lamports;
         cfg.enable_subdomains = enable_subdomains;
         cfg.enable_premium = enable_premium;
@@ -63,7 +71,10 @@ pub mod ddns_names {
         require!(cfg.enable_subdomains, NamesError::Disabled);
 
         let normalized_parent = normalize_full_name(&parent)?;
-        require!(normalized_parent == cfg.parent_zone(), NamesError::InvalidParent);
+        require!(
+            normalized_parent == cfg.parent_zone(),
+            NamesError::InvalidParent
+        );
 
         let normalized_label = normalize_label(&label)?;
         let computed_parent = hash_name(&normalized_parent);
@@ -117,12 +128,27 @@ pub mod ddns_names {
 
         let normalized = normalize_full_name(&name)?;
         let label = premium_label(&normalized)?;
-        validate_label(label)?;
+        validate_premium_label(label)?;
         let computed = hash_name(&normalized);
         require!(computed == name_hash, NamesError::InvalidHash);
 
+        let label_len = label.len();
+        if label_len <= 2 {
+            require_keys_eq!(
+                ctx.accounts.owner.key(),
+                cfg.treasury_authority,
+                NamesError::ReservedName
+            );
+        }
+
+        let premium_price_lamports = premium_price_for_len(cfg, label_len)?;
+
         anchor_lang::solana_program::program::invoke(
-            &system_instruction::transfer(&ctx.accounts.owner.key(), &cfg.treasury, cfg.premium_price_lamports),
+            &system_instruction::transfer(
+                &ctx.accounts.owner.key(),
+                &cfg.treasury,
+                premium_price_lamports,
+            ),
             &[
                 ctx.accounts.owner.to_account_info(),
                 ctx.accounts.treasury.to_account_info(),
@@ -133,7 +159,7 @@ pub mod ddns_names {
         let premium = &mut ctx.accounts.premium_name;
         premium.name_hash = name_hash;
         premium.owner = ctx.accounts.owner.key();
-        premium.purchase_lamports = cfg.premium_price_lamports;
+        premium.purchase_lamports = premium_price_lamports;
         premium.created_at = Clock::get()?.unix_timestamp;
         premium.transferable = true;
         premium.bump = ctx.bumps.premium_name;
@@ -157,7 +183,11 @@ pub mod ddns_names {
 
     pub fn transfer_premium(ctx: Context<TransferPremium>) -> Result<()> {
         let premium = &mut ctx.accounts.premium_name;
-        require_keys_eq!(premium.owner, ctx.accounts.current_owner.key(), NamesError::Unauthorized);
+        require_keys_eq!(
+            premium.owner,
+            ctx.accounts.current_owner.key(),
+            NamesError::Unauthorized
+        );
         premium.owner = ctx.accounts.new_owner.key();
 
         if ctx.accounts.parent_policy.parent_owner == ctx.accounts.current_owner.key() {
@@ -183,7 +213,11 @@ pub mod ddns_names {
 
         let premium = &ctx.accounts.premium_parent;
         require!(premium.name_hash == parent_hash, NamesError::InvalidParent);
-        require_keys_eq!(premium.owner, ctx.accounts.parent_owner.key(), NamesError::Unauthorized);
+        require_keys_eq!(
+            premium.owner,
+            ctx.accounts.parent_owner.key(),
+            NamesError::Unauthorized
+        );
 
         let policy = &mut ctx.accounts.parent_policy;
         if policy.parent_hash == [0u8; 32] {
@@ -193,7 +227,11 @@ pub mod ddns_names {
             policy.bump = ctx.bumps.parent_policy;
         } else {
             require!(policy.parent_hash == parent_hash, NamesError::InvalidParent);
-            require_keys_eq!(policy.parent_owner, ctx.accounts.parent_owner.key(), NamesError::Unauthorized);
+            require_keys_eq!(
+                policy.parent_owner,
+                ctx.accounts.parent_owner.key(),
+                NamesError::Unauthorized
+            );
         }
 
         let sub = &mut ctx.accounts.sub_name;
@@ -218,8 +256,15 @@ pub mod ddns_names {
         let normalized_parent = normalize_full_name(&parent)?;
         let computed_parent = hash_name(&normalized_parent);
         require!(computed_parent == parent_hash, NamesError::InvalidHash);
-        require!(ctx.accounts.premium_parent.name_hash == parent_hash, NamesError::InvalidParent);
-        require_keys_eq!(ctx.accounts.premium_parent.owner, ctx.accounts.parent_owner.key(), NamesError::Unauthorized);
+        require!(
+            ctx.accounts.premium_parent.name_hash == parent_hash,
+            NamesError::InvalidParent
+        );
+        require_keys_eq!(
+            ctx.accounts.premium_parent.owner,
+            ctx.accounts.parent_owner.key(),
+            NamesError::Unauthorized
+        );
 
         let policy = &mut ctx.accounts.parent_policy;
         if policy.parent_hash == [0u8; 32] {
@@ -228,7 +273,11 @@ pub mod ddns_names {
             policy.bump = ctx.bumps.parent_policy;
         } else {
             require!(policy.parent_hash == parent_hash, NamesError::InvalidParent);
-            require_keys_eq!(policy.parent_owner, ctx.accounts.parent_owner.key(), NamesError::Unauthorized);
+            require_keys_eq!(
+                policy.parent_owner,
+                ctx.accounts.parent_owner.key(),
+                NamesError::Unauthorized
+            );
         }
         policy.transfers_enabled = transfers_enabled;
         Ok(())
@@ -243,12 +292,25 @@ pub mod ddns_names {
     ) -> Result<()> {
         let normalized_parent = normalize_full_name(&parent)?;
         let normalized_label = normalize_label(&label)?;
-        require!(hash_name(&normalized_parent) == parent_hash, NamesError::InvalidHash);
-        require!(hash_label(&normalized_label) == label_hash, NamesError::InvalidHash);
+        require!(
+            hash_name(&normalized_parent) == parent_hash,
+            NamesError::InvalidHash
+        );
+        require!(
+            hash_label(&normalized_label) == label_hash,
+            NamesError::InvalidHash
+        );
 
         let sub = &mut ctx.accounts.sub_name;
-        require!(sub.parent_hash == parent_hash && sub.label_hash == label_hash, NamesError::InvalidHash);
-        require_keys_eq!(sub.owner, ctx.accounts.current_owner.key(), NamesError::Unauthorized);
+        require!(
+            sub.parent_hash == parent_hash && sub.label_hash == label_hash,
+            NamesError::InvalidHash
+        );
+        require_keys_eq!(
+            sub.owner,
+            ctx.accounts.current_owner.key(),
+            NamesError::Unauthorized
+        );
 
         match sub.transfer_policy {
             TRANSFER_NON_TRANSFERABLE => return err!(NamesError::NonTransferable),
@@ -265,7 +327,11 @@ pub mod ddns_names {
                         .parent_owner
                         .as_ref()
                         .ok_or_else(|| error!(NamesError::ParentOwnerRequired))?;
-                    require_keys_eq!(sub.parent_owner, parent_owner.key(), NamesError::ParentOwnerRequired);
+                    require_keys_eq!(
+                        sub.parent_owner,
+                        parent_owner.key(),
+                        NamesError::ParentOwnerRequired
+                    );
                 }
             }
             _ => return err!(NamesError::InvalidTransferPolicy),
@@ -275,7 +341,11 @@ pub mod ddns_names {
         Ok(())
     }
 
-    pub fn set_primary_name(ctx: Context<SetPrimaryName>, name_hash: [u8; 32], kind: u8) -> Result<()> {
+    pub fn set_primary_name(
+        ctx: Context<SetPrimaryName>,
+        name_hash: [u8; 32],
+        kind: u8,
+    ) -> Result<()> {
         match kind {
             KIND_PREMIUM => {
                 let premium = ctx
@@ -284,7 +354,11 @@ pub mod ddns_names {
                     .as_ref()
                     .ok_or_else(|| error!(NamesError::MissingRequiredAccount))?;
                 require!(premium.name_hash == name_hash, NamesError::InvalidHash);
-                require_keys_eq!(premium.owner, ctx.accounts.owner.key(), NamesError::Unauthorized);
+                require_keys_eq!(
+                    premium.owner,
+                    ctx.accounts.owner.key(),
+                    NamesError::Unauthorized
+                );
             }
             KIND_SUBDOMAIN => {
                 let sub = ctx
@@ -292,7 +366,11 @@ pub mod ddns_names {
                     .sub_name
                     .as_ref()
                     .ok_or_else(|| error!(NamesError::MissingRequiredAccount))?;
-                require_keys_eq!(sub.owner, ctx.accounts.owner.key(), NamesError::Unauthorized);
+                require_keys_eq!(
+                    sub.owner,
+                    ctx.accounts.owner.key(),
+                    NamesError::Unauthorized
+                );
                 let computed = subdomain_name_hash(sub.parent_hash, sub.label_hash);
                 require!(computed == name_hash, NamesError::InvalidHash);
             }
@@ -531,10 +609,12 @@ pub struct SetPrimaryName<'info> {
 pub struct NamesConfig {
     pub authority: Pubkey,
     pub treasury: Pubkey,
+    pub treasury_authority: Pubkey,
     pub parent_zone_hash: [u8; 32],
     pub parent_zone_len: u8,
     pub parent_zone_bytes: [u8; MAX_PARENT_ZONE],
-    pub premium_price_lamports: u64,
+    pub premium_p4_lamports: u64,
+    pub premium_r_bps: u64,
     pub subdomain_bond_lamports: u64,
     pub enable_subdomains: bool,
     pub enable_premium: bool,
@@ -542,7 +622,7 @@ pub struct NamesConfig {
 }
 
 impl NamesConfig {
-    pub const SIZE: usize = 32 + 32 + 32 + 1 + MAX_PARENT_ZONE + 8 + 8 + 1 + 1 + 1;
+    pub const SIZE: usize = 32 + 32 + 32 + 32 + 1 + MAX_PARENT_ZONE + 8 + 8 + 8 + 1 + 1 + 1;
 
     pub fn parent_zone(&self) -> String {
         let len = self.parent_zone_len as usize;
@@ -605,7 +685,13 @@ impl PrimaryName {
     pub const SIZE: usize = 32 + 32 + 1 + 1 + 1;
 }
 
-fn upsert_primary_if_empty(primary: &mut Account<PrimaryName>, owner: Pubkey, name_hash: [u8; 32], kind: u8, bump: u8) {
+fn upsert_primary_if_empty(
+    primary: &mut Account<PrimaryName>,
+    owner: Pubkey,
+    name_hash: [u8; 32],
+    kind: u8,
+    bump: u8,
+) {
     if !primary.is_set {
         primary.owner = owner;
         primary.name_hash = name_hash;
@@ -618,7 +704,10 @@ fn upsert_primary_if_empty(primary: &mut Account<PrimaryName>, owner: Pubkey, na
 fn normalize_full_name(input: &str) -> Result<String> {
     let lower = input.trim().to_ascii_lowercase();
     let normalized = lower.trim_end_matches('.').to_string();
-    require!(!normalized.is_empty() && normalized.len() <= 253, NamesError::InvalidName);
+    require!(
+        !normalized.is_empty() && normalized.len() <= 253,
+        NamesError::InvalidName
+    );
     require!(!normalized.contains(".."), NamesError::InvalidName);
     Ok(normalized)
 }
@@ -632,12 +721,47 @@ fn normalize_label(input: &str) -> Result<String> {
 fn validate_label(label: &str) -> Result<()> {
     require!((3..=32).contains(&label.len()), NamesError::InvalidLabel);
     let bytes = label.as_bytes();
-    require!(bytes[0] != b'-' && bytes[bytes.len() - 1] != b'-', NamesError::InvalidLabel);
+    require!(
+        bytes[0] != b'-' && bytes[bytes.len() - 1] != b'-',
+        NamesError::InvalidLabel
+    );
     for &b in bytes {
         let ok = b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-';
         require!(ok, NamesError::InvalidLabel);
     }
     Ok(())
+}
+
+fn validate_premium_label(label: &str) -> Result<()> {
+    require!((1..=32).contains(&label.len()), NamesError::InvalidLabel);
+    let bytes = label.as_bytes();
+    require!(
+        bytes[0] != b'-' && bytes[bytes.len() - 1] != b'-',
+        NamesError::InvalidLabel
+    );
+    for &b in bytes {
+        let ok = b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-';
+        require!(ok, NamesError::InvalidLabel);
+    }
+    Ok(())
+}
+
+fn premium_price_for_len(cfg: &NamesConfig, label_len: usize) -> Result<u64> {
+    if label_len >= 5 {
+        return Ok(0);
+    }
+
+    let mut price = u128::from(cfg.premium_p4_lamports);
+    let steps = 4usize.saturating_sub(label_len);
+    for _ in 0..steps {
+        price = price
+            .checked_mul(u128::from(cfg.premium_r_bps))
+            .ok_or_else(|| error!(NamesError::InvalidPricing))?
+            .checked_div(10_000)
+            .ok_or_else(|| error!(NamesError::InvalidPricing))?;
+    }
+
+    u64::try_from(price).map_err(|_| error!(NamesError::InvalidPricing))
 }
 
 fn premium_label(normalized: &str) -> Result<&str> {
@@ -688,4 +812,8 @@ pub enum NamesError {
     InvalidKind,
     #[msg("Missing required account")]
     MissingRequiredAccount,
+    #[msg("Reserved premium label length")]
+    ReservedName,
+    #[msg("Invalid premium pricing config or overflow")]
+    InvalidPricing,
 }

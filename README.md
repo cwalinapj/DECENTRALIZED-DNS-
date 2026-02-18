@@ -11,6 +11,7 @@ Repo: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 - Adoption wedge (why this gets used): `docs/ADOPTION.md`
 - How it works (protocol): `docs/PROTOCOL_CACHE_WITNESS.md`
 - Where it’s going (end state): `docs/END_STATE.md`
+- Premium pricing + reservation policy: `docs/PREMIUM_PRICING.md`
 - Adapter layer (PKDNS/IPFS/ENS/SNS): `docs/ADAPTERS.md`
 - Watchdogs + policy attestation formats: `docs/PROTOCOL_WATCHDOG_ATTESTATION.md`
 - Security: `docs/THREAT_MODEL.md` and `docs/ATTACK_MODE.md`
@@ -181,6 +182,7 @@ Devnet is the reference environment. Localnet is optional for MVP.
 - Every wallet can claim identity subdomains under a controlled parent zone: `label.user.dns`.
 - `user.dns` subdomains are non-transferable by default (identity-first, not resale inventory).
 - Premium second-level names (for example `alice.dns`) are one-time SOL purchases and remain transferable.
+- Premium short-label pricing is logarithmic for 1-4 chars, and 1-2 char labels are reserved to treasury authority in MVP.
 - Premium parent owners can mint delegated subdomains (for example `bob.alice.dns`) with parent-controlled transfer rules.
 - Sellable miner reward claims are premium-gated: claimants must prove ownership of a premium `.dns` account.
 - This gate changes reward eligibility only; it does not write ICANN results into canonical `.dns` consensus.

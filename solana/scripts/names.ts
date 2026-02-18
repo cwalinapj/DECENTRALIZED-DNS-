@@ -96,9 +96,11 @@ async function main() {
       "Initialize names config",
       (y) =>
         y
-          .option("treasury", { type: "string", describe: "default wallet" })
+          .option("treasury-vault", { type: "string", describe: "default wallet (SOL receiver)" })
+          .option("treasury-authority", { type: "string", describe: "wallet allowed to mint 1-2 char names (default wallet)" })
           .option("parent-zone", { type: "string", default: "user.dns" })
-          .option("premium-price-sol", { type: "number", default: 0.05 })
+          .option("p4-sol", { type: "number", default: 0.1, describe: "4-char premium price in SOL" })
+          .option("r-bps", { type: "number", default: 100000, describe: "shorter-label multiplier in bps (100000 = 10x)" })
           .option("sub-bond-sol", { type: "number", default: 0 })
           .option("enable-subdomains", { type: "boolean", default: true })
           .option("enable-premium", { type: "boolean", default: true }),
@@ -106,15 +108,21 @@ async function main() {
         const { program, payer, connection, programId } = await loadProgram(args.rpc as string, args.wallet as string, args["program-id"] as string | undefined);
         const [configPda] = PublicKey.findProgramAddressSync([Buffer.from("names_config")], programId);
 
-        const treasury = new PublicKey((args.treasury as string | undefined) || payer.publicKey.toBase58());
-        const premiumPriceLamports = BigInt(Math.round((args["premium-price-sol"] as number) * 1e9));
+        const treasury = new PublicKey((args["treasury-vault"] as string | undefined) || payer.publicKey.toBase58());
+        const treasuryAuthority = new PublicKey(
+          (args["treasury-authority"] as string | undefined) || payer.publicKey.toBase58()
+        );
+        const premiumP4Lamports = BigInt(Math.round((args["p4-sol"] as number) * 1e9));
+        const premiumRBps = BigInt(Math.round(args["r-bps"] as number));
         const subBondLamports = BigInt(Math.round((args["sub-bond-sol"] as number) * 1e9));
 
         const sig = await program.methods
           .initNamesConfig(
             treasury,
+            treasuryAuthority,
             String(args["parent-zone"]),
-            new BN(premiumPriceLamports.toString()),
+            new BN(premiumP4Lamports.toString()),
+            new BN(premiumRBps.toString()),
             new BN(subBondLamports.toString()),
             args["enable-subdomains"] as boolean,
             args["enable-premium"] as boolean
@@ -131,8 +139,10 @@ async function main() {
           programId: programId.toBase58(),
           configPda: configPda.toBase58(),
           treasury: treasury.toBase58(),
+          treasuryAuthority: treasuryAuthority.toBase58(),
           parentZone: normalizeFullName(String(args["parent-zone"])),
-          premiumPriceLamports: premiumPriceLamports.toString(),
+          premiumP4Lamports: premiumP4Lamports.toString(),
+          premiumRBps: premiumRBps.toString(),
           subBondLamports: subBondLamports.toString(),
         }, null, 2));
       }

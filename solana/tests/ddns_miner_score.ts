@@ -278,8 +278,10 @@ describe("ddns_miner_score", () => {
       await names.methods
         .initNamesConfig(
           feePayer,
+          feePayer,
           "user.dns",
           new BN(1_000_000),
+          new BN(100_000),
           new BN(0),
           true,
           true
