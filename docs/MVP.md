@@ -150,10 +150,23 @@ Why not “per-query payouts” in MVP:
 - raw query counts are trivial to bot and break economics
 - toll events represent scarce value (route acquisition/refresh), so wash behavior costs real funds.
 
+## Premium Chronological Cache Rollup (MVP)
+
+- Premium parent domains (for example `acme.dns`) can fund cache reliability with IPFS-backed chronological rollups.
+- Gateway emits privacy-safe `CacheEntryV1` entries for names under premium parents:
+  - RRset hash only
+  - TTL + confidence + 10-minute bucket
+  - witness signature
+  - no client identifiers/IP/UA/wallet-user linkage
+- `services/cache-rollup` ingests entries, computes `cache_root`, writes rollup JSON, and publishes to IPFS (or stub CID in MVP fallback).
+- On-chain head (`ddns_cache_head`) stores latest `{cache_root, cid_hash, epoch_id}` per premium parent.
+- Accepted contributor entries (subdomain users/miners/witnesses) earn non-transferable REP points in `ddns_rep`.
+
 ## Privacy Notes (MVP)
 
 - Witness receipts must not include client IP, user agent, wallet pubkeys, or per-request IDs.
 - Observations should be time-bucketed (e.g., 10-minute buckets) to reduce tracking surface.
+- Cache rollup entries (`CacheEntryV1`) must remain RRset-only observation facts and never include per-user identifiers.
 
 ## MVP: Watchdogs + Policy (Bootstrap)
 
