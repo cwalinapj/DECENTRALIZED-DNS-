@@ -160,6 +160,15 @@ Then follow `docs/MVP.md` to:
 
 Devnet is the reference environment. Localnet is optional for MVP.
 
+## .dns Identity + Premium Reward Gate (MVP)
+
+- Every wallet can claim identity subdomains under a controlled parent zone: `label.user.dns`.
+- `user.dns` subdomains are non-transferable by default (identity-first, not resale inventory).
+- Premium second-level names (for example `alice.dns`) are one-time SOL purchases and remain transferable.
+- Premium parent owners can mint delegated subdomains (for example `bob.alice.dns`) with parent-controlled transfer rules.
+- Sellable miner reward claims are premium-gated: claimants must prove ownership of a premium `.dns` account.
+- This gate changes reward eligibility only; it does not write ICANN results into canonical `.dns` consensus.
+
 ---
 
 ## Miner Onboarding Path: Docker (Beta) → Pi Firmware → Router Firmware → ASIC Edge Routers

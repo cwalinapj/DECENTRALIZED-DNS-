@@ -6,8 +6,9 @@ use anchor_lang::solana_program::{
     system_instruction,
 };
 use anchor_spl::token::{self, Token, Transfer};
+use sha2::{Digest, Sha256};
 
-declare_id!("37yrHgDgALGe4fUwWhJigQfD95jPFd9g2fDuYHkPAYaS");
+declare_id!("B4nYLvM9KVH2vsHFqBdSScMwnE8GABQetfVv3U7BUbhL");
 
 const BPS_DENOM: u128 = 10_000;
 const SCORE_DENOM: u128 = 10_000; // scores in 0..10000
@@ -21,6 +22,8 @@ const SEED_REWARD_VAULT: &[u8] = b"reward_vault";
 const SEED_MINER_EPOCH: &[u8] = b"miner_epoch";
 const SEED_EPOCH_TOTALS: &[u8] = b"epoch_totals";
 const SEED_CLAIM: &[u8] = b"claim";
+
+const PREMIUM_NAME_ACCOUNT: &str = "PremiumName";
 
 #[program]
 pub mod ddns_miner_score {
@@ -42,6 +45,8 @@ pub mod ddns_miner_score {
         centralization_penalty_bps: u16,
         dominance_threshold_bps: u16,
         diversity_target: u32,
+        names_program: Pubkey,
+        require_premium_for_sellable: bool,
     ) -> Result<()> {
         require!(epoch_len_slots > 0, MinerScoreError::InvalidConfig);
         require!(diversity_target > 0, MinerScoreError::InvalidConfig);
@@ -131,6 +136,8 @@ pub mod ddns_miner_score {
         cfg.centralization_penalty_bps = centralization_penalty_bps;
         cfg.dominance_threshold_bps = dominance_threshold_bps;
         cfg.diversity_target = diversity_target;
+        cfg.names_program = names_program;
+        cfg.require_premium_for_sellable = require_premium_for_sellable;
         cfg.bump = ctx.bumps.config;
         Ok(())
     }
@@ -335,6 +342,19 @@ pub mod ddns_miner_score {
             &ctx.accounts.miner.key(),
         )?;
 
+        if cfg.require_premium_for_sellable {
+            require_keys_eq!(
+                ctx.accounts.names_program.key(),
+                cfg.names_program,
+                MinerScoreError::InvalidNamesProgram
+            );
+            verify_premium_name_account(
+                &ctx.accounts.premium_name,
+                &ctx.accounts.miner.key(),
+                &ctx.accounts.names_program.key(),
+            )?;
+        }
+
         let signer_seeds: &[&[u8]] = &[SEED_VAULT_AUTH, &[cfg.vault_authority_bump]];
         token::transfer(
             ctx.accounts
@@ -526,6 +546,12 @@ pub struct ClaimMinerReward<'info> {
     /// CHECK: validated in handler.
     pub miner_ata: UncheckedAccount<'info>,
 
+    /// CHECK: validated against config.names_program in handler.
+    pub names_program: UncheckedAccount<'info>,
+
+    /// CHECK: validated and parsed in handler as ddns_names::PremiumName account.
+    pub premium_name: UncheckedAccount<'info>,
+
     #[account(
         init,
         payer = miner,
@@ -587,6 +613,8 @@ pub struct MinerScoreConfig {
     pub centralization_penalty_bps: u16,
     pub dominance_threshold_bps: u16,
     pub diversity_target: u32,
+    pub names_program: Pubkey,
+    pub require_premium_for_sellable: bool,
     pub bump: u8,
 }
 
@@ -604,6 +632,8 @@ impl MinerScoreConfig {
         + 4 + 32 * MAX_MINERS     // allowlisted_miners vec
         + 2*6 // u16 scoring params (4 alphas + penalty + threshold)
         + 4  // diversity_target
+        + 32 // names_program
+        + 1  // require_premium_for_sellable
         + 1; // bump
 }
 
@@ -680,6 +710,33 @@ fn is_allowlisted(list: &[Pubkey], k: &Pubkey) -> bool {
     list.iter().any(|x| x == k)
 }
 
+fn premium_name_discriminator() -> [u8; 8] {
+    let digest = Sha256::digest(format!("account:{}", PREMIUM_NAME_ACCOUNT).as_bytes());
+    let mut out = [0u8; 8];
+    out.copy_from_slice(&digest[..8]);
+    out
+}
+
+fn verify_premium_name_account(
+    premium_name: &UncheckedAccount,
+    expected_owner: &Pubkey,
+    expected_program: &Pubkey,
+) -> Result<()> {
+    let info = premium_name.to_account_info();
+    require_keys_eq!(*info.owner, *expected_program, MinerScoreError::InvalidNamesProgram);
+    let data = info.try_borrow_data()?;
+    require!(data.len() >= 8 + 32 + 32, MinerScoreError::InvalidPremiumName);
+    let disc = premium_name_discriminator();
+    require!(data[..8] == disc, MinerScoreError::InvalidPremiumName);
+    let owner = Pubkey::new_from_array(
+        data[8 + 32..8 + 32 + 32]
+            .try_into()
+            .map_err(|_| error!(MinerScoreError::InvalidPremiumName))?,
+    );
+    require_keys_eq!(owner, *expected_owner, MinerScoreError::PremiumRequired);
+    Ok(())
+}
+
 fn validate_token_account_mint_owner(
     acct: &UncheckedAccount,
     expected_mint: &Pubkey,
@@ -737,4 +794,10 @@ pub enum MinerScoreError {
     MinerMismatch,
     #[msg("math overflow")]
     MathOverflow,
+    #[msg("invalid names program account")]
+    InvalidNamesProgram,
+    #[msg("premium .dns required for sellable rewards")]
+    PremiumRequired,
+    #[msg("invalid premium name account")]
+    InvalidPremiumName,
 }

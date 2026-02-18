@@ -41,6 +41,17 @@ npm install
 anchor build
 ```
 
+Identity + premium commands (devnet):
+
+```bash
+cd solana
+npm run names -- init-config --rpc https://api.devnet.solana.com --parent-zone user.dns --premium-price-sol 0.05
+npm run names -- claim-sub --rpc https://api.devnet.solana.com --parent user.dns --label alice
+npm run names -- buy-premium --rpc https://api.devnet.solana.com --name alice.dns
+npm run names -- set-primary --rpc https://api.devnet.solana.com --name alice.dns
+npm run names -- resolve-primary --rpc https://api.devnet.solana.com --owner <WALLET_PUBKEY>
+```
+
 Start gateway (optional; for adapter-based resolves):
 
 ```bash
@@ -130,6 +141,17 @@ Not yet decentralized in MVP:
 - On-chain verification of each receipt/stake proof.
 - Rotating stake-weighted committees and slashing.
 - Browser extension distribution (Firefox).
+
+## MVP .dns Identity + Premium Reward Bonding Gate
+
+- Free identity path: wallet claims subdomains under controlled parent zone `user.dns` (for example `alice.user.dns`).
+- `user.dns` subdomains are always non-transferable in MVP.
+- Premium path: users buy second-level names (for example `alice.dns`) with one-time SOL payment and keep ownership.
+- Premium parents can delegate mint subdomains (for example `bob.alice.dns`), with parent-controlled transfer authorization.
+- Sellable miner reward claims are premium-gated:
+  - wallet without a premium `.dns` name cannot claim sellable reward payouts
+  - wallet with premium ownership can claim (subject to miner program rules)
+- Non-premium participants can still use `.dns` and run non-sellable participation paths.
 
 Compat validation note:
 - `scripts/validate-compat-mvp.sh` intentionally skips when compat harness inputs are missing (`docker-compose.validation.yml`, `workers/compat-runner`) during MVP bootstrap.
