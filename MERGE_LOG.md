@@ -58,3 +58,10 @@ MVP root tests:FAILURE:https://github.com/cwalinapj/DECENTRALIZED-DNS-/actions/r
 - ci: fallback-pass
 - local_checks: pass
 
+## 2026-02-18T10:12:08Z
+- PR: #67 - fix: root npm test (gateway TS compile)
+- decision: SKIP
+- url: https://github.com/cwalinapj/DECENTRALIZED-DNS-/pull/67
+- ci: fallback-pass
+- local_checks: fail
+

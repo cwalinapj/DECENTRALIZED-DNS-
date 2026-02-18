@@ -260,8 +260,8 @@ run_local_checks_and_collect() {
     cmds+=("npm test")
   else
     [[ "$touched_attack" -eq 1 && -d "$wt/packages/attack-mode" ]] && cmds+=("npm -C packages/attack-mode ci && npm -C packages/attack-mode run build")
-    [[ "$touched_gateway" -eq 1 && -d "$wt/gateway" ]] && cmds+=("npm -C gateway test && npm -C gateway run build")
-    [[ "$touched_miner" -eq 1 && -d "$wt/services/miner-witness" ]] && cmds+=("npm -C services/miner-witness test && npm -C services/miner-witness run build")
+    [[ "$touched_gateway" -eq 1 && -d "$wt/gateway" ]] && cmds+=("npm -C gateway ci && npm -C gateway test && npm -C gateway run build")
+    [[ "$touched_miner" -eq 1 && -d "$wt/services/miner-witness" ]] && cmds+=("npm -C services/miner-witness ci && npm -C services/miner-witness test && npm -C services/miner-witness run build")
     if [[ "$touched_solana" -eq 1 && -d "$wt/solana" ]]; then
       cmds+=("cd solana && cargo generate-lockfile && anchor build")
       mapfile -t crates < <(printf '%s\n' "${files[@]}" | rg '^solana/programs/[^/]+/' -o | sed 's#^solana/programs/##;s#/$##' | sort -u)
