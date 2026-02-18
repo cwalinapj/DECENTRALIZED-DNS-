@@ -13,6 +13,7 @@ import {
   createHandshakeAdapterStub,
   createIpfsAdapter,
   createPkdnsAdapter,
+  createRecursiveAdapter,
   createSnsAdapter
 } from "../adapters/index.js";
 
@@ -34,6 +35,16 @@ export function buildDefaultAdapters(cfg: AdapterRegistryConfig): Adapter[] {
       ddnsRegistryProgramId: cfg.ddnsRegistryProgramId,
       ddnsWatchdogPolicyProgramId: cfg.policyProgramId
     }),
+    createRecursiveAdapter({
+      upstreamDohUrls: (process.env.UPSTREAM_DOH_URLS || "https://cloudflare-dns.com/dns-query,https://dns.google/dns-query")
+        .split(",")
+        .map((v) => v.trim())
+        .filter(Boolean),
+      cachePath: process.env.CACHE_PATH || "gateway/.cache/rrset.json",
+      staleMaxS: Number(process.env.STALE_MAX_S || "1800"),
+      prefetchFraction: Number(process.env.PREFETCH_FRACTION || "0.1"),
+      cacheMaxEntries: Number(process.env.CACHE_MAX_ENTRIES || "50000")
+    }),
     createIpfsAdapter({ httpGateways: [cfg.ipfsHttpGatewayBaseUrl] }),
     createEnsAdapter({ rpcUrl: cfg.ethRpcUrl, chainId: 1 }),
     createSnsAdapter({ rpcUrl: cfg.solanaRpcUrl }),
@@ -50,6 +61,7 @@ export async function resolveRouteAnswer(
 ): Promise<RouteAnswer> {
   const registry = createAdapterRegistry({
     pkdns: adapters.find((a) => a.kind === "pkdns"),
+    recursive: adapters.find((a) => a.kind === "recursive"),
     ipfs: adapters.find((a) => a.kind === "ipfs"),
     ens: adapters.find((a) => a.kind === "ens"),
     sns: adapters.find((a) => a.kind === "sns"),

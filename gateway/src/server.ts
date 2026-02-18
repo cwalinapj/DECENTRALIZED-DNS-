@@ -11,6 +11,7 @@ import {
   createEnsAdapter,
   createIpfsAdapter,
   createPkdnsAdapter,
+  createRecursiveAdapter,
   createSnsAdapter
 } from "./adapters/index.js";
 import { anchorRoot, loadAnchorStore, type AnchorRecord } from "./anchor.js";
@@ -27,9 +28,17 @@ import {
 
 const PORT = Number(process.env.PORT || "8054");
 const HOST = process.env.HOST || "0.0.0.0";
+const UPSTREAM_DOH_URLS = (process.env.UPSTREAM_DOH_URLS || "https://cloudflare-dns.com/dns-query,https://dns.google/dns-query")
+  .split(",")
+  .map((v) => v.trim())
+  .filter(Boolean);
 const UPSTREAM_DOH_URL = process.env.UPSTREAM_DOH_URL || "https://cloudflare-dns.com/dns-query";
 const REQUEST_TIMEOUT_MS = Number(process.env.REQUEST_TIMEOUT_MS || "5000");
 const CACHE_TTL_MAX_S = Number(process.env.CACHE_TTL_MAX_S || "3600");
+const CACHE_PATH = process.env.CACHE_PATH || "gateway/.cache/rrset.json";
+const STALE_MAX_S = Number(process.env.STALE_MAX_S || "1800");
+const PREFETCH_FRACTION = Number(process.env.PREFETCH_FRACTION || "0.1");
+const CACHE_MAX_ENTRIES = Number(process.env.CACHE_MAX_ENTRIES || "50000");
 const LOG_LEVEL = process.env.LOG_LEVEL || (process.env.NODE_ENV === "development" ? "verbose" : "quiet");
 const GATED_SUFFIXES = (process.env.GATED_SUFFIXES || ".premium")
   .split(",")
@@ -124,12 +133,22 @@ function currentAttackPolicy(nowUnix: number) {
   return policyForMode(attackMode);
 }
 
+const recursiveAdapter = createRecursiveAdapter({
+  upstreamDohUrls: UPSTREAM_DOH_URLS,
+  cachePath: CACHE_PATH,
+  staleMaxS: STALE_MAX_S,
+  prefetchFraction: PREFETCH_FRACTION,
+  cacheMaxEntries: CACHE_MAX_ENTRIES,
+  requestTimeoutMs: REQUEST_TIMEOUT_MS
+});
+
 const adapterRegistry = createAdapterRegistry({
   pkdns: createPkdnsAdapter({
     solanaRpcUrl: SOLANA_RPC_URL,
     ddnsRegistryProgramId: DDNS_REGISTRY_PROGRAM_ID,
     ddnsWatchdogPolicyProgramId: WATCHDOG_POLICY_PROGRAM_ID || undefined
   }),
+  recursive: recursiveAdapter,
   ipfs: createIpfsAdapter({ httpGateways: [IPFS_HTTP_GATEWAY_BASE_URL] }),
   ens: createEnsAdapter({ rpcUrl: ETH_RPC_URL, chainId: 1 }),
   sns: createSnsAdapter({ rpcUrl: SOLANA_RPC_URL })
@@ -402,6 +421,46 @@ export function createApp() {
 
   app.get("/v1/route", handleRoute);
   app.get("/v1/resolve-adapter", handleRoute);
+
+  app.get("/v1/resolve", async (req, res) => {
+    try {
+      const name = typeof req.query.name === "string" ? req.query.name : "";
+      const type = typeof req.query.type === "string" ? req.query.type.toUpperCase() : "A";
+      if (!name) return res.status(400).json({ error: "missing_name" });
+
+      if (name.toLowerCase().endsWith(".dns")) {
+        const ans = await adapterRegistry.resolveAuto({
+          name,
+          nowUnix: Math.floor(Date.now() / 1000),
+          network: "gateway",
+          opts: {
+            timeoutMs: REQUEST_TIMEOUT_MS,
+            qtype: type,
+            dest: typeof req.query.dest === "string" ? req.query.dest : undefined,
+            witnessUrl:
+              typeof req.query.witness_url === "string"
+                ? req.query.witness_url
+                : DDNS_WITNESS_URL
+                  ? DDNS_WITNESS_URL
+                  : undefined
+          }
+        });
+        return res.json(ans);
+      }
+
+      const out = await recursiveAdapter.resolveRecursive(name, type);
+      return res.json({
+        name: out.name,
+        type: out.type,
+        answers: out.answers,
+        ttl_s: out.ttlS,
+        source: out.source,
+        ...(out.upstream ? { upstream: out.upstream } : {})
+      });
+    } catch (err: any) {
+      return res.status(502).json({ error: String(err?.message || err) });
+    }
+  });
 
   app.post("/cache/upsert", express.json(), async (req, res) => {
     try {

@@ -1,10 +1,10 @@
 export type { RouteAnswer } from "./types.js";
 export { createAdapterRegistry } from "./registry.js";
 export { createPkdnsAdapter } from "./pkdns.js";
+export { createRecursiveAdapter, type RecursiveAdapter, type RecursiveResolveResult } from "./recursive.js";
 export { createIpfsAdapter } from "./ipfs.js";
 export { createEnsAdapter } from "./ens.js";
 export { createSnsAdapter } from "./sns.js";
 export { createHandshakeAdapterStub } from "./handshake.js";
 export { createFilecoinAdapterStub } from "./filecoin.js";
 export { createArweaveAdapterStub } from "./arweave.js";
-

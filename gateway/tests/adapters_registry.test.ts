@@ -23,11 +23,32 @@ function mkAdapter(kind: any, match: (name: string) => boolean, tag: string): Ad
 describe("adapter registry priority", () => {
   it(".dns tries pkdns first", async () => {
     const pkdns = mkAdapter("pkdns", (n) => n.endsWith(".dns"), "pkdns");
+    const recursive = mkAdapter("recursive", () => true, "recursive");
     const ens = mkAdapter("ens", (n) => n.endsWith(".dns"), "ens");
-    const registry = createAdapterRegistry({ pkdns, ens, sns: mkAdapter("sns", () => false, "sns"), ipfs: mkAdapter("ipfs", () => false, "ipfs") });
+    const registry = createAdapterRegistry({
+      pkdns,
+      recursive,
+      ens,
+      sns: mkAdapter("sns", () => false, "sns"),
+      ipfs: mkAdapter("ipfs", () => false, "ipfs")
+    });
     const ans = await registry.resolveAuto({ name: "alice.dns" });
     expect(ans.source.kind).toBe("pkdns");
     expect(ans.dest.startsWith("pkdns:")).toBe(true);
+  });
+
+  it("non-.dns uses recursive first", async () => {
+    const pkdns = mkAdapter("pkdns", () => false, "pkdns");
+    const recursive = mkAdapter("recursive", () => true, "recursive");
+    const registry = createAdapterRegistry({
+      pkdns,
+      recursive,
+      ens: mkAdapter("ens", () => false, "ens"),
+      sns: mkAdapter("sns", () => false, "sns"),
+      ipfs: mkAdapter("ipfs", () => false, "ipfs")
+    });
+    const ans = await registry.resolveAuto({ name: "netflix.com" });
+    expect(ans.source.kind).toBe("recursive");
   });
 
   it("explicit source override works for non-.dns", async () => {
@@ -35,9 +56,9 @@ describe("adapter registry priority", () => {
     const ens = mkAdapter("ens", (n) => n.endsWith(".eth"), "ens");
     const sns = mkAdapter("sns", (n) => n.endsWith(".sol"), "sns");
     const ipfs = mkAdapter("ipfs", (n) => n.startsWith("ipfs://"), "ipfs");
-    const registry = createAdapterRegistry({ pkdns, ens, sns, ipfs });
+    const recursive = mkAdapter("recursive", () => true, "recursive");
+    const registry = createAdapterRegistry({ pkdns, recursive, ens, sns, ipfs });
     const ans = await registry.resolveWithSource({ name: "vitalik.eth", source: "ens" });
     expect(ans.source.kind).toBe("ens");
   });
 });
-
