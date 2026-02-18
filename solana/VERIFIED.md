@@ -73,3 +73,105 @@ PDA proof command (example):
 solana program show -u devnet 7iFM5ZYPWpF2rK6dQkgeb4RLc2zTDnEgrTNVMp8n6s3m
 ```
 
+
+## ddns_witness_rewards (DEVNET)
+
+- Date: 2026-02-18
+- Branch: `codex/pr-witness-rewards-devnet-dod`
+- RPC: `https://api.devnet.solana.com`
+
+### Program
+
+- Program ID: `AVsmrpWUMLsdaHr5Y8p2N96fBMPTHVV7WLz8iiu4nBge`
+- Deploy tx: `3iwB8SUTej49FCstVCZJJzv7FDgJBEx4TDYi2bxpaXtiGS2eScouWQaTQYeokMivZmhmS4Af8CtTNUHECXVrZKT8`
+- IDL account: `58BwbU74J2zaueZrVJsHqZ2a4eND8V4jyBp9PZh3YT6`
+
+Proof:
+```bash
+solana program show -u devnet AVsmrpWUMLsdaHr5Y8p2N96fBMPTHVV7WLz8iiu4nBge
+```
+
+### PDAs / Accounts
+
+- Config PDA: `D6JJXiAKeKUnf6eY3Q7NKG3VfZAbGvntCfq3JiQUXzV8`
+- Vault authority PDA: `EzhMkxAaAH9YJuyTMX2Ca4FxsFQLmnithMVczCeru9S9`
+- Miner bond PDA (miner = `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5`): `EYuB4i3CvSfAypzFCK6tqGZu26SKD75CctHYgFVxaovZ`
+
+- Toll mint (created by script): `5uCfjyvp6AWHgGgwuNAssSNtWLzJYsWZrUdG56h5Dcxz`
+- Reward vault (token acct, owned by vault authority PDA): `2XjteyGkbhuPxBjtjvEif2oV8ND4o9UKoam5v4TKNnNV`
+- Miner ATA (TOLL): `5iSaGoAuNBGNahy3sWkLm9BLP6ACm11F9Y4uP8o5PF8`
+
+- Epoch ID used in test: `4430603`
+- Epoch state PDA: `Djz4E76tAzZH15U1PVzCWVmBCvsmXwsKzvc8c6ZtXpab`
+- Epoch miner stats PDA: `5nd24EmVbMymDrYscMMTh8a5kdSBk7deLGDLF8fJn1ub`
+
+Account proofs:
+```bash
+solana account -u devnet D6JJXiAKeKUnf6eY3Q7NKG3VfZAbGvntCfq3JiQUXzV8 --output json
+solana account -u devnet EYuB4i3CvSfAypzFCK6tqGZu26SKD75CctHYgFVxaovZ --output json
+solana account -u devnet Djz4E76tAzZH15U1PVzCWVmBCvsmXwsKzvc8c6ZtXpab --output json
+solana account -u devnet 5nd24EmVbMymDrYscMMTh8a5kdSBk7deLGDLF8fJn1ub --output json
+solana account -u devnet 2XjteyGkbhuPxBjtjvEif2oV8ND4o9UKoam5v4TKNnNV --output json
+solana account -u devnet 5iSaGoAuNBGNahy3sWkLm9BLP6ACm11F9Y4uP8o5PF8 --output json
+```
+
+### Devnet Flow (CLI)
+
+1) Init config (+ create mint + reward vault; mint 10 TOLL to authority ATA)
+
+- Tx: `RVwtCZuVVE4bGnDj16yDB11bNXzQQZr6XaDk8o1gpiAt1DLVkXusau5UYimoyksxjdbK6gmiyNJpeMpzQspMjM4`
+
+```bash
+npm -C solana run witness-rewards -- init-config \
+  --rpc https://api.devnet.solana.com \
+  --program-id AVsmrpWUMLsdaHr5Y8p2N96fBMPTHVV7WLz8iiu4nBge \
+  --epoch-len-slots 100 \
+  --mint-to-self 10000000000
+```
+
+2) Deposit bond (0.01 SOL)
+
+- Tx: `F2QUhe1LYnQf5KXcGFBdATMwKK3phajE9MsF7RrnjjrqhKijXK5DiHRKA5PyBYY9WG1wcec24kd99NBaRCCv6cF`
+
+```bash
+npm -C solana run witness-rewards -- deposit-bond \
+  --rpc https://api.devnet.solana.com \
+  --program-id AVsmrpWUMLsdaHr5Y8p2N96fBMPTHVV7WLz8iiu4nBge \
+  --lamports 10000000
+```
+
+3) Fund reward vault (5 TOLL)
+
+- Tx: `3pzZpTjsWCmyArTBAF7fm3z74y6t9DCj33AhVZ8T4S7886wDnJyVoELpj4oxqFNDhdUzkTYo2Vtbi7yVZeYjBkAh`
+
+```bash
+npm -C solana run witness-rewards -- fund-reward-vault \
+  --rpc https://api.devnet.solana.com \
+  --program-id AVsmrpWUMLsdaHr5Y8p2N96fBMPTHVV7WLz8iiu4nBge \
+  --amount 5000000000
+```
+
+4) Submit batch
+
+- Tx: `5MBo9DX2vok6vzyCj6whk4acPjVjeeXCVgrxccS5qXEUcxfeYd1LH1cCwqJ3Wq5zbagfUEvufLUR2kwkuYfEy1c9`
+
+```bash
+npm -C solana run witness-rewards -- submit-batch \
+  --rpc https://api.devnet.solana.com \
+  --program-id AVsmrpWUMLsdaHr5Y8p2N96fBMPTHVV7WLz8iiu4nBge \
+  --root-hex 0x1111111111111111111111111111111111111111111111111111111111111111 \
+  --receipt-count 10 \
+  --unique-names 5 \
+  --unique-colos 2
+```
+
+5) Claim
+
+- Tx: `5LvyAUyekZLTgo5PPSvqDNHyXbn9rkUrKpkH2nrgAppBYJK5qtTcwhuMgo2tK2eAzGXzctocsHuMsKBT5UgTxzWN`
+
+```bash
+npm -C solana run witness-rewards -- claim \
+  --rpc https://api.devnet.solana.com \
+  --program-id AVsmrpWUMLsdaHr5Y8p2N96fBMPTHVV7WLz8iiu4nBge \
+  --epoch 4430603
+```

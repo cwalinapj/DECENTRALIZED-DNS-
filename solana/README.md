@@ -259,7 +259,7 @@ Default build passes (no Metaplex CPI in-program).
 ## Witness Rewards (MVP DoD)
 
 Program:
-- `ddns_witness_rewards` (`HTd88EzMhvsWjNwMnrt6mquChgogjmdQTbSmDzwps975`)
+- `ddns_witness_rewards` (`AVsmrpWUMLsdaHr5Y8p2N96fBMPTHVV7WLz8iiu4nBge`)
 
 Compile checks:
 
@@ -275,7 +275,7 @@ Minimal status CLI:
 ```bash
 npm -C solana run witness-rewards -- status \
   --rpc https://api.devnet.solana.com \
-  --program-id HTd88EzMhvsWjNwMnrt6mquChgogjmdQTbSmDzwps975 \
+  --program-id AVsmrpWUMLsdaHr5Y8p2N96fBMPTHVV7WLz8iiu4nBge \
   --miner <MINER_PUBKEY>
 ```
 
