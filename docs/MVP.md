@@ -192,6 +192,17 @@ Planned next phases:
 
 See roadmap: `docs/MASS_ADOPTION_ROADMAP.md`.
 
+## Adoption Wedges (MVP)
+
+- Registrar discount wedge:
+  - registration/renewal discounts or credits are tied to keeping DDNS nameservers set (policy-controlled).
+- Free hosting wedge:
+  - free static hosting baseline (up to 5 pages).
+- Identity wedge:
+  - free `.dns` subdomains by default plus premium primary ownership path.
+- Transfer policy clarity:
+  - subdomains are non-transferable by default; premium owners can optionally enable delegated transfer models.
+
 ## Premium Chronological Cache Rollup (MVP)
 
 - Premium parent domains (for example `acme.dns`) can fund cache reliability with IPFS-backed chronological rollups.

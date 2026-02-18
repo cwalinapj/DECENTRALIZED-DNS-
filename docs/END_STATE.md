@@ -38,6 +38,19 @@ Rewards direction:
 - Over time, policy-backed rebates/credits can align domain retention on DDNS nameservers with network usage.
 - Worker attestations (backup/audit/perf) become stronger proof-backed infrastructure for trust and compliance.
 
+## Registrar + CDN/Hosting + Operator Economy
+
+- Registrar path:
+  - initial white-label registrar integration evolves toward eventual ICANN accreditation.
+- Hosting/CDN supply:
+  - premium operators participate in a hosting and edge-capacity marketplace with policy and proof constraints.
+- Proof-based ops:
+  - IPFS backups, audit attestations, and reliability proofs feed payout eligibility.
+- Economic controls:
+  - payout caps, reputation thresholds, and anti-abuse constraints remain explicit.
+- Premium allocation roadmap:
+  - `3-4` char auctions first; `1-2` char auction expansion only after abuse controls mature.
+
 ## 3) Everyday User Path (Lightweight)
 
 User client (wallet/plugin):
