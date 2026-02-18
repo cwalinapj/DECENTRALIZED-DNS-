@@ -26,6 +26,7 @@
     "cache:sign-upsert": "tsx scripts/cache_sign_upsert.ts",
     "cache:upsert": "tsx scripts/cache_upsert_post.ts",
     "watchdog": "tsx scripts/watchdog.ts",
+    "rep": "tsx scripts/rep.ts",
     "resolve": "tsx scripts/resolve.ts",
     "stake-gov": "tsx scripts/stake_gov.ts",
     "stake-gov:snapshot": "tsx scripts/snapshot_gov.ts",

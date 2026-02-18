@@ -149,6 +149,19 @@ Then follow `docs/MVP.md` to:
 
 Devnet is the reference environment. Localnet is optional for MVP.
 
+## Earn REP (MVP Miner Path)
+
+MVP miner rewards are REP points (not free TOLL emissions). Two runnable paths:
+
+- Local node miner relay/runner: `services/miner-node/README.md`
+- Cloudflare Worker receipt sender: `services/miner-worker-cloudflare/README.md`
+
+Anti-sybil gates for REP are enforced on-chain by `ddns_rep`:
+- minimum bond
+- cooldown between awards
+- daily cap per miner
+- diversity minimums (names + colos)
+
 ---
 
 ## Miner Onboarding Path: Docker (Beta) → Pi Firmware → Router Firmware → ASIC Edge Routers
@@ -216,4 +229,3 @@ Optional supporting docs (add/expand over time):
 - [Flow diagrams (Mermaid)](docs/flow-diagram.md)
 - [Threat model](docs/08-threat-model.md)
 - [Roadmap](docs/09-roadmap.md)
-

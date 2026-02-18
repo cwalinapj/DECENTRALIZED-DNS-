@@ -1,0 +1,10 @@
+name = "ddns-miner-worker"
+main = "src/index.ts"
+compatibility_date = "2026-02-18"
+
+[vars]
+MINER_API_URL = "http://127.0.0.1:8789/v1/submit"
+DOH_URL = "https://cloudflare-dns.com/dns-query"
+NAMES = "example.com,netflix.com"
+QTYPE = "A"
+COLO_FALLBACK = "cf-worker"
