@@ -11,6 +11,7 @@ import {
   createMint,
   getOrCreateAssociatedTokenAccount,
   mintTo,
+  getAssociatedTokenAddressSync,
 } from "@solana/spl-token";
 
 function loadKeypair(filePath: string): Keypair {
@@ -26,7 +27,7 @@ function loadIdl() {
   return JSON.parse(fs.readFileSync(idlPath, "utf8"));
 }
 
-function readProgramIdFromAnchorToml(rpcUrl: string): string | null {
+function readProgramIdFromAnchorToml(rpcUrl: string, programName = "ddns_miner_score"): string | null {
   try {
     const tomlPath = path.resolve("Anchor.toml");
     if (!fs.existsSync(tomlPath)) return null;
@@ -72,6 +73,8 @@ async function main() {
         .option("alpha-uptime", { type: "number", default: 1000 })
         .option("penalty-bps", { type: "number", default: 2000 })
         .option("dominance-threshold-bps", { type: "number", default: 2500 })
+        .option("names-program", { type: "string", describe: "ddns_names program id (default from env/Anchor.toml)" })
+        .option("require-premium", { type: "boolean", default: false })
     )
     .command("report", "Report miner epoch stats", (y) =>
       y
@@ -104,7 +107,10 @@ async function main() {
         .option("amount", { type: "string", demandOption: true })
     )
     .command("claim", "Claim reward for wallet miner", (y) =>
-      y.option("epoch", { type: "number", demandOption: true })
+      y
+        .option("epoch", { type: "number", demandOption: true })
+        .option("names-program", { type: "string", describe: "ddns_names program id (default from env/Anchor.toml)" })
+        .option("premium-name", { type: "string", describe: "premium name account PDA proving ownership" })
     )
     .command("penalize", "Apply a penalty (reduces reward if not claimed)", (y) =>
       y
@@ -179,7 +185,13 @@ async function main() {
         argv["alpha-uptime"] as number,
         argv["penalty-bps"] as number,
         argv["dominance-threshold-bps"] as number,
-        argv["diversity-target"] as number
+        argv["diversity-target"] as number,
+        new PublicKey(
+          (argv["names-program"] as string | undefined) ||
+            process.env.DDNS_NAMES_PROGRAM_ID ||
+            PublicKey.default.toBase58()
+        ),
+        argv["require-premium"] as boolean
       )
       .accounts({
         config: configPda,
@@ -299,6 +311,12 @@ async function main() {
     const cfg: any = await program.account.minerScoreConfig.fetch(configPda);
     const tollMint = new PublicKey(cfg.tollMint);
     const minerAta = getAssociatedTokenAddressSync(tollMint, payer.publicKey);
+    const namesProgram = new PublicKey(
+      (argv["names-program"] as string | undefined) ||
+        process.env.DDNS_NAMES_PROGRAM_ID ||
+        cfg.namesProgram || PublicKey.default.toBase58()
+    );
+    const premiumName = new PublicKey((argv["premium-name"] as string | undefined) || PublicKey.default.toBase58());
 
     const sig = await program.methods
       .claimMinerReward(new BN(argv.epoch))
@@ -309,6 +327,8 @@ async function main() {
         minerEpoch: minerEpochPda,
         miner: payer.publicKey,
         minerAta,
+        namesProgram,
+        premiumName,
         claimReceipt: claimPda,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: SystemProgram.programId,

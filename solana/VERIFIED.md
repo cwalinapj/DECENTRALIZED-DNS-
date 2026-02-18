@@ -73,3 +73,49 @@ PDA proof command (example):
 solana program show -u devnet 7iFM5ZYPWpF2rK6dQkgeb4RLc2zTDnEgrTNVMp8n6s3m
 ```
 
+
+## ddns_names + premium reward gate (localnet verification)
+
+Date (UTC): 2026-02-18
+Branch: `codex/pr-ddns-names-premium-gate`
+
+Commands run:
+
+```bash
+cd solana
+cargo check -p ddns_names
+anchor build --program-name ddns_names
+anchor test --skip-build tests/ddns_miner_score.ts tests/ddns_names.ts
+npm run names -- --help
+npm run names -- resolve-primary --owner B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5 --rpc https://api.devnet.solana.com
+```
+
+Results:
+
+- `cargo check -p ddns_names`: success
+- `anchor build --program-name ddns_names`: success
+- `anchor test --skip-build tests/ddns_miner_score.ts tests/ddns_names.ts`: `10 passing (2m)`
+- names CLI help prints commands: `init-config`, `claim-sub`, `buy-premium`, `set-primary`, `resolve-primary`
+- `resolve-primary` output example:
+
+```json
+{
+  "owner": "B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5",
+  "primaryPda": "HPohhMscN6QnLieNxZnST1zSj1dAmWcKZFbcveF3Akrg",
+  "primary": null
+}
+```
+
+PDAs and seeds used in tests:
+
+- `NamesConfig`: `["names_config"]`
+- `PremiumName`: `["premium", name_hash]`
+- `SubName`: `["sub", parent_hash, label_hash]`
+- `PrimaryName`: `["primary", wallet_pubkey]`
+- `ParentPolicy`: `["parent_policy", parent_hash]`
+
+Gate behavior proven in tests:
+
+- `alice.user.dns` transfer fails (non-transferable)
+- `bob.alice.dns` transfer fails without parent co-sign and succeeds with parent co-sign
+- sellable reward claim fails without premium account proof and succeeds after buying premium

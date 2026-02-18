@@ -1,5 +1,5 @@
 [package]
-name = "ddns_miner_score"
+name = "ddns_names"
 version = "0.1.0"
 edition = "2021"
 
@@ -17,7 +17,5 @@ custom-panic = []
 anchor-debug = []
 
 [dependencies]
-anchor-lang = "0.32.1"
-anchor-spl = { version = "0.32.1", default-features = false, features = ["token"] }
+anchor-lang = { version = "0.32.1", features = ["init-if-needed"] }
 sha2 = "0.10"
-
