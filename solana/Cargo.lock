@@ -571,6 +571,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "ddns_miner_score"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+ "anchor-spl",
+]
+
+[[package]]
 name = "ddns_ns_incentives"
 version = "0.1.0"
 dependencies = [
