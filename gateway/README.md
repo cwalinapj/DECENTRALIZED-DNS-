@@ -1,35 +1,45 @@
-# Resolver (Name Gateway MVP)
+# Gateway (MVP)
 
-This is the MVP name gateway service.
+## Resolver behavior
+- `.dns` names are resolved through **PKDNS** first (on-chain canonical/hash verification path).
+- Non-`.dns` ICANN names use **recursive DoH** with local TTL cache.
+- ICANN answers are never written into canonical consensus; they are local gateway cache state only.
 
-## Endpoints
-- `GET /resolve?name=<domain>`
-- `GET /healthz`
+## Recursive quorum (ICANN)
+- Upstreams are queried in parallel (default: Cloudflare + Google).
+- Confidence levels:
+  - `high`: normalized RRset hash quorum match.
+  - `medium`: upstream sets overlap (CDN rotation tolerance).
+  - `low`: only one usable upstream or disagreement.
+- TTL policy:
+  - base TTL = minimum upstream TTL for chosen RRset.
+  - caps: `high -> TTL_CAP_S`, `medium -> min(TTL_CAP_S,120)`, `low -> min(TTL_CAP_S,30)`.
+  - NXDOMAIN TTL is capped to 30 seconds.
 
-Response format:
-```json
-{
-  "name": "example.com",
-  "network": "icann",
-  "records": [{ "type": "A", "value": "203.0.113.10", "ttl": 60 }],
-  "metadata": { "source": "doh", "cache": "miss" }
-}
-```
+## Cache behavior
+- Keyed by `name:qtype`.
+- Supports stale-if-error (`STALE_MAX_S`) and prefetch (`PREFETCH_FRACTION`).
+- Cache file defaults to `gateway/.cache/rrset.json`.
 
-## Run
-```bash
-cd /Users/root1/dev/web3-repos/DECENTRALIZED-DNS-/resolver
-npm install
-npm run build
-PORT=8054 npm start
-```
+## API
+- `GET /v1/resolve?name=<domain>&type=A|AAAA`
 
-## Tests
-```bash
-npm test
-```
+Response keys:
+- `name`, `type`, `answers`, `ttl_s`
+- `source` (`recursive`)
+- `confidence`
+- `upstreams_used[]`, `chosen_upstream`
+- `cache` (`hit`, `stale_used?`)
+- `status`, `rrset_hash`
 
-## Env
-- `UPSTREAM_DOH_URL` (default: Cloudflare DoH)
-- `REQUEST_TIMEOUT_MS` (default: 2000)
-- `PORT` (default: 8054)
+## Env (recursive)
+- `RECURSIVE_UPSTREAMS` (default `https://cloudflare-dns.com/dns-query,https://dns.google/dns-query`)
+- `RECURSIVE_QUORUM_MIN` (default `2`)
+- `RECURSIVE_TIMEOUT_MS` (default `2000`)
+- `RECURSIVE_MAX_CONCURRENCY` (default `3`)
+- `RECURSIVE_OVERLAP_RATIO` (default `0.34`)
+- `TTL_CAP_S` (default `300`)
+- `CACHE_PATH` (default `gateway/.cache/rrset.json`)
+- `STALE_MAX_S` (default `1800`)
+- `PREFETCH_FRACTION` (default `0.1`)
+- `CACHE_MAX_ENTRIES` (default `50000`)
