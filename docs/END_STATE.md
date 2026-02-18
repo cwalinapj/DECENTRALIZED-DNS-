@@ -6,6 +6,8 @@
 
 This document describes the end-product vision. Miners/verifiers get the full decentralized stack first; everyday users get a minimal client that still verifies canonical state.
 
+Roadmap reference: `docs/MASS_ADOPTION_ROADMAP.md`
+
 ## 1) End-State Objectives
 
 - Censorship resistance: no single operator can block or rewrite `.dns` routes.
@@ -29,6 +31,12 @@ Rewards direction:
 - miners start with REP (reputation) and later earn stake-weighted economic rewards
 - liquid token emissions are introduced only after strong anti-sybil cost-of-identity exists
 - invalid aggregates become slashable later (fraud proofs / equivocation proofs)
+
+## Mass Adoption Path (End State)
+
+- Web2 entrypoint remains primary: domain registration, DNS protection, hosting, and developer tools in one path.
+- Over time, policy-backed rebates/credits can align domain retention on DDNS nameservers with network usage.
+- Worker attestations (backup/audit/perf) become stronger proof-backed infrastructure for trust and compliance.
 
 ## 3) Everyday User Path (Lightweight)
 

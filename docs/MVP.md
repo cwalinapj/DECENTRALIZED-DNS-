@@ -178,6 +178,20 @@ Why not “per-query payouts” or free TOLL mining in MVP:
 - free cloud infrastructure makes permissionless liquid-token mining easy to sybil
 - toll events represent scarce value (route acquisition/refresh), so wash behavior costs real funds.
 
+## Mass Adoption Wedge (MVP Now vs Planned)
+
+MVP now:
+- ICANN resolution performance and reliability improvements (recursive quorum + cache).
+- `.dns` identity with free subdomains and premium ownership paths.
+- privacy-safe observation contribution (no user identifiers in protocol objects).
+
+Planned next phases:
+- registrar + DNS + hosting bundle for Web2 users
+- discount/rebate policy for domains that keep DDNS nameservers
+- AI/manual site builder experience and worker-backed ops attestations
+
+See roadmap: `docs/MASS_ADOPTION_ROADMAP.md`.
+
 ## Premium Chronological Cache Rollup (MVP)
 
 - Premium parent domains (for example `acme.dns`) can fund cache reliability with IPFS-backed chronological rollups.

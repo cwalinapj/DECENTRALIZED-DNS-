@@ -9,12 +9,23 @@ Repo: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 
 - What exists today (MVP): `docs/MVP.md`
 - Adoption wedge (why this gets used): `docs/ADOPTION.md`
+- Mass adoption roadmap (Web2-first): `docs/MASS_ADOPTION_ROADMAP.md`
 - How it works (protocol): `docs/PROTOCOL_CACHE_WITNESS.md`
 - Where it’s going (end state): `docs/END_STATE.md`
 - Adapter layer (PKDNS/IPFS/ENS/SNS): `docs/ADAPTERS.md`
 - Watchdogs + policy attestation formats: `docs/PROTOCOL_WATCHDOG_ATTESTATION.md`
 - Security: `docs/THREAT_MODEL.md` and `docs/ATTACK_MODE.md`
 - Merge guardrails + queue: `docs/MERGE_QUEUE.md` and `docs/MERGE_LOG.md`
+
+### Mass Adoption Roadmap (Web2-First, Web3-Backed)
+
+- Phase 0 (MVP): fast recursive ICANN DNS + `.dns` PKDNS + privacy-safe observation aggregation.
+- Phase 1 wedge: registrar + DNS protection + free hosting + AI/manual site builder UX.
+- Phase 2 identity: human-readable `.dns` identities with safe defaults (non-transferable by default).
+- Phase 3 scarcity: premium short-name auctions (`3-4` first, `1-2` treasury-reserved in MVP).
+- Planned ops layer: workers for backups/audits with proof-backed attestations.
+
+Details: `docs/MASS_ADOPTION_ROADMAP.md` and `docs/DEVELOPER_API.md`.
 
 ### Adoption Wedge: Domain Owners Get Paid
 
