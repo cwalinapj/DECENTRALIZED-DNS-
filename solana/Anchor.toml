@@ -14,6 +14,7 @@ ddns_watchdog_policy = "6iveVkjqRiVpbSM3GmktMhGvqN7WConK5NrM6tvRZnnc"
 ddns_stake_gov = "86XQF9V51Z8L8MLUP7yMU6ZWPzfaK1nhFsr3Hd8mYFgt"
 ddns_escrow = "4jtDN5gqUqpmu1nBfLwPBAz8jBYjP6Nba4yZ8Am75M2J"
 ddns_domain_rewards = "7iFM5ZYPWpF2rK6dQkgeb4RLc2zTDnEgrTNVMp8n6s3m"
+ddns_ns_incentives = "8mC8Kvky9Jir4Lxe5R5L6ppoexaYtDJKe8JP8xA9JUuM"
 
 [programs.devnet]
 ddns_anchor = "9hwvtFzawMZ6R9eWJZ8YjC7rLCGgNK7PZBNeKMRCPBes"
@@ -24,6 +25,7 @@ ddns_watchdog_policy = "6iveVkjqRiVpbSM3GmktMhGvqN7WConK5NrM6tvRZnnc"
 ddns_stake_gov = "86XQF9V51Z8L8MLUP7yMU6ZWPzfaK1nhFsr3Hd8mYFgt"
 ddns_escrow = "4jtDN5gqUqpmu1nBfLwPBAz8jBYjP6Nba4yZ8Am75M2J"
 ddns_domain_rewards = "7iFM5ZYPWpF2rK6dQkgeb4RLc2zTDnEgrTNVMp8n6s3m"
+ddns_ns_incentives = "8mC8Kvky9Jir4Lxe5R5L6ppoexaYtDJKe8JP8xA9JUuM"
 
 [provider]
 cluster = "localnet"

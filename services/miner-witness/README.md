@@ -52,6 +52,7 @@ If your IDLs are not under `solana/target/idl`, set:
 - `DDNS_REGISTRY_PROGRAM_ID` (default devnet id)
 - `DDNS_QUORUM_PROGRAM_ID` (default devnet id)
 - `DDNS_STAKE_PROGRAM_ID` (default devnet id)
+- `DDNS_NS_INCENTIVES_PROGRAM_ID` (default Anchor.toml id; deploy required before use)
 - `EPOCH_LEN_SLOTS` (default `100`)
 - `MIN_RECEIPTS` (default `1`)
 - `MIN_STAKE_WEIGHT` (default `0`)
@@ -63,6 +64,7 @@ If your IDLs are not under `solana/target/idl`, set:
 
 - `GET /v1/health`
 - `POST /v1/submit-receipts`
+- `POST /v1/submit-dns-query-receipts` (ICANN NS incentives usage aggregates)
 
 Example:
 
@@ -70,6 +72,14 @@ Example:
 curl -sS -X POST http://localhost:8790/v1/submit-receipts \\
   -H 'content-type: application/json' \\
   -d '{ "receipts": [ { "version":1, "name":"example.dns", "name_hash":"<hex32>", "dest":"https://example.com", "dest_hash":"<hex32>", "ttl_s":300, "observed_at_unix": 0, "wallet_pubkey":"...", "signature":"base64..." } ] }'
+```
+
+Query receipt example (usage-based rewards):
+
+```bash
+curl -sS -X POST http://localhost:8790/v1/submit-dns-query-receipts \\
+  -H 'content-type: application/json' \\
+  -d '{ "receipts": [ { "version":1, "domain":"example.com", "domain_hash":"<hex32>", "observed_at_unix": 0, "wallet_pubkey":"...", "signature":"base64..." } ] }'
 ```
 
 ## Devnet Quickstart (Copy/Paste)

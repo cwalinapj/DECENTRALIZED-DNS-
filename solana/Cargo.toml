@@ -9,6 +9,7 @@ members = [
   "programs/ddns_stake_gov",
   "programs/ddns_escrow",
   "programs/ddns_domain_rewards",
+  "programs/ddns_ns_incentives",
 ]
 
 [patch.crates-io]
