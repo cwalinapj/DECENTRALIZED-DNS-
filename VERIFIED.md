@@ -610,5 +610,27 @@ Tests  39 passed (39)
 RUN  v2.1.9 /private/tmp/ddns-pr-105-review/core
 Test Files  7 passed (7)
 Tests  14 passed (14)
+
+### 2026-02-19T13:52:00Z — PR106 Copilot follow-ups (registrar timeout, dry-run gating, renew math, error handling)
+- Base commit SHA: `9c6a770`
+- Worktree: `/tmp/ddns-pr-106-copilot`
+- Commands run:
+```bash
+npm ci
+npm test
+npm -C gateway test && npm -C gateway run build
+```
+- Output snippet:
+```text
+> decentralized-dns@1.0.0 test
+> bash tests/run_all.sh
+==> run_all: complete
+
+RUN  v4.0.18 /private/tmp/ddns-pr-106-copilot/gateway
+Test Files  12 passed (12)
+Tests  39 passed (39)
+
+> ddns-resolver@0.1.0 build
+> tsc -p tsconfig.json
 ```
 - Result: `PASS`

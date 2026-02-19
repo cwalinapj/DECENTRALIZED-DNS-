@@ -107,7 +107,7 @@ const PORKBUN_ENDPOINT = process.env.PORKBUN_ENDPOINT || "https://api.porkbun.co
 const REGISTRAR_DRY_RUN =
   process.env.REGISTRAR_DRY_RUN !== undefined
     ? process.env.REGISTRAR_DRY_RUN === "1"
-    : REGISTRAR_ENABLED && !PORKBUN_API_KEY;
+    : REGISTRAR_ENABLED && (!PORKBUN_API_KEY || !PORKBUN_SECRET_API_KEY);
 const BANNER_TEMPLATE_PATH =
   process.env.DOMAIN_BANNER_TEMPLATE_PATH || path.resolve(process.cwd(), "gateway/public/domain-continuity/banner.html");
 const INTERSTITIAL_TEMPLATE_PATH =
@@ -625,99 +625,120 @@ export function createApp() {
   app.get("/healthz", (_req, res) => res.json({ status: "ok" }));
 
   app.get("/v1/registrar/domain", async (req, res) => {
-    const domain = typeof req.query.domain === "string" ? req.query.domain : "";
-    if (!domain) return res.status(400).json({ error: "missing_domain" });
-    if (enforceRateLimit(req, "registrar_domain", domain)) {
-      auditEvent(req, { endpoint: "/v1/registrar/domain", domain, decision: "rate_limited" });
-      return res.status(429).json({ error: "rate_limited" });
-    }
-    const record = await registrarAdapter.getDomain(domain);
-    auditEvent(req, {
-      endpoint: "/v1/registrar/domain",
-      domain,
-      decision: registrarRuntime.dryRun ? "dry_run" : "executed"
-    });
-    return res.json({
-      ...record,
-      registrar_enabled: registrarRuntime.enabled,
-      provider: registrarRuntime.provider,
-      dry_run: registrarRuntime.dryRun
-    });
-  });
-
-  app.get("/v1/registrar/quote", async (req, res) => {
-    const domain = typeof req.query.domain === "string" ? req.query.domain : "";
-    if (!domain) return res.status(400).json({ error: "missing_domain" });
-    if (enforceRateLimit(req, "registrar_quote", domain)) {
-      auditEvent(req, { endpoint: "/v1/registrar/quote", domain, decision: "rate_limited" });
-      return res.status(429).json({ error: "rate_limited" });
-    }
-    const quote = await registrarAdapter.getRenewalQuote(domain);
-    auditEvent(req, {
-      endpoint: "/v1/registrar/quote",
-      domain,
-      decision: registrarRuntime.dryRun ? "dry_run" : "executed"
-    });
-    return res.json({
-      domain: normalizeDomainInput(domain),
-      ...quote,
-      registrar_enabled: registrarRuntime.enabled,
-      provider: registrarRuntime.provider,
-      dry_run: registrarRuntime.dryRun
-    });
-  });
-
-  app.post("/v1/registrar/renew", express.json(), async (req, res) => {
-    const domain = typeof req.body?.domain === "string" ? req.body.domain : "";
-    if (!domain) return res.status(400).json({ error: "missing_domain" });
-    if (enforceRateLimit(req, "registrar_renew", domain)) {
-      auditEvent(req, { endpoint: "/v1/registrar/renew", domain, decision: "rate_limited" });
-      return res.status(429).json({ error: "rate_limited" });
-    }
-    const years = Number(req.body?.years || 1);
-    const quote = await registrarAdapter.getRenewalQuote(domain);
-    const domainInfo = await registrarAdapter.getDomain(domain);
-    const credits = Number(domainInfo.credits_balance || 0);
-    const requiredCredits = Math.ceil(Number(quote.price_usd || 0) * 10);
-    const coveredCredits = Math.min(requiredCredits, credits);
-    if (requiredCredits > coveredCredits) {
-      auditEvent(req, { endpoint: "/v1/registrar/renew", domain, decision: "blocked" });
+    try {
+      const domain = typeof req.query.domain === "string" ? req.query.domain : "";
+      if (!domain) return res.status(400).json({ error: "missing_domain" });
+      if (enforceRateLimit(req, "registrar_domain", domain)) {
+        auditEvent(req, { endpoint: "/v1/registrar/domain", domain, decision: "rate_limited" });
+        return res.status(429).json({ error: "rate_limited" });
+      }
+      const record = await registrarAdapter.getDomain(domain);
+      auditEvent(req, {
+        endpoint: "/v1/registrar/domain",
+        domain,
+        decision: registrarRuntime.dryRun ? "dry_run" : "executed"
+      });
       return res.json({
-        domain: normalizeDomainInput(domain),
-        years,
-        status: "insufficient_credits",
-        required_usd: Number(quote.price_usd || 0),
-        covered_usd: Number((coveredCredits / 10).toFixed(2)),
-        remaining_usd: Number(((requiredCredits - coveredCredits) / 10).toFixed(2)),
-        instruction: "Add continuity credits or fallback to registrar payment flow",
+        ...record,
         registrar_enabled: registrarRuntime.enabled,
         provider: registrarRuntime.provider,
         dry_run: registrarRuntime.dryRun
       });
+    } catch (err: any) {
+      const domain = typeof req.query.domain === "string" ? req.query.domain : "";
+      auditEvent(req, { endpoint: "/v1/registrar/domain", domain, decision: "blocked" });
+      return res.status(502).json({ error: "registrar_provider_error", message: String(err?.message || "unknown_error") });
     }
-    const result = await registrarAdapter.renewDomain(domain, years, {
-      use_credits: true,
-      credits_amount: coveredCredits,
-      payment_method: "credits"
-    });
-    auditEvent(req, {
-      endpoint: "/v1/registrar/renew",
-      domain,
-      decision: registrarRuntime.dryRun ? "dry_run" : "executed",
-      provider_ref: result.provider_ref
-    });
-    return res.json({
-      domain: normalizeDomainInput(domain),
-      years,
-      ...result,
-      status: result.submitted ? "submitted" : "failed",
-      required_usd: Number(quote.price_usd || 0),
-      covered_usd: Number((coveredCredits / 10).toFixed(2)),
-      remaining_usd: 0,
-      registrar_enabled: registrarRuntime.enabled,
-      provider: registrarRuntime.provider,
-      dry_run: registrarRuntime.dryRun
-    });
+  });
+
+  app.get("/v1/registrar/quote", async (req, res) => {
+    try {
+      const domain = typeof req.query.domain === "string" ? req.query.domain : "";
+      if (!domain) return res.status(400).json({ error: "missing_domain" });
+      if (enforceRateLimit(req, "registrar_quote", domain)) {
+        auditEvent(req, { endpoint: "/v1/registrar/quote", domain, decision: "rate_limited" });
+        return res.status(429).json({ error: "rate_limited" });
+      }
+      const quote = await registrarAdapter.getRenewalQuote(domain);
+      auditEvent(req, {
+        endpoint: "/v1/registrar/quote",
+        domain,
+        decision: registrarRuntime.dryRun ? "dry_run" : "executed"
+      });
+      return res.json({
+        domain: normalizeDomainInput(domain),
+        ...quote,
+        registrar_enabled: registrarRuntime.enabled,
+        provider: registrarRuntime.provider,
+        dry_run: registrarRuntime.dryRun
+      });
+    } catch (err: any) {
+      const domain = typeof req.query.domain === "string" ? req.query.domain : "";
+      auditEvent(req, { endpoint: "/v1/registrar/quote", domain, decision: "blocked" });
+      return res.status(502).json({ error: "registrar_provider_error", message: String(err?.message || "unknown_error") });
+    }
+  });
+
+  app.post("/v1/registrar/renew", express.json(), async (req, res) => {
+    try {
+      const domain = typeof req.body?.domain === "string" ? req.body.domain : "";
+      if (!domain) return res.status(400).json({ error: "missing_domain" });
+      if (enforceRateLimit(req, "registrar_renew", domain)) {
+        auditEvent(req, { endpoint: "/v1/registrar/renew", domain, decision: "rate_limited" });
+        return res.status(429).json({ error: "rate_limited" });
+      }
+      const years = Math.max(1, Number(req.body?.years || 1));
+      const [quote, domainInfo] = await Promise.all([
+        registrarAdapter.getRenewalQuote(domain),
+        registrarAdapter.getDomain(domain)
+      ]);
+      const credits = Number(domainInfo.credits_balance || 0);
+      const requiredUsd = Number((Number(quote.price_usd || 0) * years).toFixed(2));
+      const requiredCredits = Math.ceil(requiredUsd * 10);
+      const coveredCredits = Math.min(requiredCredits, credits);
+      if (requiredCredits > coveredCredits) {
+        auditEvent(req, { endpoint: "/v1/registrar/renew", domain, decision: "blocked" });
+        return res.json({
+          domain: normalizeDomainInput(domain),
+          years,
+          status: "insufficient_credits",
+          required_usd: requiredUsd,
+          covered_usd: Number((coveredCredits / 10).toFixed(2)),
+          remaining_usd: Number(((requiredCredits - coveredCredits) / 10).toFixed(2)),
+          instruction: "Add continuity credits or fallback to registrar payment flow",
+          registrar_enabled: registrarRuntime.enabled,
+          provider: registrarRuntime.provider,
+          dry_run: registrarRuntime.dryRun
+        });
+      }
+      const result = await registrarAdapter.renewDomain(domain, years, {
+        use_credits: true,
+        credits_amount: coveredCredits,
+        payment_method: "credits"
+      });
+      auditEvent(req, {
+        endpoint: "/v1/registrar/renew",
+        domain,
+        decision: registrarRuntime.dryRun ? "dry_run" : "executed",
+        provider_ref: result.provider_ref
+      });
+      return res.json({
+        domain: normalizeDomainInput(domain),
+        years,
+        ...result,
+        status: result.submitted ? "submitted" : "failed",
+        required_usd: requiredUsd,
+        covered_usd: Number((coveredCredits / 10).toFixed(2)),
+        remaining_usd: 0,
+        registrar_enabled: registrarRuntime.enabled,
+        provider: registrarRuntime.provider,
+        dry_run: registrarRuntime.dryRun
+      });
+    } catch (err: any) {
+      const domain = typeof req.body?.domain === "string" ? req.body.domain : "";
+      auditEvent(req, { endpoint: "/v1/registrar/renew", domain, decision: "blocked" });
+      return res.status(502).json({ error: "registrar_provider_error", message: String(err?.message || "unknown_error") });
+    }
   });
 
   app.post("/v1/registrar/ns", express.json(), async (req, res) => {
