@@ -126,6 +126,8 @@
 
       <div class="actions">
         <button class="secondary" id="copyCurl">Copy curl /v1/domain/status</button>
+        <button class="secondary" id="fetchNotice">Fetch notice token</button>
+        <button class="secondary" id="verifyNotice">Verify notice token</button>
         <button class="secondary" id="copyTxt">Copy TXT value</button>
         <button class="secondary" id="renewBtn" title="MVP placeholder">Renew now (placeholder)</button>
       </div>
@@ -143,6 +145,16 @@
       <div class="card">
         <div class="label">TXT record helper (from verification flow)</div>
         <textarea id="txtRecord" readonly placeholder="Run verification flow to get TXT challenge."></textarea>
+      </div>
+
+      <div class="card">
+        <div class="label">Signed notice token</div>
+        <textarea id="noticeToken" placeholder="Click 'Fetch notice token' to populate."></textarea>
+      </div>
+
+      <div class="card">
+        <div class="label">Notice verification result</div>
+        <textarea id="noticeVerifyResult" readonly placeholder="Click 'Verify notice token'."></textarea>
       </div>
 
       <h3>Raw response</h3>
@@ -199,8 +211,37 @@
         }
       }
 
+      async function fetchNoticeToken() {
+        const domain = $("domain").value.trim();
+        const base = $("apiBase").value.trim();
+        const res = await fetch(`${base}/v1/domain/notice?domain=${encodeURIComponent(domain)}`, {
+          headers: { accept: "application/json" }
+        });
+        const body = await res.json().catch(() => ({}));
+        $("noticeToken").value = body.token || "";
+        $("noticeVerifyResult").value = body.pubkey ? `pubkey: ${body.pubkey}` : "";
+      }
+
+      async function verifyNoticeToken() {
+        const token = $("noticeToken").value.trim();
+        const base = $("apiBase").value.trim();
+        if (!token) {
+          $("noticeVerifyResult").value = "missing token";
+          return;
+        }
+        const res = await fetch(`${base}/v1/domain/notice/verify`, {
+          method: "POST",
+          headers: { "content-type": "application/json", accept: "application/json" },
+          body: JSON.stringify({ token })
+        });
+        const body = await res.json().catch(() => ({}));
+        $("noticeVerifyResult").value = JSON.stringify(body, null, 2);
+      }
+
       $("checkBtn").addEventListener("click", checkStatus);
       $("copyCurl").addEventListener("click", async () => copyText(statusCurl()));
+      $("fetchNotice").addEventListener("click", fetchNoticeToken);
+      $("verifyNotice").addEventListener("click", verifyNoticeToken);
       $("copyTxt").addEventListener("click", async () => copyText($("txtRecord").value || ""));
       $("renewBtn").addEventListener("click", () => {
         alert("MVP placeholder: /v1/domain/renew contract exists; registrar execution is not active in MVP.");
