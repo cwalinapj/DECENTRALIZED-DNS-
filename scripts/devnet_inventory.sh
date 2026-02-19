@@ -108,6 +108,8 @@ while read -r name program_id; do
     authority="-"
     programdata="-"
     slot="-"
+    executable_lamports=0
+    programdata_lamports=0
     lamports=0
     sol="0"
     status="missing"
@@ -126,14 +128,23 @@ while read -r name program_id; do
 
     account_json="$(solana account -u "$RPC_URL" "$program_id" --output json 2>/dev/null || true)"
     if [[ -n "$account_json" ]]; then
-      lamports="$(jq -r '.account.lamports // 0' <<< "$account_json")"
+      executable_lamports="$(jq -r '.account.lamports // 0' <<< "$account_json")"
       executable_json="$(jq -r '.account.executable // false' <<< "$account_json")"
       owner="$(jq -r '.account.owner // "-"' <<< "$account_json")"
     else
-      lamports=0
+      executable_lamports=0
       executable_json="false"
       owner="-"
     fi
+
+    programdata_lamports=0
+    if [[ -n "${programdata:-}" ]] && [[ "${programdata:-}" != "-" ]]; then
+      programdata_json="$(solana account -u "$RPC_URL" "$programdata" --output json 2>/dev/null || true)"
+      if [[ -n "$programdata_json" ]]; then
+        programdata_lamports="$(jq -r '.account.lamports // 0' <<< "$programdata_json")"
+      fi
+    fi
+    lamports=$((executable_lamports + programdata_lamports))
 
     if [[ "$executable_json" == "true" ]]; then
       executable="true"
@@ -168,9 +179,11 @@ while read -r name program_id; do
     --arg programdata "${programdata:-}" \
     --arg slot "${slot:-}" \
     --arg status "$status" \
+    --argjson executable_lamports "${executable_lamports:-0}" \
+    --argjson programdata_lamports "${programdata_lamports:-0}" \
     --argjson lamports "${lamports:-0}" \
     --arg sol "$sol" \
-    '{name:$name,tier:$tier,program_id:$program_id,exists:($exists=="true"),executable:($executable=="true"),owner:$owner,upgrade_authority:$authority,programdata_address:$programdata,last_deploy_slot:$slot,status:$status,lamports:$lamports,sol:$sol}' >> "$tmp_program_rows"
+    '{name:$name,tier:$tier,program_id:$program_id,exists:($exists=="true"),executable:($executable=="true"),owner:$owner,upgrade_authority:$authority,programdata_address:$programdata,last_deploy_slot:$slot,status:$status,executable_lamports:$executable_lamports,programdata_lamports:$programdata_lamports,lamports:$lamports,sol:$sol}' >> "$tmp_program_rows"
 done < "$tmp_programs"
 
 anchor_program_id="$(awk '$1=="ddns_anchor" {print $2}' "$tmp_programs")"
@@ -341,11 +354,11 @@ echo "- demo_epoch_id: $(jq -r '.demo_inputs.epoch_id' artifacts/devnet_inventor
 echo
 echo "## Program Inventory (Anchor.toml [programs.devnet])"
 echo
-echo "| Program | Tier | Program ID | Exists | Executable | Owner | Upgrade Authority | ProgramData | Lamports | SOL | Status |"
-echo "|---|---|---|---|---|---|---|---|---:|---:|---|"
-jq -r '.programs[] | [ .name, .tier, .program_id, (if .exists then "yes" else "no" end), (if .executable then "yes" else "no" end), .owner, (.upgrade_authority // "-"), (.programdata_address // "-"), (.lamports|tostring), .sol, .status ] | @tsv' artifacts/devnet_inventory.json \
-| while IFS=$'\t' read -r name tier pid exists executable owner authority programdata lamports sol status; do
-  echo "| $name | $tier | \`$pid\` | $exists | $executable | \`$owner\` | \`$authority\` | \`$programdata\` | $lamports | $sol | $status |"
+echo "| Program | Tier | Program ID | Exists | Executable | Owner | Upgrade Authority | ProgramData | Executable Lamports | ProgramData Lamports | Combined Lamports | Combined SOL | Status |"
+echo "|---|---|---|---|---|---|---|---|---:|---:|---:|---:|---|"
+jq -r '.programs[] | [ .name, .tier, .program_id, (if .exists then "yes" else "no" end), (if .executable then "yes" else "no" end), .owner, (.upgrade_authority // "-"), (.programdata_address // "-"), (.executable_lamports|tostring), (.programdata_lamports|tostring), (.lamports|tostring), .sol, .status ] | @tsv' artifacts/devnet_inventory.json \
+| while IFS=$'\t' read -r name tier pid exists executable owner authority programdata executable_lamports programdata_lamports lamports sol status; do
+  echo "| $name | $tier | \`$pid\` | $exists | $executable | \`$owner\` | \`$authority\` | \`$programdata\` | $executable_lamports | $programdata_lamports | $lamports | $sol | $status |"
 done
 
 echo
