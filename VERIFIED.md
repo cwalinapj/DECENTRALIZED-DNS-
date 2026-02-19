@@ -471,3 +471,29 @@ Content-Type: text/html; charset=utf-8
 <p class="meta">Current continuity phase: <strong>A_SOFT_WARNING</strong></p>
 ```
 - Result: `PASS`
+
+### 2026-02-19T10:11:30Z — PR5 Registrar adapter contract + mock registrar + gateway wiring
+- Base commit SHA: `7a771f83e0c888063afb442b42f9ad3a0d285e98`
+- Worktree: `/tmp/ddns-pr-registrar-adapter`
+- Commands run:
+```bash
+npm ci && npm test
+npm -C gateway test && npm -C gateway run build
+PORT=18054 node gateway/dist/server.js & sleep 1
+curl 'http://127.0.0.1:18054/v1/registrar/domain?domain=good-traffic.com'
+curl 'http://127.0.0.1:18054/v1/registrar/quote?domain=good-traffic.com'
+curl -X POST 'http://127.0.0.1:18054/v1/registrar/renew' -H 'content-type: application/json' -d '{"domain":"good-traffic.com","years":1}'
+```
+- Output snippet:
+```text
+==> run_all: complete
+
+ RUN  v4.0.18 /private/tmp/ddns-pr-registrar-adapter/gateway
+ Test Files  12 passed (12)
+ Tests  36 passed (36)
+
+{"domain":"good-traffic.com","status":"expiring",...,"credits_balance":180}
+{"domain":"good-traffic.com","price_usd":11,"price_sol":0.11,"supported":true,...}
+{"domain":"good-traffic.com","years":1,"submitted":true,"provider_ref":"mock-renew-...","errors":[]}
+```
+- Result: `PASS`

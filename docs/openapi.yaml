@@ -139,6 +139,68 @@ paths:
             application/json:
               schema:
                 type: object
+  /v1/registrar/domain:
+    get:
+      summary: Mock registrar domain status
+      parameters:
+        - in: query
+          name: domain
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Registrar domain record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrarDomainRecord'
+  /v1/registrar/quote:
+    get:
+      summary: Renewal quote from registrar adapter
+      parameters:
+        - in: query
+          name: domain
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Renewal quote
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrarRenewalQuoteResponse'
+  /v1/registrar/renew:
+    post:
+      summary: Request renewal through registrar adapter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistrarRenewRequest'
+      responses:
+        '200':
+          description: Renewal submission result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrarRenewResponse'
+  /v1/registrar/ns:
+    post:
+      summary: Update domain nameservers via registrar adapter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistrarNsUpdateRequest'
+      responses:
+        '200':
+          description: Nameserver update result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrarNsUpdateResponse'
   /v1/domain/status:
     get:
       summary: Domain continuity status
@@ -278,6 +340,77 @@ components:
           type: string
           enum: [high, medium, low]
         rrset_hash: { type: string }
+    RegistrarDomainStatus:
+      type: string
+      enum: [active, expiring, expired, redemption, pending_transfer, unknown]
+    RegistrarDomainRecord:
+      type: object
+      properties:
+        domain: { type: string }
+        status:
+          $ref: '#/components/schemas/RegistrarDomainStatus'
+        renewal_due_date:
+          type: string
+          format: date-time
+          nullable: true
+        grace_expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        ns:
+          type: array
+          items: { type: string }
+        traffic_signal:
+          type: string
+          enum: [none, low, real]
+        credits_balance: { type: number }
+    RegistrarRenewalQuoteResponse:
+      type: object
+      properties:
+        domain: { type: string }
+        price_usd: { type: number }
+        price_sol: { type: number }
+        supported: { type: boolean }
+        expires_at:
+          type: string
+          format: date-time
+    RegistrarRenewRequest:
+      type: object
+      required: [domain, years]
+      properties:
+        domain: { type: string }
+        years: { type: integer, minimum: 1 }
+    RegistrarRenewResponse:
+      type: object
+      properties:
+        domain: { type: string }
+        years: { type: integer }
+        submitted: { type: boolean }
+        provider_ref: { type: string }
+        errors:
+          type: array
+          items: { type: string }
+    RegistrarNsUpdateRequest:
+      type: object
+      required: [domain, ns]
+      properties:
+        domain: { type: string }
+        ns:
+          type: array
+          minItems: 2
+          items: { type: string }
+    RegistrarNsUpdateResponse:
+      type: object
+      properties:
+        domain: { type: string }
+        ns:
+          type: array
+          items: { type: string }
+        ok: { type: boolean }
+        provider_ref: { type: string }
+        errors:
+          type: array
+          items: { type: string }
     DomainContinuityPhase:
       type: string
       enum: [A_SOFT_WARNING, B_HARD_WARNING, C_SAFE_PARKED, D_REGISTRY_FINALIZATION]
@@ -335,6 +468,7 @@ components:
       required: [domain]
       properties:
         domain: { type: string }
+        years: { type: integer, minimum: 1, default: 1 }
         use_credits: { type: boolean, default: true }
     DomainRenewResponse:
       type: object
