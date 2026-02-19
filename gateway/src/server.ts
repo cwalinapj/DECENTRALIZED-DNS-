@@ -34,8 +34,8 @@ import {
 } from "./lib/notice_token.js";
 import {
   evaluateDomainContinuityPolicy,
-  type DomainTrafficSignal
-} from "./lib/domain_continuity_policy.js";
+  type TrafficSignal
+} from "@ddns/core";
 import { createDomainStatusStore } from "./lib/domain_status_store.js";
 import { createRegistrarProvider, parseRegistrarProvider } from "./lib/registrar_provider.js";
 
@@ -216,7 +216,7 @@ function enforceRateLimit(req: express.Request, endpoint: string, domainRaw?: st
   return bucket.count > RATE_LIMIT_MAX_REQUESTS;
 }
 
-function inferTrafficSignal(lastSeenAt?: string | null): DomainTrafficSignal {
+function inferTrafficSignal(lastSeenAt?: string | null): TrafficSignal {
   if (!lastSeenAt) return "none";
   const ts = Date.parse(lastSeenAt);
   if (Number.isNaN(ts)) return "none";
@@ -231,7 +231,7 @@ function continuityStatus(
   options: {
     nsStatus?: boolean;
     verifiedControl?: boolean;
-    trafficSignal?: DomainTrafficSignal;
+    trafficSignal?: TrafficSignal;
     renewalDueDate?: string;
     lastSeenAt?: string;
     abuseFlag?: boolean;
@@ -305,7 +305,7 @@ async function continuityStatusFromSources(
   options: {
     nsStatus?: boolean;
     verifiedControl?: boolean;
-    trafficSignal?: DomainTrafficSignal;
+    trafficSignal?: TrafficSignal;
     renewalDueDate?: string;
     lastSeenAt?: string;
     abuseFlag?: boolean;

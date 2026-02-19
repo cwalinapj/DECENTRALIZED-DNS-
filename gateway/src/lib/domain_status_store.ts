@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
-import type { DomainContinuityPolicyInput } from "./domain_continuity_policy.js";
+import type { DomainContinuityPolicyInput } from "@ddns/core";
 import type { DomainContinuityPhase } from "./notice_token.js";
 
 export type StoredDomainStatus = {

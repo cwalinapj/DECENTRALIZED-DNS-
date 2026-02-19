@@ -1,14 +1,11 @@
 import crypto from "node:crypto";
 import * as ed from "@noble/ed25519";
 import { sha512 } from "@noble/hashes/sha512";
+import type { ContinuityPhase } from "@ddns/core";
 
 ed.etc.sha512Sync = (...m) => sha512(ed.etc.concatBytes(...m));
 
-export type DomainContinuityPhase =
-  | "A_SOFT_WARNING"
-  | "B_HARD_WARNING"
-  | "C_SAFE_PARKED"
-  | "D_REGISTRY_FINALIZATION";
+export type DomainContinuityPhase = ContinuityPhase;
 
 export type DomainNoticePayload = {
   domain: string;

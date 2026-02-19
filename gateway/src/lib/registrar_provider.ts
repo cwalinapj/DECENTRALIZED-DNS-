@@ -1,5 +1,4 @@
-import { createMockRegistrar, type RegistrarAdapter } from "./registrar_mock.js";
-import { createPorkbunRegistrarAdapter } from "./registrar_porkbun.js";
+import { createMockRegistrar, createPorkbunRegistrarAdapter, type RegistrarAdapter } from "@ddns/core";
 
 export type RegistrarProvider = "mock" | "porkbun";
 
