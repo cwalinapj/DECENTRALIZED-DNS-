@@ -120,7 +120,7 @@ npm run mvp:demo:devnet
 
 ```text
 > decentralized-dns@1.0.0 mvp:demo:devnet
-> npm -C solana i && npm -C solana run devnet:verify
+> npm -C solana ci --include=dev && npm -C solana run devnet:verify && npm -C solana run devnet:audit
 
 npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory.
 npm warn deprecated glob@8.1.0: Old versions of glob are not supported.
@@ -131,5 +131,12 @@ added 247 packages, and audited 249 packages in 3s
 > tsx scripts/devnet_verify_deployed.ts --rpc https://api.devnet.solana.com
 
 ✅ all required programs are deployed (6)
+
+> ddns-anchor@0.1.0 devnet:audit
+> tsx scripts/devnet_audit.ts --rpc https://api.devnet.solana.com
+
+Wrote /private/tmp/ddns-pr94/docs/DEVNET_STATUS.md
+Programs audited: 16
+Recommended reserve SOL: 5.000000000 (WARNING: below recommended reserve; upgrades may fail)
 EXIT_CODE:0
 ```
