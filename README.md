@@ -60,7 +60,7 @@ Repo: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 - cache confidence and upstream audit
 - adapter proofs (.dns / IPFS / ENS / SNS)
 - privacy-safe observations that strengthen network reliability
-- developers can monetize usage by pointing projects to DDNS nameservers (policy-governed toll-sharing/credits)
+- devs make more money by using our nameservers (toll share / discounts / credits / reduced registration and renewal costs; policy-governed)
 
 ### Adoption Wedge: Domain Owners Get Paid
 
