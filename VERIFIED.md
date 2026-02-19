@@ -722,3 +722,26 @@ recommended_wallet_topup_sol: 6.675978120
   - Root test suite passed.
   - Demo command exists and ends with `✅ demo complete`, but `.dns` happy-path routing is still blocked (`name_not_claimed`).
   - Inventory script correctly fails due missing required program deployments.
+
+### 2026-02-19T23:30:00Z — PR-1 demo correctness/idempotent flow prep (no faucet)
+- Base commit SHA: `383ccbd`
+- Worktree: `/tmp/ddns-pr-demo-idempotent`
+- Commands run:
+```bash
+npm ci && npm test
+npm run mvp:demo:devnet
+```
+- Output snippet:
+```text
+npm test: EXIT 0
+==> run_all: complete
+[id-check] PASS
+
+npm run mvp:demo:devnet: EXIT 1
+==> verify deployed MVP programs on devnet
+❌ required devnet programs missing/unusable
+Missing:
+- ddns_domain_rewards (CKuPPeJAM8GdfvVMvERxa7rXJcNYwEy2P7wevQ4tjja2)
+- ddns_rewards (D2P9nj4aVS9GiWu4UoLeBtJxKwVfu7FXqnj76f1sKwBd)
+```
+- Result: `PASS` (prep behavior correct; demo now fails fast until required deploys exist)

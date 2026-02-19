@@ -55,57 +55,73 @@ async function main() {
   const sig = signChallenge(client.pubkey58, ch.nonce, client.secretKey);
 
   const desired = process.env.LABEL || `u-${client.pubkey58.slice(0, 8).toLowerCase()}`;
-  const claim = await postJson(`${BASE}/v1/claim-passport`, {
-    wallet_pubkey: client.pubkey58,
-    desired_name: desired,
-    nonce: ch.nonce,
-    signature: sig,
-  });
-  console.log("claim_passport:", claim.status, claim.json);
-
-  const ch2 = await getJson(`${BASE}/v1/challenge?wallet=${client.pubkey58}`);
-  const sig2 = signChallenge(client.pubkey58, ch2.nonce, client.secretKey);
-
   const name = process.env.NAME || `${desired}.dns`;
   const dest = process.env.DEST || "https://example.com";
   const ttl = Number(process.env.TTL || 300);
-  let resolvedName = name;
+  let resolvedName = name.toLowerCase().replace(/\.+$/, "");
 
+  const before = await getJson(`${BASE}/v1/names?wallet=${client.pubkey58}`);
+  const beforeNames = Array.isArray(before?.names) ? before.names : [];
+
+  // Idempotent path:
+  // - If the desired name is already owned, skip claiming.
+  // - If any name is owned, use the first owned name for routing.
+  // - Otherwise claim passport and use the newly claimed name.
+  if (beforeNames.includes(resolvedName)) {
+    console.log("claim_passport: skipped (already owns desired name)", resolvedName);
+  } else if (beforeNames.length > 0) {
+    resolvedName = beforeNames[0];
+    console.log("claim_passport: skipped (passport exists); using owned name", resolvedName);
+  } else {
+    const claim = await postJson(`${BASE}/v1/claim-passport`, {
+      wallet_pubkey: client.pubkey58,
+      desired_name: desired,
+      nonce: ch.nonce,
+      signature: sig,
+    });
+    console.log("claim_passport:", claim.status, claim.json);
+    if (claim.status !== 200) {
+      throw new Error(`claim_failed:${claim.status}:${JSON.stringify(claim.json)}`);
+    }
+    const label = String(claim.json?.label || desired).toLowerCase();
+    resolvedName = label.endsWith(".dns") ? label : `${label}.dns`;
+  }
+
+  // Validate final name against on-chain ownership list before assign.
+  const after = await getJson(`${BASE}/v1/names?wallet=${client.pubkey58}`);
+  const ownedNames = Array.isArray(after?.names) ? after.names : [];
+  if (!ownedNames.includes(resolvedName)) {
+    if (ownedNames.length === 0) {
+      throw new Error(`no_owned_names_after_claim`);
+    }
+    resolvedName = ownedNames[0];
+    console.log("using_first_owned_name:", resolvedName);
+  }
+
+  const ch2 = await getJson(`${BASE}/v1/challenge?wallet=${client.pubkey58}`);
+  const sig2 = signChallenge(client.pubkey58, ch2.nonce, client.secretKey);
   const assign = await postJson(`${BASE}/v1/assign-route`, {
     wallet_pubkey: client.pubkey58,
-    name,
+    name: resolvedName,
     dest,
     ttl,
     nonce: ch2.nonce,
     signature: sig2,
   });
   console.log("assign_route:", assign.status, assign.json);
-
-  if (assign.status !== 200 && assign.json?.error === "name_not_claimed") {
-    const names = await getJson(`${BASE}/v1/names?wallet=${client.pubkey58}`);
-    const fallback = Array.isArray(names?.names) ? names.names[0] : "";
-    if (fallback) {
-      const ch3 = await getJson(`${BASE}/v1/challenge?wallet=${client.pubkey58}`);
-      const sig3 = signChallenge(client.pubkey58, ch3.nonce, client.secretKey);
-      const assignRetry = await postJson(`${BASE}/v1/assign-route`, {
-        wallet_pubkey: client.pubkey58,
-        name: fallback,
-        dest,
-        ttl,
-        nonce: ch3.nonce,
-        signature: sig3,
-      });
-      console.log("assign_route_retry:", assignRetry.status, assignRetry.json);
-      if (assignRetry.status === 200) {
-        resolvedName = fallback;
-      }
-    }
+  if (assign.status !== 200) {
+    throw new Error(`assign_failed:${assign.status}:${JSON.stringify(assign.json)}`);
   }
 
   const resolved = await getJson(
     `${BASE}/v1/resolve?wallet=${client.pubkey58}&name=${encodeURIComponent(resolvedName)}`
   );
+  if (!resolved?.ok) {
+    throw new Error(`resolve_failed:${JSON.stringify(resolved)}`);
+  }
   console.log("resolve:", JSON.stringify(resolved, null, 2));
+  console.log("resolved_name:", resolvedName);
+  console.log("resolved_dest:", resolved?.dest ?? null);
 }
 
 main().catch((e) => {

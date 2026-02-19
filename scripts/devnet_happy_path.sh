@@ -141,8 +141,12 @@ echo "$FLOW_OUT" | tail -n 30
 
 CLAIM_TX="$(extract_tx "$(echo "$FLOW_OUT" | rg "claim_passport:" -A3 || true)")"
 ASSIGN_TX="$(extract_tx "$(echo "$FLOW_OUT" | rg "assign_route(_retry)?: " -A4 || true)")"
+EFFECTIVE_NAME="$(echo "$FLOW_OUT" | sed -n 's/^resolved_name:[[:space:]]*//p' | tail -n 1)"
+if [[ -z "$EFFECTIVE_NAME" ]]; then
+  EFFECTIVE_NAME="$DEMO_NAME"
+fi
 FLOW_OK=1
-if [[ $FLOW_CMD_RC -ne 0 ]] || ! echo "$FLOW_OUT" | rg -q "assign_route(_retry)?:\\s+200"; then
+if [[ $FLOW_CMD_RC -ne 0 ]] || ! echo "$FLOW_OUT" | rg -q "assign_route:\\s+200"; then
   FLOW_OK=0
   echo "warning: tollbooth devnet flow did not return assign_route 200; continuing for audit visibility"
 fi
@@ -154,26 +158,31 @@ echo "$ICANN_JSON" | head -c 300; echo
 
 echo "==> resolve .dns via gateway (best-effort, canonical route dependent)"
 set +e
-DNS_JSON="$(curl -fsS "http://127.0.0.1:${GATEWAY_PORT}/v1/resolve?name=${DEMO_NAME}&type=A" 2>/dev/null)"
+DNS_JSON="$(curl -fsS "http://127.0.0.1:${GATEWAY_PORT}/v1/resolve?name=${EFFECTIVE_NAME}&type=A" 2>/dev/null)"
 DNS_RC=$?
 set -e
 if [[ $DNS_RC -eq 0 ]]; then
   echo "$DNS_JSON" >"$LOG_DIR/gateway_dns.json"
   echo "$DNS_JSON" | head -c 300; echo
 else
-  echo "gateway_dns_resolve_unavailable_for_${DEMO_NAME}; falling back to tollbooth resolver proof"
+  echo "gateway_dns_resolve_unavailable_for_${EFFECTIVE_NAME}; falling back to tollbooth resolver proof"
 fi
 
 echo "==> resolve .dns via tollbooth (route proof)"
 set +e
-TOLL_JSON="$(curl -sS "http://127.0.0.1:${TOLLBOOTH_PORT}/v1/resolve?wallet=${CLIENT_WALLET_PUBKEY}&name=${DEMO_NAME}")"
+TOLL_JSON="$(curl -sS "http://127.0.0.1:${TOLLBOOTH_PORT}/v1/resolve?wallet=${CLIENT_WALLET_PUBKEY}&name=${EFFECTIVE_NAME}")"
 TOLL_RC=$?
 set -e
 if [[ $TOLL_RC -eq 0 ]]; then
   echo "$TOLL_JSON" >"$LOG_DIR/tollbooth_dns.json"
   echo "$TOLL_JSON" | head -c 300; echo
 else
-  echo "warning: tollbooth resolve call failed for ${DEMO_NAME}"
+  echo "warning: tollbooth resolve call failed for ${EFFECTIVE_NAME}"
+fi
+
+TOLL_OK=0
+if [[ $TOLL_RC -eq 0 ]] && echo "$TOLL_JSON" | rg -q '"ok"\s*:\s*true'; then
+  TOLL_OK=1
 fi
 
 if [[ "$ENABLE_WITNESS_REWARDS" == "1" ]]; then
@@ -195,4 +204,9 @@ if [[ $FLOW_OK -eq 0 ]]; then
 fi
 
 echo "logs_dir: $LOG_DIR"
-echo "✅ demo complete"
+if [[ $FLOW_OK -eq 1 && $TOLL_OK -eq 1 ]]; then
+  echo "✅ demo complete"
+else
+  echo "❌ demo failed (.dns route+resolve did not succeed)"
+  exit 1
+fi
