@@ -689,6 +689,9 @@ export function createApp() {
         credits_amount: coveredCredits,
         payment_method: "credits"
       });
+      if (!result.submitted) {
+        console.error(`Credit debit failed for ${domain}: ${result.errors?.join(", ") || "unknown"}`);
+      }
       auditEvent(req, {
         endpoint: "/v1/registrar/renew",
         domain,
@@ -701,8 +704,8 @@ export function createApp() {
         ...result,
         status: result.submitted ? "submitted" : "failed",
         required_usd: Number(quote.price_usd || 0),
-        covered_usd: Number((coveredCredits / 10).toFixed(2)),
-        remaining_usd: 0,
+        covered_usd: result.submitted ? Number((coveredCredits / 10).toFixed(2)) : 0,
+        remaining_usd: result.submitted ? 0 : Number(((requiredCredits - coveredCredits) / 10).toFixed(2)),
         registrar_enabled: registrarRuntime.enabled,
         provider: registrarRuntime.provider,
         dry_run: registrarRuntime.dryRun

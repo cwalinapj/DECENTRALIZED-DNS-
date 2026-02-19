@@ -84,12 +84,16 @@ export function evaluateDomainContinuityPolicy(
   const phase = phaseFor(dueInDays);
   const credits = creditsFor(input.traffic_signal, input.ns_status, input.verified_control);
 
-  if (phase === "B_HARD_WARNING") {
-    nextSteps.push("Renew soon to avoid safe parked mode");
-  } else if (phase === "C_SAFE_PARKED") {
-    nextSteps.push("Renew during grace window to restore full serving");
-  } else if (phase === "D_REGISTRY_FINALIZATION") {
-    nextSteps.push("Registry finalization window reached; immediate manual renewal required");
+  if (eligible) {
+    if (phase === "A_SOFT_WARNING") {
+      nextSteps.push("Monitor renewal date and maintain continuity eligibility");
+    } else if (phase === "B_HARD_WARNING") {
+      nextSteps.push("Renew soon to avoid safe parked mode");
+    } else if (phase === "C_SAFE_PARKED") {
+      nextSteps.push("Renew during grace window to restore full serving");
+    } else if (phase === "D_REGISTRY_FINALIZATION") {
+      nextSteps.push("Registry finalization window reached; immediate manual renewal required");
+    }
   }
 
   return {
