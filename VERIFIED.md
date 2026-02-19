@@ -104,3 +104,32 @@ npm run miner:cf:deploy -- --help
 - `docs/MINER_QUICKSTART_CF.md`
 - `docs/miner-onboard/index.html`
 - `package.json` (root scripts: `miner:cf:dev`, `miner:cf:deploy`)
+
+## Phase 0 Demo Command Wiring (mvp:demo:devnet)
+
+Date (UTC): 2026-02-19  
+Branch: `codex/phase0-demo-script`
+
+### Command
+
+```bash
+npm run mvp:demo:devnet
+```
+
+### Output snippet
+
+```text
+> decentralized-dns@1.0.0 mvp:demo:devnet
+> npm -C solana i && npm -C solana run devnet:verify
+
+npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory.
+npm warn deprecated glob@8.1.0: Old versions of glob are not supported.
+
+added 247 packages, and audited 249 packages in 3s
+
+> ddns-anchor@0.1.0 devnet:verify
+> tsx scripts/devnet_verify_deployed.ts --rpc https://api.devnet.solana.com
+
+✅ all required programs are deployed (6)
+EXIT_CODE:0
+```
