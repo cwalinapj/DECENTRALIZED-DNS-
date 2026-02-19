@@ -1,0 +1,165 @@
+openapi: 3.1.0
+info:
+  title: DDNS MVP API Contract
+  version: 0.1.0
+  description: |
+    API contract for gateway, tollbooth, and miner-witness services.
+    This file documents currently available MVP endpoints for resolve, health, status, and inventory-style views.
+servers:
+  - url: http://localhost:8054
+    description: gateway
+  - url: http://localhost:8788
+    description: tollbooth
+  - url: http://localhost:8790
+    description: miner-witness
+paths:
+  /v1/resolve:
+    get:
+      summary: Resolve a name
+      parameters:
+        - in: query
+          name: name
+          required: true
+          schema: { type: string }
+        - in: query
+          name: type
+          required: false
+          schema:
+            type: string
+            enum: [A, AAAA]
+      responses:
+        '200':
+          description: Resolved answer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResolveResponse'
+  /healthz:
+    get:
+      summary: Gateway health
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string }
+  /v1/attack-mode:
+    get:
+      summary: Gateway status (attack mode policy)
+      responses:
+        '200':
+          description: Current policy mode and counters
+          content:
+            application/json:
+              schema:
+                type: object
+  /registry/root:
+    get:
+      summary: Registry inventory snapshot root
+      responses:
+        '200':
+          description: Registry root and metadata
+          content:
+            application/json:
+              schema:
+                type: object
+  /v1/challenge:
+    get:
+      summary: Tollbooth wallet challenge
+      parameters:
+        - in: query
+          name: wallet
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Nonce challenge
+          content:
+            application/json:
+              schema:
+                type: object
+  /v1/claim-passport:
+    post:
+      summary: Claim toll passport
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Passport claim result
+          content:
+            application/json:
+              schema:
+                type: object
+  /v1/assign-route:
+    post:
+      summary: Assign .dns route
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Route assignment result
+          content:
+            application/json:
+              schema:
+                type: object
+  /v1/health:
+    get:
+      summary: Miner-witness health
+      responses:
+        '200':
+          description: Service mode and window status
+          content:
+            application/json:
+              schema:
+                type: object
+  /v1/submit-receipts:
+    post:
+      summary: Submit witness receipts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Receipt acceptance summary
+          content:
+            application/json:
+              schema:
+                type: object
+components:
+  schemas:
+    ResolveAnswer:
+      type: object
+      properties:
+        name: { type: string }
+        type: { type: string }
+        data: { type: string }
+        ttl: { type: integer }
+    ResolveResponse:
+      type: object
+      properties:
+        name: { type: string }
+        type: { type: string }
+        answers:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResolveAnswer'
+        ttl_s: { type: integer }
+        source: { type: string }
+        confidence:
+          type: string
+          enum: [high, medium, low]
+        rrset_hash: { type: string }

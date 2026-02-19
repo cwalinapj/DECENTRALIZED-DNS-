@@ -207,3 +207,37 @@ Programs audited: 16
 Recommended reserve SOL: 5.000000000 (WARNING: below recommended reserve; upgrades may fail)
 EXIT_CODE:0
 ```
+
+## PR1 API Contract + SDK Skeleton
+
+Date (UTC): 2026-02-19T07:00:00Z  
+Branch: `codex/pr-api-sdk`  
+Worktree: `/tmp/ddns-pr-1`
+
+Commands run:
+
+```bash
+npm -C packages/sdk i && npm -C packages/sdk run build
+npm ci && npm test && npm -C gateway test && npm -C gateway run build
+```
+
+Output snippet:
+
+```text
+> @ddns/sdk@0.1.0 build
+> tsc -p tsconfig.json
+
+> decentralized-dns@1.0.0 test
+> bash tests/run_all.sh
+...
+==> run_all: complete
+
+> ddns-resolver@0.1.0 test
+...
+Test Files  10 passed (10)
+Tests  29 passed (29)
+
+> ddns-resolver@0.1.0 build
+> tsc -p tsconfig.json
+EXIT_CODE:0
+```
