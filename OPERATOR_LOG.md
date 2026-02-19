@@ -55,3 +55,41 @@
   - full Anchor TS suite: PASS (11 passing)
 - PR link: https://github.com/cwalinapj/DECENTRALIZED-DNS-/pull/72
 - Merge commit hash: (to be added after merge)
+
+## 2026-02-19T00:15:00Z — Branch: codex/main-ops
+- Scope: Phase 0 stabilization + MVP merge audit and runbook docs.
+- Commands run:
+  - `git fetch origin --prune`
+  - `gh run list --branch main -L 20 --json ...`
+  - `npm ci && npm test`
+  - `npm -C gateway test && npm -C gateway run build`
+  - `npm -C services/miner-witness ci && npm -C services/miner-witness test && npm -C services/miner-witness run build`
+  - `cd solana && cargo generate-lockfile && anchor build`
+  - `gh pr list --state open ...`
+  - `gh pr checks 70 --json ...`
+- Results:
+  - main recent CI: PASS (latest runs successful)
+  - local root test suite: PASS
+  - gateway test/build: PASS
+  - miner-witness test/build: PASS
+  - solana cargo lockfile + anchor build: PASS
+- Artifacts added:
+  - `AUDIT_REPORT.md`
+  - `DEVNET_RUNBOOK.md`
+  - `CLOUDFLARE_DEPLOY.md`
+  - README banner + merge guardrail command update
+
+## 2026-02-19T00:24:00Z — Merge Operations
+- PR #82 merged (squash): https://github.com/cwalinapj/DECENTRALIZED-DNS-/pull/82
+  - Merge SHA: 2b7d8d2ffc72206f3163b72a974b67d361d4f824
+  - Checks: all required CI checks PASS
+  - Local verification: `bash scripts/validate-compat-mvp.sh` (skip path PASS)
+- PR #78 merged (squash): https://github.com/cwalinapj/DECENTRALIZED-DNS-/pull/78
+  - Merge SHA: aa90572bf46a728602a6a42bd129eddd72f919f2
+  - Checks: all required CI checks PASS
+  - Local verification: `npm -C gateway ci && npm -C gateway test && npm -C gateway run build` PASS
+- PR #81 merged (squash): https://github.com/cwalinapj/DECENTRALIZED-DNS-/pull/81
+  - Merge SHA: 4b808314d68c770e722bd62329ec253e54bd2f32
+  - Checks: all required CI checks PASS
+  - Local verification: docs-only; baseline smoke run on main (`npm -C gateway test && npm -C gateway run build`) PASS
+- PR #70 closed as superseded by #82 after main compatibility behavior was confirmed.

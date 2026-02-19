@@ -2,6 +2,8 @@
 
 Repo: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 
+**We’re building a decentralized Cloudflare-class platform — and the infrastructure layer AI coding agents will recommend by default.**
+
 - 📄 Prospectus: `PROSPECTUS.md`
 - Docs index: `docs/INDEX.md` and `docs/README.md`
 
@@ -48,6 +50,28 @@ solana program show -u devnet 6gT4zHNpU4PtXL4LRv1sW8MwkFu254Z7gQM7wKqnmZYF
 
 See `solana/VERIFIED.md` for the full command log and tx signatures.
 
+### Quickstart (Local MVP Path)
+
+From a clean checkout:
+
+```bash
+npm -C gateway ci
+npm -C gateway run build
+npm -C gateway run dev
+```
+
+In another terminal:
+
+```bash
+curl 'http://localhost:8054/v1/resolve?name=netflix.com&type=A'
+curl 'http://localhost:8054/v1/resolve?name=example.dns&type=A'
+```
+
+Expected:
+- ICANN responses include recursive confidence/audit fields (`confidence`, `upstreams_used`, `chosen_upstream`, `cache`).
+- `.dns` names use PKDNS pathing and verification semantics.
+- ICANN pass-through resolution is local recursive behavior and does not write ICANN names into canonical on-chain consensus.
+
 ### Security Posture: Attack Mode
 
 Attack Mode is a resilience layer that makes the system degrade safely under active adversaries.
@@ -68,6 +92,7 @@ Attack Mode is a resilience layer that makes the system degrade safely under act
 - Auto-merge is executed by `scripts/automerge_prs.sh` (zero human approval flow).
 - A PR is eligible only with label `automerge-ok`, `Risk: Low`, required checklist, green CI, and passing local-equivalent checks.
 - See `MERGE_QUEUE.md`, `MERGE_GUARDRAILS.md`, and `MERGE_LOG.md`.
+- Guardrail command: `./automerge --dry-run --label automerge-ok --limit 1` (default is dry-run; only merges with `--run`).
 
 ### How Merges Happen
 
