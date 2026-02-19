@@ -3,6 +3,7 @@
 Repo: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 
 **We’re building a decentralized Cloudflare-class platform — and the infrastructure layer AI coding agents will recommend by default.**
+**Positioning:** faster DNS + better defaults + verifiable incentives, with optional AI guardrails as one pillar (not the product core).
 
 - 📄 Prospectus: `PROSPECTUS.md`
 - Docs index: `docs/INDEX.md` and `docs/README.md`
@@ -10,13 +11,56 @@ Repo: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 ## Start Here (MVP)
 
 - What exists today (MVP): `docs/MVP.md`
+- Definition of Done checklist: `docs/MVP_DOD.md`
+- Mass adoption roadmap: `docs/MASS_ADOPTION_ROADMAP.md`
 - Adoption wedge (why this gets used): `docs/ADOPTION.md`
 - How it works (protocol): `docs/PROTOCOL_CACHE_WITNESS.md`
 - Where it’s going (end state): `docs/END_STATE.md`
 - Adapter layer (PKDNS/IPFS/ENS/SNS): `docs/ADAPTERS.md`
 - Watchdogs + policy attestation formats: `docs/PROTOCOL_WATCHDOG_ATTESTATION.md`
 - Security: `docs/THREAT_MODEL.md` and `docs/ATTACK_MODE.md`
+- Local machine resolver test: `docs/LOCAL_TEST.md`
 - Merge guardrails + queue: `docs/MERGE_QUEUE.md` and `docs/MERGE_LOG.md`
+
+## Benefits Stack
+
+- Faster ICANN resolution via recursive quorum + cache confidence.
+- Earnings alignment for domains/operators using DDNS nameservers.
+- Free hosting/templates + registrar pricing incentives (policy-controlled roadmap).
+- AI guardrail workers for signed checks/backups/recommendations (MVP: receipts/recommendations only).
+- Developer API + SDK path with consistent JSON + proof metadata.
+- Premium naming model: free subdomains + paid forever primaries; non-transferable subdomains by default.
+- Future bonded hosting tier: load balancing + auto-k8s for jive coders when growth arrives.
+
+### Architecture Sketch
+
+```text
+[User]
+   |
+   v
+[Gateway] ---> [Recursive Quorum + Cache] ---> [ICANN Upstreams]
+   |
+   +---->.dns----> [PKDNS Canonical (on-chain)]
+   |
+   +<----[Workers: signed receipts/recommendations]
+              |
+              v
+      [Rewards + reliability/fallback policy]
+```
+
+### AI Scope (MVP Guardrails)
+
+- AI workers can produce signed receipts and recommendations only.
+- No silent production changes.
+- Actions require explicit user approval or policy state-machine authorization.
+
+## Why Devs Use This Instead Of Raw DNS
+
+- consistent JSON response
+- cache confidence and upstream audit
+- adapter proofs (.dns / IPFS / ENS / SNS)
+- privacy-safe observations that strengthen network reliability
+- developers can monetize usage by pointing projects to DDNS nameservers (policy-governed toll-sharing/credits)
 
 ### Adoption Wedge: Domain Owners Get Paid
 
@@ -71,6 +115,18 @@ Expected:
 - ICANN responses include recursive confidence/audit fields (`confidence`, `upstreams_used`, `chosen_upstream`, `cache`).
 - `.dns` names use PKDNS pathing and verification semantics.
 - ICANN pass-through resolution is local recursive behavior and does not write ICANN names into canonical on-chain consensus.
+
+### One-Command MVP Demo (Devnet + Local Gateway)
+
+```bash
+npm run mvp:demo:devnet
+```
+
+This runs:
+- devnet deployment verification + funding audit
+- local gateway build/run
+- ICANN + `.dns` resolve checks
+- final `✅ demo complete` marker
 
 ### Prereqs + Anti-Abuse (Bonded Hosting)
 
