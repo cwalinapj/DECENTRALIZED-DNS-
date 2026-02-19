@@ -104,3 +104,32 @@ npm run miner:cf:deploy -- --help
 - `docs/MINER_QUICKSTART_CF.md`
 - `docs/miner-onboard/index.html`
 - `package.json` (root scripts: `miner:cf:dev`, `miner:cf:deploy`)
+
+## Devnet Inventory
+
+Date (UTC): 2026-02-19T03:56:19Z  
+RPC: `https://api.devnet.solana.com`  
+Wallet: `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5`
+
+Command run:
+
+```bash
+bash scripts/devnet_inventory.sh
+```
+
+Output snippet:
+
+```text
+solana balance: 0.02432396 SOL
+
+[ddns_anchor] 9hwvtFzawMZ6R9eWJZ8YjC7rLCGgNK7PZBNeKMRCPBes
+owner: BPFLoaderUpgradeab1e11111111111111111111111
+upgrade_authority: B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5
+programdata_address: rgQTn2mWkpck5zBNeAHwk8P3aADMbhNeTGWTgBPwJEK
+executable: true
+lamports: 1141440
+sol: 0.001141440
+
+total_program_sol: 0.007990080
+recommended_wallet_topup_sol: 4.975676040
+```
