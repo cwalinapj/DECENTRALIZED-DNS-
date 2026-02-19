@@ -62,6 +62,8 @@ if [ -d "$root/solana" ]; then
   if command -v anchor >/dev/null 2>&1; then
     echo "==> solana: anchor build"
     (cd "$root/solana" && anchor build)
+    echo "==> ids: check program id sync"
+    (cd "$root" && bash scripts/check_program_id_sync.sh)
   else
     echo "==> skip: anchor not installed"
   fi

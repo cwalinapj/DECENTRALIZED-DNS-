@@ -592,3 +592,39 @@ Tests  37 passed (37)
 {"domain":"good-traffic.com","continuity":{"phase":"HOLD_BANNER","hold_banner_active":true,"renewal_covered_by_credits":true,"reason_codes":["TRAFFIC_HOLD_ELIGIBLE"],...},"credits":{"credits_balance":205,"renewal_cost_estimate":110,"covered_by_credits":true,...}}
 ```
 - Result: `PASS`
+
+### 2026-02-19T13:40:00Z — Devnet program ID fast-path sync + deploy attempt
+- Base commit SHA: `8b0efaa670b63d7fe9180dac038017b04e368992`
+- Worktree: `/tmp/ddns-pr-devnet-id-sync`
+- Commands run:
+```bash
+cd solana && anchor build
+cd -
+bash scripts/check_program_id_sync.sh
+solana config set -u https://api.devnet.solana.com
+solana address
+solana balance
+solana airdrop 2 -u devnet
+cd solana && anchor deploy --provider.cluster devnet --program-name ddns_anchor
+cd -
+bash scripts/devnet_inventory.sh
+```
+- Output snippet:
+```text
+program,declare_id,anchor_devnet,anchor_localnet,keypair_pubkey,status
+...
+OK: declare_id, Anchor.toml (devnet/localnet), and deploy keypair pubkeys are in sync.
+
+wallet=B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5
+balance_before=2.03810052 SOL
+Requesting airdrop of 2 SOL
+Error: airdrop request failed. This can happen when the rate limit is reached.
+
+Deploying program "ddns_anchor"...
+There was a problem deploying...
+Error: Account B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5 has insufficient funds for spend (2.86939224 SOL) + fee (0.00217 SOL)
+
+required_failures: ddns_anchor, ddns_cache_head, ddns_domain_rewards, ddns_escrow, ddns_miner_score, ddns_quorum, ddns_registry, ddns_rewards, ddns_stake, ddns_witness_rewards
+recommended_wallet_topup_sol: 2.961899480
+```
+- Result: `PARTIAL` (ID sync complete, devnet deploy blocked by wallet funding + faucet rate limit)

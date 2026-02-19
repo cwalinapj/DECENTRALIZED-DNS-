@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "bash tests/run_all.sh",
+    "ids:check": "bash scripts/check_program_id_sync.sh",
     "devnet:inventory": "bash scripts/devnet_inventory.sh",
     "mvp:demo:devnet": "npm -C solana ci --include=dev && bash scripts/devnet_happy_path.sh",
     "miner:cf:deploy": "cd services/cf-worker-miner && npm i && npx wrangler deploy",

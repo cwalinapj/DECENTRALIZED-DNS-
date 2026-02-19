@@ -48,7 +48,7 @@ const SOLANA_RPC_URL =
   process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
 const PROGRAM_ID =
   process.env.DDNS_PROGRAM_ID ||
-  "9hwvtFzawMZ6R9eWJZ8YjC7rLCGgNK7PZBNeKMRCPBes";
+  "Cfg6rAXyemB4hqzf7DMY2yM5eY1RUqPwwE5jmZeUZM1v";
 
 const QUORUM = Number(process.env.QUORUM || 2);
 const ATTACK_MODE_ENABLED = process.env.ATTACK_MODE_ENABLED === "1";

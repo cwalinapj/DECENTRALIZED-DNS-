@@ -33,7 +33,7 @@ import {
 const PORT = Number(process.env.PORT || 8788);
 const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
 const DDNS_PROGRAM_ID =
-  process.env.DDNS_PROGRAM_ID || "9hwvtFzawMZ6R9eWJZ8YjC7rLCGgNK7PZBNeKMRCPBes";
+  process.env.DDNS_PROGRAM_ID || "Cfg6rAXyemB4hqzf7DMY2yM5eY1RUqPwwE5jmZeUZM1v";
 const DDNS_IDL_PATH =
   process.env.DDNS_IDL_PATH || path.resolve("..", "..", "solana", "target", "idl", "ddns_anchor.json");
 const TOLLBOOTH_KEYPAIR =

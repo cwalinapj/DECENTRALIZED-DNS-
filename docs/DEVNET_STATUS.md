@@ -1,39 +1,54 @@
-# Devnet Status Audit
+# Devnet Inventory
 
-- Generated at (UTC): 2026-02-19T03:01:54.590Z
-- Deploy wallet: `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5`
-- RPC: `https://api.devnet.solana.com`
+- timestamp_utc: 2026-02-19T13:37:04Z
+- rpc: https://api.devnet.solana.com
+- wallet: B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5
+- wallet_balance: 2.03810052 SOL
+- demo_name: example.dns
+- demo_epoch_id: 0
 
-## Programs from Anchor.toml [programs.devnet]
+## Program Inventory (Anchor.toml [programs.devnet])
 
-| Program | Program ID | Executable | Owner | Upgrade Authority | Data Length | Lamports | SOL |
-|---|---|---:|---|---|---:|---:|---:|
-| ddns_anchor | `9hwvtFzawMZ6R9eWJZ8YjC7rLCGgNK7PZBNeKMRCPBes` | yes | `BPFLoaderUpgradeab1e11111111111111111111111` | `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5` | 36 | 1141440 | 0.001141440 |
-| ddns_registry | `5zg8CsxpRKyurnTg539wr2nVtS6zritQDTGy4uAUerdx` | yes | `BPFLoaderUpgradeab1e11111111111111111111111` | `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5` | 36 | 1141440 | 0.001141440 |
-| ddns_quorum | `9gyHsemmJfujZEqH1o4VhefxvbUJFQkPko8ASAteX5YB` | yes | `BPFLoaderUpgradeab1e11111111111111111111111` | `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5` | 36 | 1141440 | 0.001141440 |
-| ddns_stake | `6gT4zHNpU4PtXL4LRv1sW8MwkFu254Z7gQM7wKqnmZYF` | yes | `BPFLoaderUpgradeab1e11111111111111111111111` | `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5` | 36 | 1141440 | 0.001141440 |
-| ddns_watchdog_policy | `6iveVkjqRiVpbSM3GmktMhGvqN7WConK5NrM6tvRZnnc` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
-| ddns_stake_gov | `86XQF9V51Z8L8MLUP7yMU6ZWPzfaK1nhFsr3Hd8mYFgt` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
-| ddns_escrow | `4jtDN5gqUqpmu1nBfLwPBAz8jBYjP6Nba4yZ8Am75M2J` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
-| ddns_domain_rewards | `7iFM5ZYPWpF2rK6dQkgeb4RLc2zTDnEgrTNVMp8n6s3m` | yes | `BPFLoaderUpgradeab1e11111111111111111111111` | `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5` | 36 | 1141440 | 0.001141440 |
-| ddns_ns_incentives | `8mC8Kvky9Jir4Lxe5R5L6ppoexaYtDJKe8JP8xA9JUuM` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
-| ddns_rewards | `8GQJrUpNhCFodqKdhEvWub6pjTtgoXBtBZUqxeEDujAY` | yes | `BPFLoaderUpgradeab1e11111111111111111111111` | `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5` | 36 | 1141440 | 0.001141440 |
-| ddns_operators | `3Q5VCoAT4TZ9xMrpbt4jbN9LhHfihxGH3TiD6PmSqHhp` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
-| ddns_miner_score | `37yrHgDgALGe4fUwWhJigQfD95jPFd9g2fDuYHkPAYaS` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
-| ddns_names | `BJgHrrTukutZPWxMDNdd6SXe2A7UzX56Qru6uKfVeHjK` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
-| ddns_cache_head | `J3LCbeg9ocpGcGWdAAFjM8N4G7FTU9na1Lhe5VHBivZt` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
-| ddns_rep | `FAPdRsatJoucFL6h1XQAQnQYN9KRxp7m2vzLLwnNmuLb` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
-| ddns_witness_rewards | `AVsmrpWUMLsdaHr5Y8p2N96fBMPTHVV7WLz8iiu4nBge` | yes | `BPFLoaderUpgradeab1e11111111111111111111111` | `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5` | 36 | 1141440 | 0.001141440 |
+| Program | Tier | Program ID | Exists | Executable | Owner | Upgrade Authority | ProgramData | Executable Lamports | ProgramData Lamports | Combined Lamports | Combined SOL | Status |
+|---|---|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| ddns_anchor | REQUIRED | `Cfg6rAXyemB4hqzf7DMY2yM5eY1RUqPwwE5jmZeUZM1v` | no | no | `-` | `-` | `-` | 0 | 0 | 0 | 0 | missing |
+| ddns_registry | REQUIRED | `GBANos76CB8XiW3phuiCuZFsNvAhE9eBH4p8xxtVidPb` | no | no | `-` | `-` | `-` | 0 | 0 | 0 | 0 | missing |
+| ddns_quorum | REQUIRED | `aaWUWeNPMVDtwokCxXTmDHV9GUvDrf2kBTtGbZxUV7B` | no | no | `-` | `-` | `-` | 0 | 0 | 0 | 0 | missing |
+| ddns_stake | REQUIRED | `NLhRanr3wJGyHmGVxJ9cvjPef1wrmeZZHARXjrKHknD` | no | no | `-` | `-` | `-` | 0 | 0 | 0 | 0 | missing |
+| ddns_watchdog_policy | OPTIONAL | `5jRL193F84p4L9GFZmNUneyuZ19zopzsmnGVqZBkxdYH` | no | no | `-` | `-` | `-` | 0 | 0 | 0 | 0 | missing |
+| ddns_stake_gov | OPTIONAL | `BXZtfMCFu3kR7XtV41Y75EKPH7mQijTXLYQi9L6a1mrD` | no | no | `-` | `-` | `-` | 0 | 0 | 0 | 0 | missing |
+| ddns_escrow | REQUIRED | `ConB7NytXDkuuANxWzoNMSDqX5wW4W95PpF4c4aizLpi` | no | no | `-` | `-` | `-` | 0 | 0 | 0 | 0 | missing |
+| ddns_domain_rewards | REQUIRED | `WcHA8hCPxfMB9MCs48k9PtLcmnvQiMe1dEVciP96LoA` | no | no | `-` | `-` | `-` | 0 | 0 | 0 | 0 | missing |
+| ddns_ns_incentives | OPTIONAL | `F7PcEsu8qR2vmvUv42E84rtu61QAZj4YWgH3sn1QYzwg` | no | no | `-` | `-` | `-` | 0 | 0 | 0 | 0 | missing |
+| ddns_rewards | REQUIRED | `AN2kAs8RSPb5KzggSPPyoZk3UXSrKjPW6r6N2r5Ap5bm` | no | no | `-` | `-` | `-` | 0 | 0 | 0 | 0 | missing |
+| ddns_operators | OPTIONAL | `CVMKnGhHeBRU6UKfabGNHkRGJyp7dq7VMmEb9kNfu6G5` | no | no | `-` | `-` | `-` | 0 | 0 | 0 | 0 | missing |
+| ddns_miner_score | REQUIRED | `4ynffPWNStFxWppizPrrdam91nsPmV3kKD75DjxjNxxP` | no | no | `-` | `-` | `-` | 0 | 0 | 0 | 0 | missing |
+| ddns_names | OPTIONAL | `8FdWvta8RmCtPqqK4QoszKxf5Pn5kDjk6fvQ1XbEbB9g` | no | no | `-` | `-` | `-` | 0 | 0 | 0 | 0 | missing |
+| ddns_cache_head | REQUIRED | `DsVuh3GyKTNHAorGnMqcaWPLRH2u84hM153c9uF88s9M` | no | no | `-` | `-` | `-` | 0 | 0 | 0 | 0 | missing |
+| ddns_rep | OPTIONAL | `CLE3orPrN6Wd4L3p7Z4mga3nSQa8Z1d3Kd1kvnVENB9U` | no | no | `-` | `-` | `-` | 0 | 0 | 0 | 0 | missing |
+| ddns_witness_rewards | REQUIRED | `3nJNSWdN5d3kihzPi5VzcGUL2psFuZgveSQAffg6bb5V` | no | no | `-` | `-` | `-` | 0 | 0 | 0 | 0 | missing |
 
-## Funding / Reserve Summary
+## Key Demo PDAs / Vaults (rent + top-up guidance)
 
-- Total SOL locked in program accounts: **0.007990080 SOL** (7990080 lamports)
-- Deploy wallet balance: **11.945643640 SOL** (11945643640 lamports)
-- Biggest recent deploy-cost estimate (MVP proxy): **0.001141440 SOL** (1141440 lamports)
-- Recommended reserve rule: `max(5 SOL, 2x biggest_recent_deploy_cost + 1 SOL tx buffer)`
-- Recommended reserve: **5.000000000 SOL** (5000000000 lamports)
-- Reserve status: **OK**
+| Label | Program | PDA | Exists | Lamports | Data Len | Rent Exempt Lamports | Recommended Top-up Lamports |
+|---|---|---|---|---:|---:|---:|---:|
+| ddns_anchor:config | `Cfg6rAXyemB4hqzf7DMY2yM5eY1RUqPwwE5jmZeUZM1v` | `FefeiUgxqj7xixkCYn3tot5ypw6orr2sf2TSt1NkUz8M` | no | 0 | 0 | 0 | 0 |
+| ddns_anchor:toll_pass(wallet) | `Cfg6rAXyemB4hqzf7DMY2yM5eY1RUqPwwE5jmZeUZM1v` | `J7vmig6igwV8Z57LbWym2W2rvgNdjQc6nDMPFnNkqiDb` | no | 0 | 0 | 0 | 0 |
+| ddns_anchor:name_record(example.dns) | `Cfg6rAXyemB4hqzf7DMY2yM5eY1RUqPwwE5jmZeUZM1v` | `3QbmJ4neQoXwDHFcdVJQZafDYWWHdKhFk5VwsAXkfzDE` | no | 0 | 0 | 0 | 0 |
+| ddns_anchor:route_record(wallet,example.dns) | `Cfg6rAXyemB4hqzf7DMY2yM5eY1RUqPwwE5jmZeUZM1v` | `ARp2RrUWWjTgEfu1JtjzJKLyKbjFo4kaptfHiczyDpJC` | no | 0 | 0 | 0 | 0 |
+| ddns_witness_rewards:config | `3nJNSWdN5d3kihzPi5VzcGUL2psFuZgveSQAffg6bb5V` | `5Lv4YZh68ewns3zemD8pAtsqXXD5v4SoGWXijKftqpgu` | no | 0 | 0 | 0 | 0 |
+| ddns_witness_rewards:vault_authority | `3nJNSWdN5d3kihzPi5VzcGUL2psFuZgveSQAffg6bb5V` | `G7zWGN2L9X1Jn9RqWFN1rcgtbDw2WDFYnDDc4L1kmBB2` | no | 0 | 0 | 0 | 0 |
+| ddns_witness_rewards:bond(wallet) | `3nJNSWdN5d3kihzPi5VzcGUL2psFuZgveSQAffg6bb5V` | `8CcuwgwtAPAiVfwueDmWFSfJL49MBqhDNQP8SaRPf8of` | no | 0 | 0 | 0 | 0 |
+| ddns_witness_rewards:epoch_state(0) | `3nJNSWdN5d3kihzPi5VzcGUL2psFuZgveSQAffg6bb5V` | `6asKcrwQ3ch2jZUmT5CdhYBnFRDnQvVw8D8AvhL5pL7J` | no | 0 | 0 | 0 | 0 |
+| ddns_witness_rewards:epoch_stats(0,wallet) | `3nJNSWdN5d3kihzPi5VzcGUL2psFuZgveSQAffg6bb5V` | `2jsh9x3uwkteAdVu3aTKQRGeRADFGkuUddecaQrHASgd` | no | 0 | 0 | 0 | 0 |
 
-## Upgrade Buffer Note
+## Summary
 
-- If a program has an upgrade authority, future upgrades require SOL to create/write a new buffer account before finalize. Keep the deploy wallet funded.
+- required_total: 10
+- required_ok: 0
+- required_fail: 10
+- optional_missing: 6
+- total_program_sol: 0
+- recommended_reserve_sol: 5.000000000
+- recommended_wallet_topup_sol: 2.961899480
+

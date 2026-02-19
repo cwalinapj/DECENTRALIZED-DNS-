@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{program::invoke, program::invoke_signed, program_pack::Pack};
 
-declare_id!("AVsmrpWUMLsdaHr5Y8p2N96fBMPTHVV7WLz8iiu4nBge");
+declare_id!("3nJNSWdN5d3kihzPi5VzcGUL2psFuZgveSQAffg6bb5V");
 
 const BPS_DENOM: u128 = 10_000;
 const MAX_DIVERSITY_BONUS_BPS: u16 = 2_000; // +20%

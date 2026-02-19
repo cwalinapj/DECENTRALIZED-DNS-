@@ -3,7 +3,7 @@ use anchor_lang::solana_program::program_pack::Pack;
 use sha2::{Digest, Sha256};
 use spl_token::state::{Account as SplAccount, Mint as SplMint};
 
-declare_id!("8mC8Kvky9Jir4Lxe5R5L6ppoexaYtDJKe8JP8xA9JUuM");
+declare_id!("F7PcEsu8qR2vmvUv42E84rtu61QAZj4YWgH3sn1QYzwg");
 
 const MAX_DOMAIN_LEN: usize = 253;
 const MAX_EPOCH_CLAIM_RANGE: u16 = 32;

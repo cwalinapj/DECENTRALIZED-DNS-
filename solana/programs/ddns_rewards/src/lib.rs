@@ -4,7 +4,7 @@ use anchor_lang::solana_program::program_pack::Pack;
 use sha2::{Digest, Sha256};
 use spl_token::state::Account as SplTokenAccount;
 
-declare_id!("8GQJrUpNhCFodqKdhEvWub6pjTtgoXBtBZUqxeEDujAY");
+declare_id!("AN2kAs8RSPb5KzggSPPyoZk3UXSrKjPW6r6N2r5Ap5bm");
 
 const MAX_VERIFIERS: usize = 64;
 

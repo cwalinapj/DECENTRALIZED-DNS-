@@ -5,7 +5,7 @@ use sha2::{Digest, Sha256};
 use anchor_spl::token::{self, Token, Transfer};
 use anchor_spl::token::spl_token::state::{Account as SplTokenAccount, Mint as SplMint};
 
-declare_id!("9hwvtFzawMZ6R9eWJZ8YjC7rLCGgNK7PZBNeKMRCPBes");
+declare_id!("Cfg6rAXyemB4hqzf7DMY2yM5eY1RUqPwwE5jmZeUZM1v");
 
 #[program]
 pub mod ddns_anchor {
