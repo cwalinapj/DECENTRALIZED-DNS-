@@ -72,3 +72,30 @@ MVP root tests:FAILURE:https://github.com/cwalinapj/DECENTRALIZED-DNS-/actions/r
 - ci: fallback-pass
 - local_checks: pass
 
+
+## 2026-02-19T00:15:00Z
+- status: AUDIT_ONLY
+- branch: codex/main-ops
+- action: baseline checks and open PR triage completed; no merge executed yet.
+- notes: queued MVP-priority merges are #70 (superseded by #82), #78, #81/#66.
+
+## 2026-02-19T00:24:00Z
+- PR: #82
+- status: MERGED
+- merge_sha: 2b7d8d2ffc72206f3163b72a974b67d361d4f824
+- checks: PASS
+- title: docs: clarify compat MVP validation mode and strict gate
+
+## 2026-02-19T00:24:00Z
+- PR: #78
+- status: MERGED
+- merge_sha: aa90572bf46a728602a6a42bd129eddd72f919f2
+- checks: PASS
+- title: gateway: recursive DoH adapter with TTL cache + stale-if-error [rebased docs]
+
+## 2026-02-19T00:24:00Z
+- PR: #81
+- status: MERGED
+- merge_sha: 4b808314d68c770e722bd62329ec253e54bd2f32
+- checks: PASS
+- title: docs: mass adoption roadmap (web2-first, web3-backed)

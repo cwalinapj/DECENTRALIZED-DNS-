@@ -107,6 +107,33 @@ Utility vs reputation in the end-state:
 - `REP` becomes a durable signal for eligibility, governance influence, and fee discounts.
 - REP-to-economic conversion stays constrained by slashing risk, stake, and proof quality.
 
+## Bonded Hosting + K8s + Load Balancing (Roadmap)
+
+This section is roadmap-only and not a claim of current MVP automation.
+
+Prerequisite policy:
+- DNS control is required for hosted resource tiers:
+  - domains must point NS to DDNS and resolve via DDNS gateway stack to unlock hosting/load-balancing/CDN tiers.
+  - non-participants can still use read-only API surfaces without hosted capacity allocation.
+
+Anti-abuse and economic controls:
+- Hosting capacity is escrow/bond-gated per premium primary domain.
+- Bond scales with resource profile (sites, traffic, feature tier).
+- Slashing triggers are policy-driven:
+  - sustained real traffic/load that consumes shared network resources, and/or
+  - abuse signals (spam/malware/churn/policy breaches).
+- Low-traction projects should not face meaningful infra cost before real usage.
+
+Reliability model:
+- ICANN name handling remains multi-upstream recursive with confidence/fallback mechanics.
+- `.dns` remains canonical and policy-driven on-chain.
+- End-state value is not "replace recursive DNS day 1"; it is adding economic coordination, auditability, and decentralized operator participation around it.
+
+Tokenomics tie-in:
+- Defi-liquid reward eligibility for mining/hosting is premium-and-bond gated.
+- Free subdomain users still contribute privacy-safe observations and can receive limited REP/participation rewards.
+- Auto-Kubernetes + load balancing (bonded) is a roadmap tier with policy-governed slashing and eligibility controls.
+
 ## 8) End-State: Permissionless Watchdogs + Dispute-Backed Policy
 
 Not fully implemented. Roadmap:

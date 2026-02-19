@@ -74,160 +74,89 @@ solana program show -u devnet 7iFM5ZYPWpF2rK6dQkgeb4RLc2zTDnEgrTNVMp8n6s3m
 ```
 
 
-## ddns_witness_rewards (DEVNET)
+## ddns_names + premium reward gate (localnet verification)
 
-- Date: 2026-02-18
-- Branch: `codex/pr-witness-rewards-devnet-dod`
-- RPC: `https://api.devnet.solana.com`
+Date (UTC): 2026-02-18
+Branch: `codex/pr-ddns-names-premium-gate`
 
-### Program
-
-- Program ID: `AVsmrpWUMLsdaHr5Y8p2N96fBMPTHVV7WLz8iiu4nBge`
-- Deploy tx: `3iwB8SUTej49FCstVCZJJzv7FDgJBEx4TDYi2bxpaXtiGS2eScouWQaTQYeokMivZmhmS4Af8CtTNUHECXVrZKT8`
-- IDL account: `58BwbU74J2zaueZrVJsHqZ2a4eND8V4jyBp9PZh3YT6`
-
-Proof:
-```bash
-solana program show -u devnet AVsmrpWUMLsdaHr5Y8p2N96fBMPTHVV7WLz8iiu4nBge
-```
-
-### PDAs / Accounts
-
-- Config PDA: `D6JJXiAKeKUnf6eY3Q7NKG3VfZAbGvntCfq3JiQUXzV8`
-- Vault authority PDA: `EzhMkxAaAH9YJuyTMX2Ca4FxsFQLmnithMVczCeru9S9`
-- Miner bond PDA (miner = `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5`): `EYuB4i3CvSfAypzFCK6tqGZu26SKD75CctHYgFVxaovZ`
-
-- Toll mint (created by script): `5uCfjyvp6AWHgGgwuNAssSNtWLzJYsWZrUdG56h5Dcxz`
-- Reward vault (token acct, owned by vault authority PDA): `2XjteyGkbhuPxBjtjvEif2oV8ND4o9UKoam5v4TKNnNV`
-- Miner ATA (TOLL): `5iSaGoAuNBGNahy3sWkLm9BLP6ACm11F9Y4uP8o5PF8`
-
-- Epoch ID used in test: `4430603`
-- Epoch state PDA: `Djz4E76tAzZH15U1PVzCWVmBCvsmXwsKzvc8c6ZtXpab`
-- Epoch miner stats PDA: `5nd24EmVbMymDrYscMMTh8a5kdSBk7deLGDLF8fJn1ub`
-
-Account proofs:
-```bash
-solana account -u devnet D6JJXiAKeKUnf6eY3Q7NKG3VfZAbGvntCfq3JiQUXzV8 --output json
-solana account -u devnet EYuB4i3CvSfAypzFCK6tqGZu26SKD75CctHYgFVxaovZ --output json
-solana account -u devnet Djz4E76tAzZH15U1PVzCWVmBCvsmXwsKzvc8c6ZtXpab --output json
-solana account -u devnet 5nd24EmVbMymDrYscMMTh8a5kdSBk7deLGDLF8fJn1ub --output json
-solana account -u devnet 2XjteyGkbhuPxBjtjvEif2oV8ND4o9UKoam5v4TKNnNV --output json
-solana account -u devnet 5iSaGoAuNBGNahy3sWkLm9BLP6ACm11F9Y4uP8o5PF8 --output json
-```
-
-### Devnet Flow (CLI)
-
-1) Init config (+ create mint + reward vault; mint 10 TOLL to authority ATA)
-
-- Tx: `RVwtCZuVVE4bGnDj16yDB11bNXzQQZr6XaDk8o1gpiAt1DLVkXusau5UYimoyksxjdbK6gmiyNJpeMpzQspMjM4`
+Commands run:
 
 ```bash
-npm -C solana run witness-rewards -- init-config \
-  --rpc https://api.devnet.solana.com \
-  --program-id AVsmrpWUMLsdaHr5Y8p2N96fBMPTHVV7WLz8iiu4nBge \
-  --epoch-len-slots 100 \
-  --mint-to-self 10000000000
+cd solana
+cargo check -p ddns_names
+anchor build --program-name ddns_names
+anchor test --skip-build tests/ddns_miner_score.ts tests/ddns_names.ts
+npm run names -- --help
+npm run names -- resolve-primary --owner B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5 --rpc https://api.devnet.solana.com
 ```
 
-2) Deposit bond (0.01 SOL)
+Results:
 
-- Tx: `F2QUhe1LYnQf5KXcGFBdATMwKK3phajE9MsF7RrnjjrqhKijXK5DiHRKA5PyBYY9WG1wcec24kd99NBaRCCv6cF`
+- `cargo check -p ddns_names`: success
+- `anchor build --program-name ddns_names`: success
+- `anchor test --skip-build tests/ddns_miner_score.ts tests/ddns_names.ts`: `10 passing (2m)`
+- names CLI help prints commands: `init-config`, `claim-sub`, `buy-premium`, `set-primary`, `resolve-primary`
+- `resolve-primary` output example:
+
+```json
+{
+  "owner": "B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5",
+  "primaryPda": "HPohhMscN6QnLieNxZnST1zSj1dAmWcKZFbcveF3Akrg",
+  "primary": null
+}
+```
+
+PDAs and seeds used in tests:
+
+- `NamesConfig`: `["names_config"]`
+- `PremiumName`: `["premium", name_hash]`
+- `SubName`: `["sub", parent_hash, label_hash]`
+- `PrimaryName`: `["primary", wallet_pubkey]`
+- `ParentPolicy`: `["parent_policy", parent_hash]`
+
+Gate behavior proven in tests:
+
+- `alice.user.dns` transfer fails (non-transferable)
+- `bob.alice.dns` transfer fails without parent co-sign and succeeds with parent co-sign
+- sellable reward claim fails without premium account proof and succeeds after buying premium
+
+## Devnet deploy + funding audit (MVP gate)
+
+Date (UTC): 2026-02-19
+Branch: `codex/main-ops`
+
+Commands run:
 
 ```bash
-npm -C solana run witness-rewards -- deposit-bond \
-  --rpc https://api.devnet.solana.com \
-  --program-id AVsmrpWUMLsdaHr5Y8p2N96fBMPTHVV7WLz8iiu4nBge \
-  --lamports 10000000
+npm -C solana i --include=dev
+npm -C solana run devnet:verify
+npm -C solana run devnet:audit
 ```
 
-3) Fund reward vault (5 TOLL)
+Output snippets:
 
-- Tx: `3pzZpTjsWCmyArTBAF7fm3z74y6t9DCj33AhVZ8T4S7886wDnJyVoELpj4oxqFNDhdUzkTYo2Vtbi7yVZeYjBkAh`
+```text
+> ddns-anchor@0.1.0 devnet:verify
+> tsx scripts/devnet_verify_deployed.ts --rpc https://api.devnet.solana.com
 
-```bash
-npm -C solana run witness-rewards -- fund-reward-vault \
-  --rpc https://api.devnet.solana.com \
-  --program-id AVsmrpWUMLsdaHr5Y8p2N96fBMPTHVV7WLz8iiu4nBge \
-  --amount 5000000000
+✅ all required programs are deployed (6)
 ```
 
-4) Submit batch
+```text
+> ddns-anchor@0.1.0 devnet:audit
+> tsx scripts/devnet_audit.ts --rpc https://api.devnet.solana.com
 
-- Tx: `5MBo9DX2vok6vzyCj6whk4acPjVjeeXCVgrxccS5qXEUcxfeYd1LH1cCwqJ3Wq5zbagfUEvufLUR2kwkuYfEy1c9`
-
-```bash
-npm -C solana run witness-rewards -- submit-batch \
-  --rpc https://api.devnet.solana.com \
-  --program-id AVsmrpWUMLsdaHr5Y8p2N96fBMPTHVV7WLz8iiu4nBge \
-  --root-hex 0x1111111111111111111111111111111111111111111111111111111111111111 \
-  --receipt-count 10 \
-  --unique-names 5 \
-  --unique-colos 2
+Wrote /Users/root1/scripts/ddns-main-ops/docs/DEVNET_STATUS.md
+Programs audited: 15
+Total program SOL: 0.006848640
+Deploy wallet SOL: 11.945643640
+Recommended reserve SOL: 5.000000000 (OK)
 ```
 
-5) Claim
+Notes:
 
-- Tx: `5LvyAUyekZLTgo5PPSvqDNHyXbn9rkUrKpkH2nrgAppBYJK5qtTcwhuMgo2tK2eAzGXzctocsHuMsKBT5UgTxzWN`
-
-```bash
-npm -C solana run witness-rewards -- claim \
-  --rpc https://api.devnet.solana.com \
-  --program-id AVsmrpWUMLsdaHr5Y8p2N96fBMPTHVV7WLz8iiu4nBge \
-  --epoch 4430603
-```
-
-### Permissionless Miner Proof (Second Wallet)
-
-Miner keypair file (not committed): `~/.config/solana/ddns_miner_devnet.json`
-
-- Miner pubkey: `8R3YkaD34TT41jcCdK4LiGwa3qXUWsQfFpXBto2bWWMN`
-- Funding transfer (authority -> miner 0.05 SOL): `5qq1bfduCuZuSE3jcHvJLNTnh9krgWeGNhRSSrJMc6buFkFQ5q582X1WvT6MRdeFuL2AMxytUBskw5dzNp5bCUCg`
-
-Bond:
-
-- Bond PDA: `7igky1yZjoVx17yFNaEoYRV4PKoKoPuMZY3syCf7eedV`
-- Tx deposit_bond: `2J8U8qfcUD2WgTATXSYMUmEso8M2MRivFUvp54zTGjUCHcRTvYbyFbDZ5wuxWW1ZhDbgLbibauKtYtfdW3wG3EhY`
-
-Batch + claim:
-
-- Epoch ID: `4430638`
-- Epoch state PDA: `7kFjLrZ1Cr3LM9SnjvXjqaj5oyJQa4Ar5PAiYidurTAK`
-- Epoch stats PDA: `5ii66GBN3Nc7Np4oo2TMMW25EaLcfpFFfdQVtWFinG8G`
-- Tx submit_batch: `EmhTKsD2CP861CKi7fKTMNppnKQKXr2UAjCwdPaq34muXA7M69Et2jEp2TCNLkXifmAvdp7LsAoYpTJXbUnVECk`
-- Miner ATA (TOLL): `B1btLse5QsiRFWTa2XZfrSUyhXi7HPmYo5mFHx18yYYJ`
-- Tx claim: `3TgsSADsegfFNJhWA6xVpTd6YATjkHvTummghrxr2JtRvJ1EWGpLehcgxTojqCiVAfoFknHDZuFyughW2Ja71VZS`
-
-Proof commands:
-
-```bash
-# preflight
-solana config set -u https://api.devnet.solana.com
-solana address
-solana balance
-
-# verify program
-solana program show -u devnet AVsmrpWUMLsdaHr5Y8p2N96fBMPTHVV7WLz8iiu4nBge
-
-# verify PDAs (config + reward vault)
-solana account -u devnet D6JJXiAKeKUnf6eY3Q7NKG3VfZAbGvntCfq3JiQUXzV8 --output json
-spl-token supply 5uCfjyvp6AWHgGgwuNAssSNtWLzJYsWZrUdG56h5Dcxz -u devnet
-spl-token account-info -u devnet --address 2XjteyGkbhuPxBjtjvEif2oV8ND4o9UKoam5v4TKNnNV --output json
-
-# verify second-miner bond + epoch accounts
-solana account -u devnet 7igky1yZjoVx17yFNaEoYRV4PKoKoPuMZY3syCf7eedV --output json
-solana balance -u devnet 7igky1yZjoVx17yFNaEoYRV4PKoKoPuMZY3syCf7eedV
-solana account -u devnet 7kFjLrZ1Cr3LM9SnjvXjqaj5oyJQa4Ar5PAiYidurTAK --output json
-solana account -u devnet 5ii66GBN3Nc7Np4oo2TMMW25EaLcfpFFfdQVtWFinG8G --output json
-
-# verify token balances
-spl-token balance 5uCfjyvp6AWHgGgwuNAssSNtWLzJYsWZrUdG56h5Dcxz --owner 8R3YkaD34TT41jcCdK4LiGwa3qXUWsQfFpXBto2bWWMN -u devnet
-spl-token balance -u devnet --address 2XjteyGkbhuPxBjtjvEif2oV8ND4o9UKoam5v4TKNnNV
-spl-token account-info -u devnet --address B1btLse5QsiRFWTa2XZfrSUyhXi7HPmYo5mFHx18yYYJ --output json
-```
-
-### Negative Test (Devnet)
-
-Attempted to claim twice (expected failure):
-
-- Command: re-run `claim --epoch 4430638`
-- Error: `AlreadyClaimed` (Error Number: 6009)
+- `docs/DEVNET_STATUS.md` is generated from `solana/Anchor.toml` `[programs.devnet]`.
+- `devnet:verify` checks the MVP-required set by default:
+  `ddns_anchor, ddns_registry, ddns_quorum, ddns_stake, ddns_domain_rewards, ddns_rewards`.
+- Override required set with:
+  `DDNS_REQUIRED_MVP_PROGRAMS=prog1,prog2,... npm -C solana run devnet:verify`.

@@ -2,86 +2,65 @@
 
 Repo: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 
+**We’re building a decentralized Cloudflare-class platform — and the infrastructure layer AI coding agents will recommend by default.**
+**Positioning:** faster DNS + better defaults + verifiable incentives, with optional AI guardrails as one pillar (not the product core).
+
 - 📄 Prospectus: `PROSPECTUS.md`
 - Docs index: `docs/INDEX.md` and `docs/README.md`
 
 ## Start Here (MVP)
 
 - What exists today (MVP): `docs/MVP.md`
+- Definition of Done checklist: `docs/MVP_DOD.md`
+- Mass adoption roadmap: `docs/MASS_ADOPTION_ROADMAP.md`
 - Adoption wedge (why this gets used): `docs/ADOPTION.md`
-- Mass adoption roadmap (Web2-first): `docs/MASS_ADOPTION_ROADMAP.md`
 - How it works (protocol): `docs/PROTOCOL_CACHE_WITNESS.md`
 - Where it’s going (end state): `docs/END_STATE.md`
-- Premium short-name policy (MVP auctions): `docs/PREMIUM_AUCTIONS.md`
 - Adapter layer (PKDNS/IPFS/ENS/SNS): `docs/ADAPTERS.md`
 - Watchdogs + policy attestation formats: `docs/PROTOCOL_WATCHDOG_ATTESTATION.md`
 - Security: `docs/THREAT_MODEL.md` and `docs/ATTACK_MODE.md`
+- Local machine resolver test: `docs/LOCAL_TEST.md`
 - Merge guardrails + queue: `docs/MERGE_QUEUE.md` and `docs/MERGE_LOG.md`
 
-### Mass Adoption Roadmap (Web2-First, Web3-Backed)
+## Benefits Stack
 
-- Phase 0 (MVP): fast recursive ICANN DNS + `.dns` PKDNS + privacy-safe observation aggregation.
-- Phase 1 wedge: registrar + DNS protection + free hosting + AI/manual site builder UX.
-- Phase 2 identity: human-readable `.dns` identities with safe defaults (non-transferable by default).
-- Phase 3 scarcity: premium short-name auctions (`3-4` first, `1-2` treasury-reserved in MVP).
-- Planned ops layer: workers for backups/audits with proof-backed attestations.
+- Faster ICANN resolution via recursive quorum + cache confidence.
+- Earnings alignment for domains/operators using DDNS nameservers.
+- Free hosting/templates + registrar pricing incentives (policy-controlled roadmap).
+- AI guardrail workers for signed checks/backups/recommendations (MVP: receipts/recommendations only).
+- Developer API + SDK path with consistent JSON + proof metadata.
+- Premium naming model: free subdomains + paid forever primaries; non-transferable subdomains by default.
+- Future bonded hosting tier: load balancing + auto-k8s for jive coders when growth arrives.
 
-Details: `docs/MASS_ADOPTION_ROADMAP.md` and `docs/DEVELOPER_API.md`.
+### Architecture Sketch
 
-## Mass Adoption Roadmap: Web2-first, Web3-backed
+```text
+[User]
+   |
+   v
+[Gateway] ---> [Recursive Quorum + Cache] ---> [ICANN Upstreams]
+   |
+   +---->.dns----> [PKDNS Canonical (on-chain)]
+   |
+   +<----[Workers: signed receipts/recommendations]
+              |
+              v
+      [Rewards + reliability/fallback policy]
+```
 
-### Phase 0 (MVP): usable today
-- Recursive DNS for ICANN names with multi-upstream quorum cache and conservative TTL behavior.
-- `.dns` remains opt-in via PKDNS routes; ICANN recursion is not forced into `.dns` consensus.
-- Privacy-safe observations improve reliability without user identifiers.
+### AI Scope (MVP Guardrails)
 
-### Phase 1: registrar wedge + bundled products
-- Registrar wedge: discounts/credits when domains keep DDNS nameservers set (policy-controlled).
-- Free static hosting up to 5 pages.
-- AI builder + manual editor.
-- Export/import content paths to avoid lock-in.
+- AI workers can produce signed receipts and recommendations only.
+- No silent production changes.
+- Actions require explicit user approval or policy state-machine authorization.
 
-### Phase 2: `.dns` identity layer (Bonfida-style UX)
-- Free default subdomain identity.
-- Premium primary `.dns` ownership path (forever-style ownership model).
-- Subdomains non-transferable by default to reduce flipping/squatting.
-- Premium owners can optionally enable sellable delegated subdomains.
+## Why Devs Use This Instead Of Raw DNS
 
-### Phase 3: premium auctions
-- Treasury controls `1-2` char labels in MVP.
-- Auction `3-4` char premium labels first.
-- Expand to `1-2` auctions only after abuse controls mature.
-
-### Why TOLL will be valuable
-- Demand sinks:
-  - premium primaries (auction paths),
-  - mining eligibility bond requirements,
-  - operator marketplace settlement,
-  - optional registrar discount subsidies.
-- Earning loops:
-  - useful contributions (cache/observations/operator service) feed reward paths.
-- REP gating:
-  - reputation and anti-sybil constraints gate higher earning/privilege tiers.
-
-### Why developers use this instead of raw DNS
-- Consistent JSON resolver response shape.
-- Cache confidence + upstream audit metadata.
-- Adapter proofs where applicable (`.dns`, IPFS, ENS, SNS).
-- Privacy-safe observations strengthen network reliability over time.
-- Policy-based monetization upside when projects keep DDNS nameservers.
-
-### Future: workers replace webadmin babysitting (Phase 3+ / End-state)
-- Backup sites to IPFS + on-chain proof anchors.
-- Daily AI-assisted function/security audits with hashed attestations.
-- Distributed synthetic probes from premium operators.
-
-### FAQ: Why would I switch nameservers?
-Cheaper renewals/credits, free hosting, better reliability defaults, and optional Web3 proof-backed features.
-
-See:
-- MVP adoption wedges: `docs/MVP.md#adoption-wedges-mvp`
-- End-state operator economy: `docs/END_STATE.md#registrar--cdnhosting--operator-economy`
-- Full roadmap: `docs/MASS_ADOPTION_ROADMAP.md`
+- consistent JSON response
+- cache confidence and upstream audit
+- adapter proofs (.dns / IPFS / ENS / SNS)
+- privacy-safe observations that strengthen network reliability
+- developers can monetize usage by pointing projects to DDNS nameservers (policy-governed toll-sharing/credits)
 
 ### Adoption Wedge: Domain Owners Get Paid
 
@@ -105,14 +84,6 @@ Domain owners can delegate NS/DoH to the network and earn a **% of toll-event re
   - allowlisted miner/verifier submitters
   - gateway/tollbooth services (clients verify on-chain and keep local cache).
 
-### Gateway DNS Behavior (MVP)
-
-- `.dns` resolution goes through PKDNS (Solana verification path).
-- ICANN domains use recursive DoH pass-through with local TTL cache.
-- ICANN answers are never written into canonical on-chain consensus.
-- Cache policy: TTL-respecting entries, stale-if-error fallback, and near-expiry prefetch.
-- Details and env vars: `gateway/README.md`.
-
 ### Quick Verify (Devnet)
 
 ```bash
@@ -122,6 +93,61 @@ solana program show -u devnet 6gT4zHNpU4PtXL4LRv1sW8MwkFu254Z7gQM7wKqnmZYF
 ```
 
 See `solana/VERIFIED.md` for the full command log and tx signatures.
+
+### Quickstart (Local MVP Path)
+
+From a clean checkout:
+
+```bash
+npm -C gateway ci
+npm -C gateway run build
+npm -C gateway run dev
+```
+
+In another terminal:
+
+```bash
+curl 'http://localhost:8054/v1/resolve?name=netflix.com&type=A'
+curl 'http://localhost:8054/v1/resolve?name=example.dns&type=A'
+```
+
+Expected:
+- ICANN responses include recursive confidence/audit fields (`confidence`, `upstreams_used`, `chosen_upstream`, `cache`).
+- `.dns` names use PKDNS pathing and verification semantics.
+- ICANN pass-through resolution is local recursive behavior and does not write ICANN names into canonical on-chain consensus.
+
+### One-Command MVP Demo (Devnet + Local Gateway)
+
+```bash
+npm run mvp:demo:devnet
+```
+
+This runs:
+- devnet deployment verification + funding audit
+- local gateway build/run
+- ICANN + `.dns` resolve checks
+- final `✅ demo complete` marker
+
+### Prereqs + Anti-Abuse (Bonded Hosting)
+
+- Target customer: jive coders who do not know expected traffic/success and want to ship without deep infra expertise.
+- Competing stacks often charge upfront for CDN/K8s/LB capacity; our wedge is ready-to-scale access behind DNS/NS prerequisites.
+- Using our Name Servers + DNS is required to access any "free hosting", "load balancing", "auto-Kubernetes deployment", or CDN-style features.
+- Non-users of our NS/DNS can still use read-only APIs, but do not receive hosting resources or earning eligibility.
+- Abuse prevention is economic: resource access is bonded/escrow-gated. More usage and higher-tier features require higher bond.
+- Escrow is slashed only when sustained real traffic/load consumes shared network resources, or abuse is detected (spam, malware, excessive churn/policy violations).
+- If there is no traction, there is no meaningful infra cost.
+- Reliability first: ICANN domains resolve via multi-upstream DoH quorum + cache with fallback paths; `.dns` uses on-chain canonical pathing.
+- Migration safety: builders can move to Cloudflare/AWS/self-managed infra at any time; DDNS value is minimizing initial risk and time-to-market.
+
+MVP note:
+- This document describes policy and go-to-market controls. Full hosting automation and slashing execution are phased rollout items.
+
+### Bonded Hosting for Jive Coders (No Upfront Infra Tax)
+
+- Ship first, scale later: early-stage builders can launch quickly without committing to upfront infra spend.
+- Advanced infra is bond-gated, not prepaid: escrow is the anti-abuse throttle.
+- Cost follows traction: meaningful cost appears only under sustained real load or abuse events.
 
 ### Security Posture: Attack Mode
 
@@ -143,14 +169,7 @@ Attack Mode is a resilience layer that makes the system degrade safely under act
 - Auto-merge is executed by `scripts/automerge_prs.sh` (zero human approval flow).
 - A PR is eligible only with label `automerge-ok`, `Risk: Low`, required checklist, green CI, and passing local-equivalent checks.
 - See `MERGE_QUEUE.md`, `MERGE_GUARDRAILS.md`, and `MERGE_LOG.md`.
-
-### Compat MVP Validation (CI)
-
-CI includes a compat harness intended to validate a WordPress + control-plane stack.
-
-- MVP behavior: `scripts/validate-compat-mvp.sh` skips with exit 0 when required inputs are not present.
-- Enforced later: set `STRICT_COMPAT=1` to fail if inputs are missing.
-- Expected future inputs: `docker-compose.validation.yml`, `workers/compat-runner/`.
+- Guardrail command: `./automerge --dry-run --label automerge-ok --limit 1` (default is dry-run; only merges with `--run`).
 
 ### How Merges Happen
 
@@ -267,6 +286,19 @@ Devnet is the reference environment. Localnet is optional for MVP.
 - Premium parent owners can mint delegated subdomains (for example `bob.alice.dns`) with parent-controlled transfer rules.
 - Sellable miner reward claims are premium-gated: claimants must prove ownership of a premium `.dns` account.
 - This gate changes reward eligibility only; it does not write ICANN results into canonical `.dns` consensus.
+
+## Become a Miner (Cloudflare Worker)
+
+- Quickstart doc: `docs/MINER_QUICKSTART_CF.md`
+- Onboarding UI: `docs/miner-onboard/index.html`
+- One-command deploy after login:
+  - `npm run miner:cf:deploy`
+- Local worker dev:
+  - `npm run miner:cf:dev`
+
+Important:
+- Wrangler cannot create accounts or bypass CAPTCHA/email verification.
+- You must complete browser login once via `wrangler login`; after that, deploy is automated.
 
 ---
 

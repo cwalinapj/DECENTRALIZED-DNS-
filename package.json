@@ -4,7 +4,9 @@
   "description": "A recursive DNS resolver with token-based tolls for subsidizing decentralized Web3/IPFS gateway capacity.",
   "main": "index.js",
   "scripts": {
-    "test": "bash tests/run_all.sh"
+    "test": "bash tests/run_all.sh",
+    "miner:cf:deploy": "bash scripts/cf_miner_deploy.sh",
+    "miner:cf:dev": "npm --prefix services/cf-worker-miner run dev"
   },
   "dependencies": {
     "@noble/ed25519": "^2.1.0",
