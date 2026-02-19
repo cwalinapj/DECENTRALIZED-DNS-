@@ -1,10 +1,8 @@
-name = "ddns-cf-worker-miner"
-main = "src/index.js"
-compatibility_date = "2026-02-19"
+name = "cf-worker-miner"
+main = "src/index.ts"
+compatibility_date = "2026-02-01"
 
 [vars]
 UPSTREAMS = "https://cloudflare-dns.com/dns-query,https://dns.google/resolve"
 TIMEOUT_MS = "2000"
 OVERLAP_RATIO = "0.34"
-# Optional endpoint for posting receipt/aggregate summaries.
-RECEIPT_ENDPOINT = ""

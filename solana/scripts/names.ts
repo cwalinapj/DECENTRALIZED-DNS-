@@ -63,6 +63,15 @@ function hashLabel(label: string): Uint8Array {
   return Uint8Array.from(sha256Bytes(normalizeLabel(label)));
 }
 
+function labelFromPremium(name: string): string {
+  const normalized = normalizeFullName(name);
+  const parts = normalized.split(".");
+  if (parts.length !== 2 || parts[1] !== "dns") {
+    throw new Error("premium name must be second-level .dns (for example alice.dns)");
+  }
+  return parts[0];
+}
+
 async function fetchTreasuryFromConfig(connection: Connection, configPda: PublicKey): Promise<PublicKey> {
   const info = await connection.getAccountInfo(configPda);
   if (!info || !info.data || info.data.length < 8 + 64) {
@@ -138,11 +147,62 @@ async function main() {
       }
     )
     .command(
+      "init-premium-config",
+      "Initialize premium auction config",
+      (y) =>
+        y
+          .option("treasury-vault", { type: "string", describe: "SOL receiver account (default wallet)" })
+          .option("treasury-authority", { type: "string", describe: "authority allowed to mint reserved 1-2 char names (default wallet)" })
+          .option("min-bid-sol", { type: "number", default: 0.1 })
+          .option("duration-slots", { type: "number", default: 500 })
+          .option("anti-sniping-slots", { type: "number", default: 20 })
+          .option("enabled", { type: "boolean", default: true }),
+      async (args) => {
+        const { program, payer, programId } = await loadProgram(args.rpc as string, args.wallet as string, args["program-id"] as string | undefined);
+        const [premiumConfigPda] = PublicKey.findProgramAddressSync([Buffer.from("premium_config")], programId);
+        const treasuryVault = new PublicKey((args["treasury-vault"] as string | undefined) || payer.publicKey.toBase58());
+        const treasuryAuthority = new PublicKey(
+          (args["treasury-authority"] as string | undefined) || payer.publicKey.toBase58()
+        );
+        const minBidLamports = BigInt(Math.round((args["min-bid-sol"] as number) * 1e9));
+
+        const sig = await program.methods
+          .initPremiumConfig(
+            treasuryVault,
+            treasuryAuthority,
+            new BN(minBidLamports.toString()),
+            new BN(Math.round(args["duration-slots"] as number)),
+            new BN(Math.round(args["anti-sniping-slots"] as number)),
+            args.enabled as boolean
+          )
+          .accounts({
+            premiumConfig: premiumConfigPda,
+            authority: payer.publicKey,
+            systemProgram: SystemProgram.programId,
+          })
+          .rpc();
+
+        console.log(
+          JSON.stringify(
+            {
+              tx: sig,
+              premiumConfigPda: premiumConfigPda.toBase58(),
+              treasuryVault: treasuryVault.toBase58(),
+              treasuryAuthority: treasuryAuthority.toBase58(),
+              minBidLamports: minBidLamports.toString(),
+            },
+            null,
+            2
+          )
+        );
+      }
+    )
+    .command(
       "claim-sub",
       "Claim subdomain under parent (default user.dns)",
       (y) => y.option("label", { type: "string", demandOption: true }).option("parent", { type: "string", default: "user.dns" }),
       async (args) => {
-        const { program, payer, programId } = await loadProgram(args.rpc as string, args.wallet as string, args["program-id"] as string | undefined);
+        const { program, payer, connection, programId } = await loadProgram(args.rpc as string, args.wallet as string, args["program-id"] as string | undefined);
         const parent = normalizeFullName(String(args.parent));
         const label = normalizeLabel(String(args.label));
         const parentHash = hashName(parent);
@@ -177,6 +237,7 @@ async function main() {
         const name = normalizeFullName(String(args.name));
         const nameHash = hashName(name);
         const [configPda] = PublicKey.findProgramAddressSync([Buffer.from("names_config")], programId);
+        const [premiumConfigPda] = PublicKey.findProgramAddressSync([Buffer.from("premium_config")], programId);
         const [premiumPda] = PublicKey.findProgramAddressSync([Buffer.from("premium"), Buffer.from(nameHash)], programId);
         const [policyPda] = PublicKey.findProgramAddressSync([Buffer.from("parent_policy"), Buffer.from(nameHash)], programId);
         const [primaryPda] = PublicKey.findProgramAddressSync([Buffer.from("primary"), payer.publicKey.toBuffer()], programId);
@@ -186,6 +247,7 @@ async function main() {
           .purchasePremium(name, Array.from(nameHash))
           .accounts({
             config: configPda,
+            premiumConfig: premiumConfigPda,
             treasury,
             premiumName: premiumPda,
             parentPolicy: policyPda,
@@ -196,6 +258,146 @@ async function main() {
           .rpc();
 
         console.log(JSON.stringify({ tx: sig, premiumPda: premiumPda.toBase58(), policyPda: policyPda.toBase58(), primaryPda: primaryPda.toBase58(), name }, null, 2));
+      }
+    )
+    .command(
+      "create-auction",
+      "Create premium auction for a 3-4 char .dns name",
+      (y) =>
+        y
+          .option("name", { type: "string", demandOption: true })
+          .option("min-bid-sol", { type: "number" })
+          .option("duration-slots", { type: "number" }),
+      async (args) => {
+        const { program, payer, programId } = await loadProgram(args.rpc as string, args.wallet as string, args["program-id"] as string | undefined);
+        const name = normalizeFullName(String(args.name));
+        const _label = labelFromPremium(name);
+        const nameHash = hashName(name);
+        const [premiumConfigPda] = PublicKey.findProgramAddressSync([Buffer.from("premium_config")], programId);
+        const [auctionPda] = PublicKey.findProgramAddressSync([Buffer.from("auction"), Buffer.from(nameHash)], programId);
+        const minBid = args["min-bid-sol"] == null ? null : new BN(Math.round((args["min-bid-sol"] as number) * 1e9));
+        const duration = args["duration-slots"] == null ? null : new BN(Math.round(args["duration-slots"] as number));
+
+        const sig = await program.methods
+          .createAuction(name, Array.from(nameHash), minBid, duration)
+          .accounts({
+            premiumConfig: premiumConfigPda,
+            auction: auctionPda,
+            authority: payer.publicKey,
+            systemProgram: SystemProgram.programId,
+          })
+          .rpc();
+        console.log(JSON.stringify({ tx: sig, name, auctionPda: auctionPda.toBase58() }, null, 2));
+      }
+    )
+    .command(
+      "bid",
+      "Place bid into auction escrow",
+      (y) =>
+        y
+          .option("name", { type: "string", demandOption: true })
+          .option("lamports", { type: "number" })
+          .option("sol", { type: "number" }),
+      async (args) => {
+        const { program, payer, programId } = await loadProgram(args.rpc as string, args.wallet as string, args["program-id"] as string | undefined);
+        const name = normalizeFullName(String(args.name));
+        const nameHash = hashName(name);
+        const lamports = args.lamports != null ? Math.round(args.lamports as number) : Math.round((args.sol as number) * 1e9);
+        if (!Number.isFinite(lamports) || lamports <= 0) throw new Error("provide --lamports or --sol with a positive value");
+        const [premiumConfigPda] = PublicKey.findProgramAddressSync([Buffer.from("premium_config")], programId);
+        const [auctionPda] = PublicKey.findProgramAddressSync([Buffer.from("auction"), Buffer.from(nameHash)], programId);
+        const [escrowPda] = PublicKey.findProgramAddressSync(
+          [Buffer.from("escrow"), Buffer.from(nameHash), payer.publicKey.toBuffer()],
+          programId
+        );
+        const [escrowVaultPda] = PublicKey.findProgramAddressSync(
+          [Buffer.from("escrow_vault"), Buffer.from(nameHash), payer.publicKey.toBuffer()],
+          programId
+        );
+        const sig = await program.methods
+          .placeBid(Array.from(nameHash), new BN(lamports))
+          .accounts({
+            premiumConfig: premiumConfigPda,
+            auction: auctionPda,
+            bidEscrow: escrowPda,
+            escrowVault: escrowVaultPda,
+            bidder: payer.publicKey,
+            systemProgram: SystemProgram.programId,
+          })
+          .rpc();
+        console.log(JSON.stringify({ tx: sig, auctionPda: auctionPda.toBase58(), escrowPda: escrowPda.toBase58(), escrowVaultPda: escrowVaultPda.toBase58(), lamports }, null, 2));
+      }
+    )
+    .command(
+      "withdraw-losing-bid",
+      "Withdraw escrow from losing bid",
+      (y) => y.option("name", { type: "string", demandOption: true }),
+      async (args) => {
+        const { program, payer, programId } = await loadProgram(args.rpc as string, args.wallet as string, args["program-id"] as string | undefined);
+        const name = normalizeFullName(String(args.name));
+        const nameHash = hashName(name);
+        const [auctionPda] = PublicKey.findProgramAddressSync([Buffer.from("auction"), Buffer.from(nameHash)], programId);
+        const [escrowPda] = PublicKey.findProgramAddressSync(
+          [Buffer.from("escrow"), Buffer.from(nameHash), payer.publicKey.toBuffer()],
+          programId
+        );
+        const [escrowVaultPda] = PublicKey.findProgramAddressSync(
+          [Buffer.from("escrow_vault"), Buffer.from(nameHash), payer.publicKey.toBuffer()],
+          programId
+        );
+        const sig = await program.methods
+          .withdrawLosingBid(Array.from(nameHash))
+          .accounts({
+            auction: auctionPda,
+            bidEscrow: escrowPda,
+            escrowVault: escrowVaultPda,
+            bidder: payer.publicKey,
+            systemProgram: SystemProgram.programId,
+          })
+          .rpc();
+        console.log(JSON.stringify({ tx: sig, auctionPda: auctionPda.toBase58(), escrowPda: escrowPda.toBase58(), escrowVaultPda: escrowVaultPda.toBase58() }, null, 2));
+      }
+    )
+    .command(
+      "settle-auction",
+      "Settle auction and mint premium to winner",
+      (y) => y.option("name", { type: "string", demandOption: true }),
+      async (args) => {
+        const { program, payer, connection, programId } = await loadProgram(args.rpc as string, args.wallet as string, args["program-id"] as string | undefined);
+        const name = normalizeFullName(String(args.name));
+        const nameHash = hashName(name);
+        const [configPda] = PublicKey.findProgramAddressSync([Buffer.from("names_config")], programId);
+        const [premiumConfigPda] = PublicKey.findProgramAddressSync([Buffer.from("premium_config")], programId);
+        const [auctionPda] = PublicKey.findProgramAddressSync([Buffer.from("auction"), Buffer.from(nameHash)], programId);
+        const [escrowPda] = PublicKey.findProgramAddressSync(
+          [Buffer.from("escrow"), Buffer.from(nameHash), payer.publicKey.toBuffer()],
+          programId
+        );
+        const [escrowVaultPda] = PublicKey.findProgramAddressSync(
+          [Buffer.from("escrow_vault"), Buffer.from(nameHash), payer.publicKey.toBuffer()],
+          programId
+        );
+        const [premiumPda] = PublicKey.findProgramAddressSync([Buffer.from("premium"), Buffer.from(nameHash)], programId);
+        const [policyPda] = PublicKey.findProgramAddressSync([Buffer.from("parent_policy"), Buffer.from(nameHash)], programId);
+        const [primaryPda] = PublicKey.findProgramAddressSync([Buffer.from("primary"), payer.publicKey.toBuffer()], programId);
+        const treasury = await fetchTreasuryFromConfig(connection, configPda);
+        const sig = await program.methods
+          .settleAuction(Array.from(nameHash))
+          .accounts({
+            config: configPda,
+            premiumConfig: premiumConfigPda,
+            auction: auctionPda,
+            winnerEscrow: escrowPda,
+            winnerEscrowVault: escrowVaultPda,
+            treasury,
+            premiumName: premiumPda,
+            parentPolicy: policyPda,
+            primary: primaryPda,
+            winner: payer.publicKey,
+            systemProgram: SystemProgram.programId,
+          })
+          .rpc();
+        console.log(JSON.stringify({ tx: sig, auctionPda: auctionPda.toBase58(), premiumPda: premiumPda.toBase58(), winnerEscrow: escrowPda.toBase58(), winnerEscrowVault: escrowVaultPda.toBase58() }, null, 2));
       }
     )
     .command(

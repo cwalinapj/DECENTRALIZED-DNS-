@@ -5,6 +5,7 @@ This index is intentionally short and categorized.
 ## MVP (What Works / How To Run)
 - `docs/MVP.md`
 - `docs/PROTOCOL_CACHE_WITNESS.md`
+- `docs/WITNESS_REWARDS_MVP.md`
 - `docs/PR1_VERIFIED.md` (docs-only verification notes)
 - `solana/VERIFIED.md` (devnet/local verification log for on-chain work, once merged)
 - `docs/QUICKSTART.md`
@@ -18,6 +19,10 @@ This index is intentionally short and categorized.
 ## End-State (Roadmap)
 - `docs/END_STATE.md`
 - `docs/09-roadmap.md`
+- `docs/MASS_ADOPTION_ROADMAP.md`
+
+## Product / Developer Positioning
+- `docs/DEVELOPER_API.md`
 
 ## Adapters / Integrations
 - `docs/ADAPTERS.md` (ENS/SNS/PKDNS/IPFS)
@@ -25,4 +30,3 @@ This index is intentionally short and categorized.
 ## Tokenomics / Settlement (Background)
 - `docs/05-tokenomics.md`
 - `docs/VOUCHER_ESCROW.md`
-

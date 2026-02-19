@@ -273,6 +273,7 @@ describe("ddns_miner_score", () => {
 
     // Mint premium name for minerB in ddns_names, then claim succeeds.
     const [namesConfig] = PublicKey.findProgramAddressSync([Buffer.from("names_config")], names.programId);
+    const [premiumConfig] = PublicKey.findProgramAddressSync([Buffer.from("premium_config")], names.programId);
     const existingNamesCfg = await names.account.namesConfig.fetchNullable(namesConfig);
     if (!existingNamesCfg) {
       await names.methods
@@ -286,6 +287,17 @@ describe("ddns_miner_score", () => {
         )
         .accounts({
           config: namesConfig,
+          authority: feePayer,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .rpc();
+    }
+    const existingPremiumCfg = await names.account.premiumConfig.fetchNullable(premiumConfig);
+    if (!existingPremiumCfg) {
+      await names.methods
+        .initPremiumConfig(feePayer, feePayer, new BN(10_000_000), new BN(100), new BN(0), true)
+        .accounts({
+          premiumConfig,
           authority: feePayer,
           systemProgram: anchor.web3.SystemProgram.programId,
         })
@@ -312,6 +324,7 @@ describe("ddns_miner_score", () => {
       .purchasePremium(premiumName, [...premiumHashBuf])
       .accounts({
         config: namesConfig,
+        premiumConfig,
         treasury: feePayer,
         premiumName: premiumPda,
         parentPolicy: policyPda,

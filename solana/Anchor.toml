@@ -18,9 +18,10 @@ ddns_ns_incentives = "8mC8Kvky9Jir4Lxe5R5L6ppoexaYtDJKe8JP8xA9JUuM"
 ddns_rewards = "8GQJrUpNhCFodqKdhEvWub6pjTtgoXBtBZUqxeEDujAY"
 ddns_operators = "3Q5VCoAT4TZ9xMrpbt4jbN9LhHfihxGH3TiD6PmSqHhp"
 ddns_miner_score = "37yrHgDgALGe4fUwWhJigQfD95jPFd9g2fDuYHkPAYaS"
-ddns_names = "9VLXME6bCbwwtdB2AbJN36TMAu3JKAtuZu44sF5hAJ44"
+ddns_names = "BJgHrrTukutZPWxMDNdd6SXe2A7UzX56Qru6uKfVeHjK"
 ddns_cache_head = "J3LCbeg9ocpGcGWdAAFjM8N4G7FTU9na1Lhe5VHBivZt"
 ddns_rep = "FAPdRsatJoucFL6h1XQAQnQYN9KRxp7m2vzLLwnNmuLb"
+ddns_witness_rewards = "AVsmrpWUMLsdaHr5Y8p2N96fBMPTHVV7WLz8iiu4nBge"
 
 [programs.localnet]
 ddns_anchor = "9hwvtFzawMZ6R9eWJZ8YjC7rLCGgNK7PZBNeKMRCPBes"
@@ -35,9 +36,10 @@ ddns_ns_incentives = "8mC8Kvky9Jir4Lxe5R5L6ppoexaYtDJKe8JP8xA9JUuM"
 ddns_rewards = "8GQJrUpNhCFodqKdhEvWub6pjTtgoXBtBZUqxeEDujAY"
 ddns_operators = "3Q5VCoAT4TZ9xMrpbt4jbN9LhHfihxGH3TiD6PmSqHhp"
 ddns_miner_score = "37yrHgDgALGe4fUwWhJigQfD95jPFd9g2fDuYHkPAYaS"
-ddns_names = "9VLXME6bCbwwtdB2AbJN36TMAu3JKAtuZu44sF5hAJ44"
+ddns_names = "BJgHrrTukutZPWxMDNdd6SXe2A7UzX56Qru6uKfVeHjK"
 ddns_cache_head = "J3LCbeg9ocpGcGWdAAFjM8N4G7FTU9na1Lhe5VHBivZt"
 ddns_rep = "FAPdRsatJoucFL6h1XQAQnQYN9KRxp7m2vzLLwnNmuLb"
+ddns_witness_rewards = "AVsmrpWUMLsdaHr5Y8p2N96fBMPTHVV7WLz8iiu4nBge"
 
 [registry]
 url = "https://api.apr.dev"

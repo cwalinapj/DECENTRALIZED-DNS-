@@ -39,7 +39,8 @@
     "cache-head": "tsx scripts/cache_head.ts",
     "names": "tsx scripts/names.ts",
     "devnet:verify": "tsx scripts/devnet_verify_deployed.ts --rpc https://api.devnet.solana.com",
-    "devnet:audit": "tsx scripts/devnet_audit.ts --rpc https://api.devnet.solana.com"
+    "devnet:audit": "tsx scripts/devnet_audit.ts --rpc https://api.devnet.solana.com",
+    "witness-rewards": "tsx scripts/witness_rewards.ts"
   },
   "devDependencies": {
     "@coral-xyz/anchor": "^0.32.1",
