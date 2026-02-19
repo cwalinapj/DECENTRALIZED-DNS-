@@ -745,7 +745,7 @@ export function createApp() {
         return res.status(429).json({ error: "rate_limited" });
       }
       const ownerPubkey = typeof req.header("X-Owner-Pubkey") === "string" ? req.header("X-Owner-Pubkey") : "";
-      const existing = domainStatusStore.get(domain);
+      const existing = await domainStatusStore.get(domain);
       const registrarDomain = await registrarAdapter.getDomain(domain);
       const status = await continuityStatusFromSources(domain, {
         nsStatus: existing?.inputs?.ns_status ?? registrarDomain.ns.some((entry) => entry.endsWith("tolldns.io")),
@@ -757,7 +757,7 @@ export function createApp() {
         claimRequested: existing?.claim_requested ?? false,
         creditsBalance: registrarDomain.credits_balance
       });
-      const persisted = domainStatusStore.upsert(domain, (current) => ({
+      const persisted = await domainStatusStore.upsert(domain, (current) => ({
         domain: normalizeDomainInput(domain),
         ...current,
         status,
@@ -785,11 +785,11 @@ export function createApp() {
     }
   });
 
-  app.post("/v1/domain/verify", express.json(), (req, res) => {
+  app.post("/v1/domain/verify", express.json(), async (req, res) => {
     const domain = typeof req.body?.domain === "string" ? req.body.domain : "";
     if (!domain) return res.status(400).json({ error: "missing_domain" });
     const normalized = normalizeDomainInput(domain);
-    const updated = domainStatusStore.createChallenge(normalized);
+    const updated = await domainStatusStore.createChallenge(normalized);
     return res.json({
       domain: normalized,
       verification_method: "dns_txt",
@@ -814,7 +814,7 @@ export function createApp() {
       const useCredits = req.body?.use_credits !== false;
       const years = Number(req.body?.years || 1);
       const renewal = await registrarAdapter.renewDomain(domain, years, { use_credits: useCredits });
-      const existing = domainStatusStore.get(domain);
+      const existing = await domainStatusStore.get(domain);
       const registrarDomain = await registrarAdapter.getDomain(domain);
       const status = await continuityStatusFromSources(domain, {
         nsStatus: existing?.inputs?.ns_status ?? registrarDomain.ns.some((entry) => entry.endsWith("tolldns.io")),
@@ -826,7 +826,7 @@ export function createApp() {
         claimRequested: existing?.claim_requested ?? false,
         creditsBalance: registrarDomain.credits_balance
       });
-      domainStatusStore.upsert(domain, (current) => ({
+      await domainStatusStore.upsert(domain, (current) => ({
         domain: normalizeDomainInput(domain),
         ...current,
         status,
@@ -864,7 +864,7 @@ export function createApp() {
         auditEvent(req, { endpoint: "/v1/domain/continuity", domain, decision: "rate_limited" });
         return res.status(429).json({ error: "rate_limited" });
       }
-      const existing = domainStatusStore.get(domain);
+      const existing = await domainStatusStore.get(domain);
       const registrarDomain = await registrarAdapter.getDomain(domain);
       const status = await continuityStatusFromSources(domain, {
         nsStatus: existing?.inputs?.ns_status ?? registrarDomain.ns.some((entry) => entry.endsWith("tolldns.io")),
@@ -894,7 +894,7 @@ export function createApp() {
         auditEvent(req, { endpoint: "/v1/domain/continuity/claim", domain, decision: "rate_limited" });
         return res.status(429).json({ error: "rate_limited" });
       }
-      const existing = domainStatusStore.get(domain);
+      const existing = await domainStatusStore.get(domain);
       const registrarDomain = await registrarAdapter.getDomain(domain);
       const status = await continuityStatusFromSources(domain, {
         nsStatus: existing?.inputs?.ns_status ?? registrarDomain.ns.some((entry) => entry.endsWith("tolldns.io")),
@@ -906,7 +906,7 @@ export function createApp() {
         claimRequested: true,
         creditsBalance: registrarDomain.credits_balance
       });
-      domainStatusStore.upsert(domain, (current) => ({
+      await domainStatusStore.upsert(domain, (current) => ({
         domain: normalizeDomainInput(domain),
         ...current,
         claim_requested: true,
@@ -940,7 +940,7 @@ export function createApp() {
     try {
       const domain = typeof req.query.domain === "string" ? req.query.domain : "";
       if (!domain) return res.status(400).json({ error: "missing_domain" });
-      const existing = domainStatusStore.get(domain);
+      const existing = await domainStatusStore.get(domain);
       const registrarDomain = await registrarAdapter.getDomain(domain);
       const status = await continuityStatusFromSources(domain, {
         nsStatus: existing?.inputs?.ns_status ?? registrarDomain.ns.some((entry) => entry.endsWith("tolldns.io")),
@@ -984,7 +984,7 @@ export function createApp() {
       const domain = typeof req.query.domain === "string" ? req.query.domain : "";
       if (!domain) return res.status(400).json({ error: "missing_domain" });
 
-      const existing = domainStatusStore.get(domain);
+      const existing = await domainStatusStore.get(domain);
       const registrarDomain = await registrarAdapter.getDomain(domain);
       const status = await continuityStatusFromSources(domain, {
         nsStatus: existing?.inputs?.ns_status ?? registrarDomain.ns.some((entry) => entry.endsWith("tolldns.io")),

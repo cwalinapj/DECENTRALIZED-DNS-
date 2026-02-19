@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import fsp from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
 import type { DomainContinuityPolicyInput } from "@ddns/core";
@@ -39,47 +40,81 @@ function normalizeDomain(value: string): string {
   return value.trim().toLowerCase().replace(/\.$/, "");
 }
 
-function ensureStoreFile(filePath: string) {
+async function ensureStoreFile(filePath: string) {
   if (!fs.existsSync(filePath)) {
-    fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    fs.writeFileSync(filePath, JSON.stringify({ domains: {} }, null, 2) + "\n", "utf8");
+    await fsp.mkdir(path.dirname(filePath), { recursive: true });
+    await fsp.writeFile(filePath, JSON.stringify({ domains: {} }, null, 2) + "\n", "utf8");
   }
 }
 
-function loadStore(filePath: string): DomainStatusStoreShape {
-  ensureStoreFile(filePath);
-  const raw = fs.readFileSync(filePath, "utf8");
-  const parsed = JSON.parse(raw) as DomainStatusStoreShape;
-  if (!parsed.domains || typeof parsed.domains !== "object") {
+async function loadStore(filePath: string): Promise<DomainStatusStoreShape> {
+  await ensureStoreFile(filePath);
+  try {
+    const raw = await fsp.readFile(filePath, "utf8");
+    const parsed = JSON.parse(raw) as DomainStatusStoreShape;
+    if (!parsed.domains || typeof parsed.domains !== "object") {
+      return { domains: {} };
+    }
+    return parsed;
+  } catch (err) {
+    // Handle corrupted JSON
     return { domains: {} };
   }
-  return parsed;
 }
 
-function saveStore(filePath: string, store: DomainStatusStoreShape) {
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, JSON.stringify(store, null, 2) + "\n", "utf8");
+async function saveStore(filePath: string, store: DomainStatusStoreShape) {
+  await fsp.mkdir(path.dirname(filePath), { recursive: true });
+  const tmpPath = `${filePath}.tmp.${Date.now()}.${Math.random().toString(36).slice(2)}`;
+  await fsp.writeFile(tmpPath, JSON.stringify(store, null, 2) + "\n", "utf8");
+  await fsp.rename(tmpPath, filePath);
 }
 
 export function createDomainStatusStore(filePath: string) {
+  // In-memory cache to prevent race conditions
+  let cache: DomainStatusStoreShape | null = null;
+  let pendingWrite: Promise<void> | null = null;
+  const writeLock: Promise<void>[] = [];
+
+  async function getCache(): Promise<DomainStatusStoreShape> {
+    if (!cache) {
+      cache = await loadStore(filePath);
+    }
+    return cache;
+  }
+
+  async function persistCache(store: DomainStatusStoreShape) {
+    // Wait for any pending writes to complete
+    if (pendingWrite) {
+      await pendingWrite;
+    }
+    
+    // Atomic write
+    pendingWrite = saveStore(filePath, store);
+    await pendingWrite;
+    pendingWrite = null;
+  }
+
   return {
-    get(domainRaw: string): StoredDomainStatus | null {
+    async get(domainRaw: string): Promise<StoredDomainStatus | null> {
       const domain = normalizeDomain(domainRaw);
       if (!domain) return null;
-      const store = loadStore(filePath);
+      const store = await getCache();
       return store.domains[domain] || null;
     },
-    upsert(domainRaw: string, updater: (current: StoredDomainStatus | null) => StoredDomainStatus): StoredDomainStatus {
+    async upsert(domainRaw: string, updater: (current: StoredDomainStatus | null) => StoredDomainStatus): Promise<StoredDomainStatus> {
       const domain = normalizeDomain(domainRaw);
       if (!domain) throw new Error("invalid_domain");
-      const store = loadStore(filePath);
+      
+      const store = await getCache();
       const current = store.domains[domain] || null;
       const next = updater(current);
       store.domains[domain] = next;
-      saveStore(filePath, store);
+      cache = store;
+      
+      await persistCache(store);
       return next;
     },
-    createChallenge(domainRaw: string) {
+    async createChallenge(domainRaw: string): Promise<StoredDomainStatus> {
       const domain = normalizeDomain(domainRaw);
       if (!domain) throw new Error("invalid_domain");
       const token = crypto.randomBytes(12).toString("hex");
