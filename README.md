@@ -72,6 +72,17 @@ Expected:
 - `.dns` names use PKDNS pathing and verification semantics.
 - ICANN pass-through resolution is local recursive behavior and does not write ICANN names into canonical on-chain consensus.
 
+### Prereqs + Anti-Abuse (Bonded Hosting)
+
+- Using our Name Servers + DNS is required to access any "free hosting", "load balancing", "auto-Kubernetes deployment", or CDN-style features.
+- Non-users of our NS/DNS can still use read-only APIs, but do not receive hosting resources or earning eligibility.
+- Abuse prevention is economic: resource access is bonded/escrow-gated. More usage and higher-tier features require higher bond.
+- If an operator/domain abuses resources (spam sites, malicious hosting, excessive churn, policy violations), escrow can be slashed and eligibility revoked.
+- Reliability first: ICANN domains resolve via multi-upstream DoH quorum + cache with fallback paths; `.dns` uses on-chain canonical pathing.
+
+MVP note:
+- This document describes policy and go-to-market controls. Full hosting automation and slashing execution are phased rollout items.
+
 ### Security Posture: Attack Mode
 
 Attack Mode is a resilience layer that makes the system degrade safely under active adversaries.

@@ -157,6 +157,23 @@ Compat validation note:
 - `scripts/validate-compat-mvp.sh` intentionally skips when compat harness inputs are missing (`docker-compose.validation.yml`, `workers/compat-runner`) during MVP bootstrap.
 - Set `STRICT_COMPAT=1` to enforce hard failure once compat assets are present.
 
+## MVP Abuse Model: Escrow/Bond Is The Throttle
+
+MVP policy for adoption features is explicit:
+
+- NS/DNS prerequisite:
+  - access to free hosting, load-balancing tiers, and future auto-k8s paths requires domains to use DDNS nameserver/gateway pathing.
+  - non-NS users may still consume read-only APIs but do not receive hosted capacity.
+- Economic gate:
+  - escrow/bond is required for resource-consuming behavior.
+  - more sites/traffic/features imply higher bond requirements.
+- Abuse response:
+  - spam/malware/churn violations can trigger escrow slashing and revocation of hosting/mining eligibility.
+
+Current implementation status:
+- Escrow and voucher mechanics exist in MVP (`ddns_escrow`) and are used as the economic control plane foundation.
+- Full automatic hosting-tier enforcement and policy-driven slashing at scale remain planned rollout items.
+
 ## MVP Incentives (Adoption Wedge)
 
 MVP adoption wedge: domain owners get paid when the network is used.
@@ -177,6 +194,10 @@ Why not “per-query payouts” or free TOLL mining in MVP:
 - raw query counts are trivial to bot and break economics
 - free cloud infrastructure makes permissionless liquid-token mining easy to sybil
 - toll events represent scarce value (route acquisition/refresh), so wash behavior costs real funds.
+
+Mining eligibility policy alignment:
+- Sellable/defi-liquid reward paths are premium-gated and bond-oriented.
+- Free subdomain participants can still contribute privacy-safe observations and accrue limited participation rewards/REP under policy caps.
 
 ## Premium Chronological Cache Rollup (MVP)
 
