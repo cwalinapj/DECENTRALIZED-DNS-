@@ -142,6 +142,8 @@ paths:
   /v1/registrar/domain:
     get:
       summary: Mock registrar domain status
+      x-feature-flag: REGISTRAR_ENABLED
+      x-provider: REGISTRAR_PROVIDER
       parameters:
         - in: query
           name: domain
@@ -157,6 +159,8 @@ paths:
   /v1/registrar/quote:
     get:
       summary: Renewal quote from registrar adapter
+      x-feature-flag: REGISTRAR_ENABLED
+      x-provider: REGISTRAR_PROVIDER
       parameters:
         - in: query
           name: domain
@@ -172,6 +176,8 @@ paths:
   /v1/registrar/renew:
     post:
       summary: Request renewal through registrar adapter
+      x-feature-flag: REGISTRAR_ENABLED
+      x-provider: REGISTRAR_PROVIDER
       requestBody:
         required: true
         content:
@@ -188,6 +194,8 @@ paths:
   /v1/registrar/ns:
     post:
       summary: Update domain nameservers via registrar adapter
+      x-feature-flag: REGISTRAR_ENABLED
+      x-provider: REGISTRAR_PROVIDER
       requestBody:
         required: true
         content:
@@ -310,6 +318,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DomainRenewResponse'
+  /v1/domain/continuity:
+    get:
+      summary: Combined continuity view with registrar status and subsidy eligibility
+      parameters:
+        - in: query
+          name: domain
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Continuity state + registrar summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DomainContinuityCombinedResponse'
   /v1/domain/continuity/claim:
     post:
       summary: Claim continuity protection enrollment
@@ -426,6 +449,9 @@ components:
           type: string
           enum: [none, low, real]
         credits_balance: { type: number }
+        registrar_enabled: { type: boolean }
+        provider: { type: string }
+        dry_run: { type: boolean }
     RegistrarRenewalQuoteResponse:
       type: object
       properties:
@@ -436,6 +462,9 @@ components:
         expires_at:
           type: string
           format: date-time
+        registrar_enabled: { type: boolean }
+        provider: { type: string }
+        dry_run: { type: boolean }
     RegistrarRenewRequest:
       type: object
       required: [domain, years]
@@ -447,11 +476,21 @@ components:
       properties:
         domain: { type: string }
         years: { type: integer }
+        status:
+          type: string
+          enum: [submitted, failed, insufficient_credits]
         submitted: { type: boolean }
         provider_ref: { type: string }
         errors:
           type: array
           items: { type: string }
+        required_usd: { type: number }
+        covered_usd: { type: number }
+        remaining_usd: { type: number }
+        instruction: { type: string, nullable: true }
+        registrar_enabled: { type: boolean }
+        provider: { type: string }
+        dry_run: { type: boolean }
     RegistrarNsUpdateRequest:
       type: object
       required: [domain, ns]
@@ -473,6 +512,9 @@ components:
         errors:
           type: array
           items: { type: string }
+        registrar_enabled: { type: boolean }
+        provider: { type: string }
+        dry_run: { type: boolean }
     DomainContinuityPhase:
       type: string
       enum: [A_SOFT_WARNING, B_HARD_WARNING, HOLD_BANNER, C_SAFE_PARKED, D_REGISTRY_FINALIZATION]
@@ -518,6 +560,9 @@ components:
         credits_applied_estimate: { type: number }
         estimated_renewal_cost: { type: number }
         renewal_covered_by_credits: { type: boolean }
+        uses_ddns_ns: { type: boolean }
+        eligible_for_hold: { type: boolean }
+        eligible_for_subsidy: { type: boolean }
         renewal_due_date:
           type: string
           format: date-time
@@ -631,6 +676,13 @@ components:
         auth_mode: { type: string, enum: [stub] }
         policy_version: { type: string }
         notice_signature: { type: string }
+    DomainContinuityCombinedResponse:
+      allOf:
+        - $ref: '#/components/schemas/DomainContinuityStatusResponse'
+        - type: object
+          properties:
+            registrar_status:
+              $ref: '#/components/schemas/RegistrarDomainStatus'
     DomainNoticeTokenResponse:
       type: object
       properties:

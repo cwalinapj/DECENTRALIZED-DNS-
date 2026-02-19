@@ -401,6 +401,72 @@ npm -C gateway test && npm -C gateway run build
 ```
 - Result: `PASS`
 
+### 2026-02-19T11:13:00Z — PR7 Real registrar adapter v1 behind flags + dry-run gating
+- Base commit SHA: `a9d9359`
+- Worktree: `/tmp/ddns-pr7-registrar-v1`
+- Commands run:
+```bash
+npm ci && npm test
+npm -C gateway test && npm -C gateway run build
+PORT=39021 REGISTRAR_ENABLED=1 REGISTRAR_PROVIDER=porkbun REGISTRAR_DRY_RUN=0 node gateway/dist/server.js
+PORT=39022 REGISTRAR_ENABLED=1 REGISTRAR_PROVIDER=porkbun REGISTRAR_DRY_RUN=1 node gateway/dist/server.js & sleep 1
+curl 'http://127.0.0.1:39022/v1/registrar/domain?domain=example.com'
+curl -X POST 'http://127.0.0.1:39022/v1/registrar/renew' -H 'content-type: application/json' -d '{"domain":"example.com","years":1}'
+```
+- Output snippet:
+```text
+==> run_all: complete
+
+ RUN  v4.0.18 /private/tmp/ddns-pr7-registrar-v1/gateway
+ Test Files  12 passed (12)
+ Tests  38 passed (38)
+
+Error: registrar_config_error: REGISTRAR_ENABLED=1 requires provider secrets unless REGISTRAR_DRY_RUN=1
+
+{"domain":"example.com","status":"active",...,"registrar_enabled":true,"provider":"porkbun","dry_run":true}
+{"domain":"example.com","years":1,"status":"insufficient_credits","required_usd":11,"covered_usd":4,"remaining_usd":7,...,"dry_run":true}
+```
+- Result: `PASS`
+
+### 2026-02-19T11:40:00Z — PR8 Registrar/continuity rate limits + privacy-safe audit logs
+- Base commit SHA: `bcb56cd`
+- Worktree: `/tmp/ddns-pr8-rate-audit`
+- Commands run:
+```bash
+npm ci && npm test
+npm -C gateway test && npm -C gateway run build
+PORT=39031 RATE_LIMIT_WINDOW_S=60 RATE_LIMIT_MAX_REQUESTS=8 AUDIT_LOG_PATH='gateway/.cache/audit.log.jsonl' node gateway/dist/server.js & sleep 1
+for i in $(seq 1 12); do curl -s -o /dev/null -w "%{http_code}\n" 'http://127.0.0.1:39031/v1/registrar/domain?domain=example.com'; done
+tail -n 3 gateway/.cache/audit.log.jsonl
+curl 'http://127.0.0.1:39031/v1/domain/continuity?domain=example.com'
+```
+- Output snippet:
+```text
+exit:0
+==> run_all: complete
+
+ RUN  v4.0.18 /private/tmp/ddns-pr8-rate-audit/gateway
+ Test Files  12 passed (12)
+ Tests  39 passed (39)
+
+200
+200
+200
+200
+200
+200
+200
+200
+429
+429
+429
+429
+
+{"timestamp":"...","endpoint":"/v1/registrar/domain","domain":"example.com","decision":"rate_limited","actor":"12ca17b49af22894","provider_ref":null}
+{"domain":"example.com","eligible":false,...,"uses_ddns_ns":false,"eligible_for_hold":false,"eligible_for_subsidy":false,"registrar_status":"unknown"}
+```
+- Result: `PASS`
+
 ### 2026-02-19T08:56:24Z — Domain Continuity notice tokens + endpoint stubs
 - Base commit SHA: `87afd71`
 - Worktree: `/tmp/ddns-pr-domain-notice`

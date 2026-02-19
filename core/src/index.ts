@@ -20,3 +20,4 @@ export * from "../credits/verify.js";
 export * from "./registrar/adapter.js";
 export * from "./registrar/mock_registrar.js";
 export * from "./credits/ledger.js";
+export * from "./registrar/providers/porkbun.js";

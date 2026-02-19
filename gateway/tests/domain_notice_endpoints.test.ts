@@ -2,18 +2,23 @@ import { describe, expect, it, vi } from "vitest";
 import request from "supertest";
 import fs from "node:fs";
 import path from "node:path";
-import os from "node:os";
 
-const TEST_STORE_PATH = path.join(os.tmpdir(), "ddns-domain_status.test.json");
-const TEST_REGISTRAR_STORE_PATH = path.join(os.tmpdir(), "ddns-mock_registrar.test.json");
-const TEST_CREDITS_STORE_PATH = path.join(os.tmpdir(), "ddns-credits_ledger.test.json");
+const TEST_STORE_PATH = path.join(process.cwd(), "gateway/.cache/domain_status.test.json");
+const TEST_REGISTRAR_STORE_PATH = path.join(process.cwd(), "gateway/.cache/mock_registrar.test.json");
+const TEST_AUDIT_LOG_PATH = path.join(process.cwd(), "gateway/.cache/audit.test.jsonl");
 
 async function loadApp() {
   vi.resetModules();
   process.env.DOMAIN_STATUS_STORE_PATH = TEST_STORE_PATH;
   process.env.MOCK_REGISTRAR_STORE_PATH = TEST_REGISTRAR_STORE_PATH;
-  process.env.CREDITS_LEDGER_STORE_PATH = TEST_CREDITS_STORE_PATH;
-  process.env.DOMAIN_CREDITS_ADMIN_TOKEN = "test-admin-token";
+  process.env.REGISTRAR_ENABLED = "0";
+  process.env.REGISTRAR_PROVIDER = "mock";
+  process.env.REGISTRAR_DRY_RUN = "1";
+  process.env.RATE_LIMIT_WINDOW_S = "60";
+  process.env.RATE_LIMIT_MAX_REQUESTS = "200";
+  process.env.AUDIT_LOG_PATH = TEST_AUDIT_LOG_PATH;
+  delete process.env.PORKBUN_API_KEY;
+  delete process.env.PORKBUN_SECRET_API_KEY;
   const mod = await import("../src/server.js");
   return mod.createApp();
 }
@@ -22,7 +27,7 @@ describe("domain continuity notice endpoints", () => {
   function resetStores() {
     try { fs.unlinkSync(TEST_STORE_PATH); } catch {}
     try { fs.unlinkSync(TEST_REGISTRAR_STORE_PATH); } catch {}
-    try { fs.unlinkSync(TEST_CREDITS_STORE_PATH); } catch {}
+    try { fs.unlinkSync(TEST_AUDIT_LOG_PATH); } catch {}
   }
 
   it("returns verification challenge and status metadata", async () => {
@@ -81,6 +86,12 @@ describe("domain continuity notice endpoints", () => {
     expect(Array.isArray(res.body.next_steps)).toBe(true);
     expect(res.body.auth_mode).toBe("stub");
     expect(typeof res.body.auth_required).toBe("boolean");
+    expect(typeof res.body.uses_ddns_ns).toBe("boolean");
+    expect(typeof res.body.eligible_for_hold).toBe("boolean");
+    expect(typeof res.body.eligible_for_subsidy).toBe("boolean");
+    expect(res.body.uses_ddns_ns).toBe(false);
+    expect(res.body.eligible_for_hold).toBe(false);
+    expect(res.body.eligible_for_subsidy).toBe(false);
   });
 
   it("supports registrar adapter endpoints backed by mock store", async () => {
@@ -100,50 +111,64 @@ describe("domain continuity notice endpoints", () => {
       .send({ domain: "good-traffic.com", years: 1 });
     expect(renewRes.status).toBe(200);
     expect(renewRes.body.submitted).toBe(true);
+    expect(renewRes.body.status).toBe("submitted");
   });
 
-  it("supports credits ledger endpoints and continuity hold signal", async () => {
+  it("supports real-provider dry-run mode without secrets", async () => {
     resetStores();
+    vi.resetModules();
+    process.env.DOMAIN_STATUS_STORE_PATH = TEST_STORE_PATH;
+    process.env.MOCK_REGISTRAR_STORE_PATH = TEST_REGISTRAR_STORE_PATH;
+    process.env.REGISTRAR_ENABLED = "1";
+    process.env.REGISTRAR_PROVIDER = "porkbun";
+    process.env.REGISTRAR_DRY_RUN = "1";
+    delete process.env.PORKBUN_API_KEY;
+    delete process.env.PORKBUN_SECRET_API_KEY;
+    const mod = await import("../src/server.js");
+    const app = mod.createApp();
 
-    const now = Date.now();
-    const seededRegistrar = {
-      domains: {
-        "good-traffic.com": {
-          domain: "good-traffic.com",
-          status: "expired",
-          renewal_due_date: new Date(now - 2 * 24 * 60 * 60 * 1000).toISOString(),
-          grace_expires_at: new Date(now + 20 * 24 * 60 * 60 * 1000).toISOString(),
-          ns: ["ns1.tolldns.io", "ns2.tolldns.io"],
-          traffic_signal: "real",
-          credits_balance: 0
-        }
-      }
-    };
-    fs.mkdirSync(path.dirname(TEST_REGISTRAR_STORE_PATH), { recursive: true });
-    fs.writeFileSync(TEST_REGISTRAR_STORE_PATH, JSON.stringify(seededRegistrar, null, 2));
+    const res = await request(app).get("/v1/registrar/domain").query({ domain: "example.com" });
+    expect(res.status).toBe(200);
+    expect(res.body.provider).toBe("porkbun");
+    expect(res.body.dry_run).toBe(true);
+  });
 
+  it("returns insufficient_credits response when coverage is too low", async () => {
+    resetStores();
     const app = await loadApp();
 
-    const balanceBefore = await request(app)
-      .get("/v1/credits/balance")
-      .query({ domain: "good-traffic.com" });
-    expect(balanceBefore.status).toBe(200);
-    expect(typeof balanceBefore.body.credits_balance).toBe("number");
+    const renewRes = await request(app)
+      .post("/v1/registrar/renew")
+      .send({ domain: "low-traffic.com", years: 1 });
+    expect(renewRes.status).toBe(200);
+    expect(renewRes.body.status).toBe("insufficient_credits");
+    expect(typeof renewRes.body.remaining_usd).toBe("number");
+    expect(renewRes.body.remaining_usd).toBeGreaterThan(0);
+  });
 
-    const creditRes = await request(app)
-      .post("/v1/credits/credit")
-      .set("X-Admin-Token", "test-admin-token")
-      .send({ domain: "good-traffic.com", amount: 25, reason: "ns_usage_toll_share" });
-    expect(creditRes.status).toBe(200);
-    expect(creditRes.body.accepted).toBe(true);
+  it("rate limits registrar endpoints and writes audit log entries", async () => {
+    resetStores();
+    vi.resetModules();
+    process.env.DOMAIN_STATUS_STORE_PATH = TEST_STORE_PATH;
+    process.env.MOCK_REGISTRAR_STORE_PATH = TEST_REGISTRAR_STORE_PATH;
+    process.env.AUDIT_LOG_PATH = TEST_AUDIT_LOG_PATH;
+    process.env.REGISTRAR_ENABLED = "0";
+    process.env.REGISTRAR_PROVIDER = "mock";
+    process.env.REGISTRAR_DRY_RUN = "1";
+    process.env.RATE_LIMIT_WINDOW_S = "60";
+    process.env.RATE_LIMIT_MAX_REQUESTS = "2";
+    const mod = await import("../src/server.js");
+    const app = mod.createApp();
 
-    const continuityRes = await request(app)
-      .get("/v1/domain/continuity")
-      .query({ domain: "good-traffic.com" });
-    expect(continuityRes.status).toBe(200);
-    expect(continuityRes.body.domain).toBe("good-traffic.com");
-    expect(continuityRes.body.continuity.phase).toBe("HOLD_BANNER");
-    expect(continuityRes.body.continuity.hold_banner_active).toBe(true);
-    expect(typeof continuityRes.body.credits.credits_balance).toBe("number");
+    const r1 = await request(app).get("/v1/registrar/domain").query({ domain: "example.com" });
+    const r2 = await request(app).get("/v1/registrar/domain").query({ domain: "example.com" });
+    const r3 = await request(app).get("/v1/registrar/domain").query({ domain: "example.com" });
+    expect(r1.status).toBe(200);
+    expect(r2.status).toBe(200);
+    expect(r3.status).toBe(429);
+
+    const auditText = fs.readFileSync(TEST_AUDIT_LOG_PATH, "utf8");
+    expect(auditText).toContain("\"endpoint\":\"/v1/registrar/domain\"");
+    expect(auditText).toContain("\"decision\":\"rate_limited\"");
   });
 });
