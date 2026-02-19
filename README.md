@@ -95,6 +95,7 @@ Important: Wrangler cannot create Cloudflare accounts or bypass CAPTCHA/email ve
 See `docs/DOMAIN_CONTINUITY.md`.
 Domain Continuity UI: `docs/DOMAIN_CONTINUITY_UI.md`.
 Notice tokens: `docs/NOTICE_TOKENS.md`.
+Banner/interstitial integration: `docs/DOMAIN_BANNER_INTEGRATION.md`.
 
 ## Domain-owner earnings wedge (MVP accuracy)
 

@@ -47,6 +47,17 @@ describe("domain continuity notice endpoints", () => {
     expect(verify.body.payload.domain).toBe("example.com");
   });
 
+  it("renders HTML banner with injected token", async () => {
+    try { fs.unlinkSync(TEST_STORE_PATH); } catch {}
+    const app = await loadApp();
+    const res = await request(app).get("/v1/domain/banner").query({ domain: "example.com" });
+    expect(res.status).toBe(200);
+    expect(String(res.headers["content-type"] || "")).toContain("text/html");
+    expect(res.text).toContain("example.com");
+    expect(res.text).toContain("Renew now");
+    expect(res.text).toContain("/v1/domain/notice/verify");
+  });
+
   it("returns status payload with continuity fields", async () => {
     try { fs.unlinkSync(TEST_STORE_PATH); } catch {}
     const app = await loadApp();

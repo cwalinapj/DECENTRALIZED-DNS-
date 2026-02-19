@@ -27,6 +27,7 @@ This index is intentionally short and categorized.
 - `docs/DOMAIN_CONTINUITY.md`
 - `docs/DOMAIN_CONTINUITY_UI.md`
 - `docs/NOTICE_TOKENS.md`
+- `docs/DOMAIN_BANNER_INTEGRATION.md`
 - `docs/openapi.yaml`
 
 ## Adapters / Integrations

@@ -1,6 +1,7 @@
 import express from "express";
 import dnsPacket from "dns-packet";
 import path from "node:path";
+import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import { verifyVoucherHeader } from "./voucher.js";
 import { buildMerkleRoot, buildProof, loadSnapshot, normalizeName, verifyProof } from "./registry.js";
@@ -93,6 +94,11 @@ const ATTACK_MODE_ENABLED = process.env.ATTACK_MODE_ENABLED === "1";
 const ATTACK_WINDOW_SECS = Number(process.env.ATTACK_WINDOW_SECS || "120");
 const DOMAIN_CONTINUITY_POLICY_VERSION = process.env.DOMAIN_CONTINUITY_POLICY_VERSION || "mvp-2026-02";
 const DOMAIN_STATUS_STORE_PATH = process.env.DOMAIN_STATUS_STORE_PATH || "gateway/.cache/domain_status.json";
+const BANNER_TEMPLATE_PATH =
+  process.env.DOMAIN_BANNER_TEMPLATE_PATH || path.resolve(process.cwd(), "gateway/public/domain-continuity/banner.html");
+const INTERSTITIAL_TEMPLATE_PATH =
+  process.env.DOMAIN_INTERSTITIAL_TEMPLATE_PATH ||
+  path.resolve(process.cwd(), "gateway/public/domain-continuity/interstitial.html");
 const attackThresholds = defaultThresholdsFromEnv(process.env);
 
 ed.etc.sha512Sync = (...m) => sha512(ed.etc.concatBytes(...m));
@@ -125,6 +131,28 @@ let attackDecision: { score: number; reasons: string[] } = { score: 0, reasons: 
 
 function normalizeDomainInput(value: string): string {
   return value.trim().toLowerCase().replace(/\.$/, "");
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function readTemplate(templatePath: string, fallback: string): string {
+  try {
+    if (fs.existsSync(templatePath)) {
+      return fs.readFileSync(templatePath, "utf8");
+    }
+  } catch {}
+  return fallback;
+}
+
+function renderHtmlTemplate(template: string, vars: Record<string, string>): string {
+  return template.replace(/\{\{([a-zA-Z0-9_]+)\}\}/g, (_, key: string) => escapeHtml(vars[key] || ""));
 }
 
 function inferTrafficSignal(lastSeenAt?: string | null): DomainTrafficSignal {
@@ -608,6 +636,56 @@ export function createApp() {
     if (!token) return res.status(400).json({ error: "missing_token" });
     const result = await verifyNoticeToken(token);
     return res.json(result);
+  });
+
+  app.get("/v1/domain/banner", async (req, res) => {
+    const domain = typeof req.query.domain === "string" ? req.query.domain : "";
+    if (!domain) return res.status(400).json({ error: "missing_domain" });
+
+    const existing = domainStatusStore.get(domain);
+    const status = continuityStatus(domain, {
+      nsStatus: existing?.inputs?.ns_status ?? true,
+      verifiedControl: existing?.inputs?.verified_control ?? false,
+      trafficSignal: existing?.inputs?.traffic_signal ?? "none",
+      renewalDueDate: existing?.inputs?.renewal_due_date || undefined,
+      lastSeenAt: existing?.inputs?.last_seen_at || undefined,
+      abuseFlag: existing?.inputs?.abuse_flag ?? false,
+      claimRequested: existing?.claim_requested ?? false
+    });
+
+    const now = new Date();
+    const { token } = await createNoticeToken({
+      domain: status.domain,
+      phase: status.phase,
+      issued_at: now.toISOString(),
+      expires_at: new Date(now.getTime() + 1000 * 60 * 15).toISOString(),
+      reason_codes: status.reason_codes,
+      policy_version: DOMAIN_CONTINUITY_POLICY_VERSION,
+      nonce: crypto.randomBytes(8).toString("hex")
+    });
+
+    const baseUrl = `${req.protocol}://${req.get("host") || "127.0.0.1:8054"}`;
+    const verifyUrl = `${baseUrl}/v1/domain/notice/verify`;
+    const dashboardUrl = `${baseUrl}/domain-continuity/index.html?domain=${encodeURIComponent(status.domain)}`;
+    const renewUrl = dashboardUrl;
+    const forceMode = typeof req.query.mode === "string" ? req.query.mode.toLowerCase() : "";
+    const useInterstitial =
+      forceMode === "interstitial" || (forceMode !== "banner" && (status.phase === "C_SAFE_PARKED" || status.phase === "D_REGISTRY_FINALIZATION"));
+    const fallbackTemplate =
+      "<!doctype html><html><body><h1>{{domain}}</h1><p>{{phase}}</p><a href=\"{{renew_url}}\">Renew now</a><pre>{{token}}</pre><code>{{verify_url}}</code></body></html>";
+    const template = useInterstitial
+      ? readTemplate(INTERSTITIAL_TEMPLATE_PATH, fallbackTemplate)
+      : readTemplate(BANNER_TEMPLATE_PATH, fallbackTemplate);
+    const html = renderHtmlTemplate(template, {
+      domain: status.domain,
+      phase: status.phase,
+      renew_url: renewUrl,
+      dashboard_url: dashboardUrl,
+      token,
+      verify_url: verifyUrl
+    });
+    res.setHeader("content-type", "text/html; charset=utf-8");
+    return res.status(200).send(html);
   });
 
   app.get("/v1/attack-mode", (_req, res) => {
