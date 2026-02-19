@@ -31,6 +31,11 @@ import {
   verifyNoticeToken,
   type DomainContinuityPhase
 } from "./lib/notice_token.js";
+import {
+  evaluateDomainContinuityPolicy,
+  type DomainTrafficSignal
+} from "./lib/domain_continuity_policy.js";
+import { createDomainStatusStore } from "./lib/domain_status_store.js";
 
 const PORT = Number(process.env.PORT || "8054");
 const HOST = process.env.HOST || "0.0.0.0";
@@ -87,6 +92,7 @@ const SOLANA_RPC_URL_FOR_MINT = process.env.SOLANA_RPC_URL || SOLANA_RPC_URL;
 const ATTACK_MODE_ENABLED = process.env.ATTACK_MODE_ENABLED === "1";
 const ATTACK_WINDOW_SECS = Number(process.env.ATTACK_WINDOW_SECS || "120");
 const DOMAIN_CONTINUITY_POLICY_VERSION = process.env.DOMAIN_CONTINUITY_POLICY_VERSION || "mvp-2026-02";
+const DOMAIN_STATUS_STORE_PATH = process.env.DOMAIN_STATUS_STORE_PATH || "gateway/.cache/domain_status.json";
 const attackThresholds = defaultThresholdsFromEnv(process.env);
 
 ed.etc.sha512Sync = (...m) => sha512(ed.etc.concatBytes(...m));
@@ -121,38 +127,63 @@ function normalizeDomainInput(value: string): string {
   return value.trim().toLowerCase().replace(/\.$/, "");
 }
 
-function phaseFromDomain(domain: string): DomainContinuityPhase {
-  if (domain.startsWith("park-")) return "C_SAFE_PARKED";
-  if (domain.startsWith("warn-")) return "B_HARD_WARNING";
-  return "A_SOFT_WARNING";
+function inferTrafficSignal(lastSeenAt?: string | null): DomainTrafficSignal {
+  if (!lastSeenAt) return "none";
+  const ts = Date.parse(lastSeenAt);
+  if (Number.isNaN(ts)) return "none";
+  const ageMs = Date.now() - ts;
+  if (ageMs <= 2 * 24 * 60 * 60 * 1000) return "real";
+  if (ageMs <= 14 * 24 * 60 * 60 * 1000) return "low";
+  return "none";
 }
 
-function continuityStatus(domainRaw: string) {
+function continuityStatus(
+  domainRaw: string,
+  options: {
+    nsStatus?: boolean;
+    verifiedControl?: boolean;
+    trafficSignal?: DomainTrafficSignal;
+    renewalDueDate?: string;
+    lastSeenAt?: string;
+    abuseFlag?: boolean;
+    claimRequested?: boolean;
+  } = {}
+) {
   const domain = normalizeDomainInput(domainRaw);
   const now = Date.now();
-  const renewalDueDate = new Date(now + 1000 * 60 * 60 * 24 * 20).toISOString();
+  const renewalDueDate =
+    options.renewalDueDate || new Date(now + 1000 * 60 * 60 * 24 * 20).toISOString();
   const graceExpiresAt = new Date(now + 1000 * 60 * 60 * 24 * 35).toISOString();
-  const phase = phaseFromDomain(domain);
-  const eligible = !domain.endsWith(".invalid");
-  const reasonCodes = eligible ? [] : ["ELIGIBILITY_POLICY_FAILED"];
-  const nextSteps = eligible
-    ? [
-        "Verify control with /v1/domain/verify",
-        "Confirm contact channels in dashboard",
-        "Enable credits on renew request"
-      ]
-    : ["Fix eligibility gates (nameserver continuity, verification, abuse checks)"];
+  const policy = evaluateDomainContinuityPolicy({
+    domain,
+    ns_status: options.nsStatus ?? true,
+    verified_control: options.verifiedControl ?? false,
+    traffic_signal: options.trafficSignal ?? inferTrafficSignal(options.lastSeenAt),
+    renewal_due_date: renewalDueDate,
+    last_seen_at: options.lastSeenAt,
+    abuse_flag: options.abuseFlag ?? false
+  });
+
+  const reasonCodes = [...policy.reason_codes];
+  const nextSteps = [...policy.next_steps];
+  if (options.claimRequested) {
+    reasonCodes.push("CLAIM_REQUESTED");
+    nextSteps.push("Claim is queued for policy review");
+  }
+
   return {
     domain,
-    eligible,
-    phase,
-    reason_codes: reasonCodes,
-    next_steps: nextSteps,
+    eligible: policy.eligible,
+    phase: policy.phase as DomainContinuityPhase,
+    reason_codes: [...new Set(reasonCodes)],
+    next_steps: [...new Set(nextSteps)],
     credits_balance: 120,
-    credits_applied_estimate: 25,
+    credits_applied_estimate: policy.credits_estimate,
     renewal_due_date: renewalDueDate,
     grace_expires_at: graceExpiresAt,
-    policy_version: DOMAIN_CONTINUITY_POLICY_VERSION
+    policy_version: DOMAIN_CONTINUITY_POLICY_VERSION,
+    auth_required: false,
+    auth_mode: "stub" as const
   };
 }
 
@@ -222,6 +253,7 @@ const cacheLogger = createCacheLogger({
   rollupUrl: CACHE_ROLLUP_URL || undefined,
   parentExtractRule: CACHE_PARENT_EXTRACT_RULE
 });
+const domainStatusStore = createDomainStatusStore(DOMAIN_STATUS_STORE_PATH);
 
 const cache = new Map<string, { expiresAt: number; payload: ResolveResponse }>();
 const mintCaches = new Map<string, Map<string, { rrtype: string; value: string; ttl: number; expiresAt: number; wallet_pubkey: string }>>();
@@ -422,8 +454,37 @@ export function createApp() {
   app.get("/v1/domain/status", (req, res) => {
     const domain = typeof req.query.domain === "string" ? req.query.domain : "";
     if (!domain) return res.status(400).json({ error: "missing_domain" });
+    const ownerPubkey = typeof req.header("X-Owner-Pubkey") === "string" ? req.header("X-Owner-Pubkey") : "";
+    const existing = domainStatusStore.get(domain);
+    const status = continuityStatus(domain, {
+      nsStatus: existing?.inputs?.ns_status ?? true,
+      verifiedControl: existing?.inputs?.verified_control ?? false,
+      trafficSignal: existing?.inputs?.traffic_signal ?? "none",
+      renewalDueDate: existing?.inputs?.renewal_due_date || undefined,
+      lastSeenAt: existing?.inputs?.last_seen_at || undefined,
+      abuseFlag: existing?.inputs?.abuse_flag ?? false,
+      claimRequested: existing?.claim_requested ?? false
+    });
+    const persisted = domainStatusStore.upsert(domain, (current) => ({
+      domain: normalizeDomainInput(domain),
+      ...current,
+      status,
+      inputs: {
+        domain: normalizeDomainInput(domain),
+        ns_status: existing?.inputs?.ns_status ?? true,
+        verified_control: existing?.inputs?.verified_control ?? false,
+        traffic_signal: existing?.inputs?.traffic_signal ?? "none",
+        renewal_due_date: existing?.inputs?.renewal_due_date || status.renewal_due_date,
+        last_seen_at: new Date().toISOString(),
+        abuse_flag: existing?.inputs?.abuse_flag ?? false
+      },
+      last_updated_at: new Date().toISOString()
+    }));
     return res.json({
-      ...continuityStatus(domain),
+      ...status,
+      txt_record_name: persisted.challenge?.txt_record_name || null,
+      txt_record_value: persisted.challenge?.txt_record_value || null,
+      owner_pubkey: ownerPubkey || null,
       notice_signature: "mvp-local-policy"
     });
   });
@@ -432,14 +493,16 @@ export function createApp() {
     const domain = typeof req.body?.domain === "string" ? req.body.domain : "";
     if (!domain) return res.status(400).json({ error: "missing_domain" });
     const normalized = normalizeDomainInput(domain);
-    const token = crypto.randomBytes(12).toString("hex");
+    const updated = domainStatusStore.createChallenge(normalized);
     return res.json({
       domain: normalized,
       verification_method: "dns_txt",
-      txt_record_name: `_tolldns-verify.${normalized}`,
-      txt_record_value: `tolldns-verify=${token}`,
-      verification_token: token,
-      expires_at: new Date(Date.now() + 1000 * 60 * 15).toISOString(),
+      txt_record_name: updated.challenge?.txt_record_name,
+      txt_record_value: updated.challenge?.txt_record_value,
+      verification_token: updated.challenge?.token,
+      expires_at: updated.challenge?.expires_at,
+      auth_required: false,
+      auth_mode: "stub",
       policy_version: DOMAIN_CONTINUITY_POLICY_VERSION
     });
   });
@@ -448,14 +511,32 @@ export function createApp() {
     const domain = typeof req.body?.domain === "string" ? req.body.domain : "";
     if (!domain) return res.status(400).json({ error: "missing_domain" });
     const useCredits = req.body?.use_credits !== false;
-    const status = continuityStatus(domain);
+    const existing = domainStatusStore.get(domain);
+    const status = continuityStatus(domain, {
+      nsStatus: existing?.inputs?.ns_status ?? true,
+      verifiedControl: existing?.inputs?.verified_control ?? false,
+      trafficSignal: existing?.inputs?.traffic_signal ?? "none",
+      renewalDueDate: existing?.inputs?.renewal_due_date || undefined,
+      lastSeenAt: existing?.inputs?.last_seen_at || undefined,
+      abuseFlag: existing?.inputs?.abuse_flag ?? false,
+      claimRequested: existing?.claim_requested ?? false
+    });
+    domainStatusStore.upsert(domain, (current) => ({
+      domain: normalizeDomainInput(domain),
+      ...current,
+      status,
+      last_updated_at: new Date().toISOString()
+    }));
     return res.json({
       domain: status.domain,
       accepted: true,
+      message: "stubbed: pending integration",
       reason_codes: [],
       credits_applied_estimate: useCredits ? status.credits_applied_estimate : 0,
       renewal_due_date: status.renewal_due_date,
       grace_expires_at: status.grace_expires_at,
+      auth_required: false,
+      auth_mode: "stub",
       policy_version: DOMAIN_CONTINUITY_POLICY_VERSION,
       notice_signature: "mvp-local-policy"
     });
@@ -464,7 +545,24 @@ export function createApp() {
   app.post("/v1/domain/continuity/claim", express.json(), (req, res) => {
     const domain = typeof req.body?.domain === "string" ? req.body.domain : "";
     if (!domain) return res.status(400).json({ error: "missing_domain" });
-    const status = continuityStatus(domain);
+    const existing = domainStatusStore.get(domain);
+    const status = continuityStatus(domain, {
+      nsStatus: existing?.inputs?.ns_status ?? true,
+      verifiedControl: existing?.inputs?.verified_control ?? false,
+      trafficSignal: existing?.inputs?.traffic_signal ?? "none",
+      renewalDueDate: existing?.inputs?.renewal_due_date || undefined,
+      lastSeenAt: existing?.inputs?.last_seen_at || undefined,
+      abuseFlag: existing?.inputs?.abuse_flag ?? false,
+      claimRequested: true
+    });
+    domainStatusStore.upsert(domain, (current) => ({
+      domain: normalizeDomainInput(domain),
+      ...current,
+      claim_requested: true,
+      claim_requested_at: new Date().toISOString(),
+      status,
+      last_updated_at: new Date().toISOString()
+    }));
     return res.json({
       domain: status.domain,
       accepted: status.eligible,
@@ -472,6 +570,8 @@ export function createApp() {
       phase: status.phase,
       reason_codes: status.reason_codes,
       next_steps: status.next_steps,
+      auth_required: false,
+      auth_mode: "stub",
       policy_version: DOMAIN_CONTINUITY_POLICY_VERSION,
       notice_signature: "mvp-local-policy"
     });
@@ -480,7 +580,16 @@ export function createApp() {
   app.get("/v1/domain/notice", async (req, res) => {
     const domain = typeof req.query.domain === "string" ? req.query.domain : "";
     if (!domain) return res.status(400).json({ error: "missing_domain" });
-    const status = continuityStatus(domain);
+    const existing = domainStatusStore.get(domain);
+    const status = continuityStatus(domain, {
+      nsStatus: existing?.inputs?.ns_status ?? true,
+      verifiedControl: existing?.inputs?.verified_control ?? false,
+      trafficSignal: existing?.inputs?.traffic_signal ?? "none",
+      renewalDueDate: existing?.inputs?.renewal_due_date || undefined,
+      lastSeenAt: existing?.inputs?.last_seen_at || undefined,
+      abuseFlag: existing?.inputs?.abuse_flag ?? false,
+      claimRequested: existing?.claim_requested ?? false
+    });
     const now = new Date();
     const { token, pubkey } = await createNoticeToken({
       domain: status.domain,
