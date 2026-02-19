@@ -104,3 +104,106 @@ npm run miner:cf:deploy -- --help
 - `docs/MINER_QUICKSTART_CF.md`
 - `docs/miner-onboard/index.html`
 - `package.json` (root scripts: `miner:cf:dev`, `miner:cf:deploy`)
+
+## Devnet Inventory
+
+Date (UTC): 2026-02-19T03:56:19Z  
+RPC: `https://api.devnet.solana.com`  
+Wallet: `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5`
+
+Command run:
+
+```bash
+bash scripts/devnet_inventory.sh
+```
+
+Output snippet:
+
+```text
+solana balance: 0.02432396 SOL
+
+[ddns_anchor] 9hwvtFzawMZ6R9eWJZ8YjC7rLCGgNK7PZBNeKMRCPBes
+owner: BPFLoaderUpgradeab1e11111111111111111111111
+upgrade_authority: B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5
+programdata_address: rgQTn2mWkpck5zBNeAHwk8P3aADMbhNeTGWTgBPwJEK
+executable: true
+lamports: 1141440
+sol: 0.001141440
+
+total_program_sol: 0.007990080
+recommended_wallet_topup_sol: 4.975676040
+```
+
+## Devnet Inventory (authoritative tool)
+
+Date (UTC): 2026-02-19T04:31:36Z  
+Branch: `codex/devnet-inventory`  
+Worktree: `/private/tmp/ddns-devnet-inventory`
+
+Command run from clean worktree:
+
+```bash
+npm run devnet:inventory
+```
+
+Output snippet:
+
+```text
+# Devnet Inventory
+- rpc: https://api.devnet.solana.com
+- wallet: B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5
+
+## Program Inventory (Anchor.toml [programs.devnet])
+| Program | Tier | ... | Exists | Executable | ... | Status |
+| ddns_anchor | REQUIRED | ... | yes | yes | ... | ok |
+| ddns_escrow | REQUIRED | ... | no  | no  | ... | missing |
+| ddns_miner_score | REQUIRED | ... | no | no | ... | missing |
+| ddns_cache_head | REQUIRED | ... | no | no | ... | missing |
+
+## Key Demo PDAs / Vaults (rent + top-up guidance)
+| ddns_anchor:config | ... | Exists: yes | Rent Exempt Lamports: 1197120 | Recommended Top-up Lamports: 0 |
+| ddns_witness_rewards:config | ... | Exists: yes | Rent Exempt Lamports: 1941840 | Recommended Top-up Lamports: 0 |
+
+required_failures: ddns_cache_head, ddns_escrow, ddns_miner_score
+EXIT_CODE:1
+```
+
+Artifact generated:
+
+- `artifacts/devnet_inventory.json`
+
+## Phase 0 Demo Command Wiring (mvp:demo:devnet)
+
+Date (UTC): 2026-02-19  
+Branch: `codex/phase0-demo-script`
+
+### Command
+
+```bash
+npm run mvp:demo:devnet
+```
+
+### Output snippet
+
+```text
+> decentralized-dns@1.0.0 mvp:demo:devnet
+> npm -C solana ci --include=dev && npm -C solana run devnet:verify && npm -C solana run devnet:audit
+
+npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory.
+npm warn deprecated glob@8.1.0: Old versions of glob are not supported.
+
+added 247 packages, and audited 249 packages in 3s
+
+> ddns-anchor@0.1.0 devnet:verify
+> tsx scripts/devnet_verify_deployed.ts --rpc https://api.devnet.solana.com
+
+✅ all required programs are deployed (6)
+
+> ddns-anchor@0.1.0 devnet:audit
+> tsx scripts/devnet_audit.ts --rpc https://api.devnet.solana.com
+
+Wrote /private/tmp/ddns-pr94/docs/DEVNET_STATUS.md
+Programs audited: 16
+Recommended reserve SOL: 5.000000000 (WARNING: below recommended reserve; upgrades may fail)
+EXIT_CODE:0
+```

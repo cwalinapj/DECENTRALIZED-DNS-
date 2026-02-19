@@ -6,6 +6,7 @@ cd "$ROOT_DIR"
 
 RPC_URL="${SOLANA_RPC_URL:-https://api.devnet.solana.com}"
 WALLET_PATH="${WALLET:-${ANCHOR_WALLET:-$HOME/.config/solana/id.json}}"
+CLIENT_WALLET_PATH="${CLIENT_WALLET:-}"
 GATEWAY_PORT="${GATEWAY_PORT:-8054}"
 TOLLBOOTH_PORT="${TOLLBOOTH_PORT:-8788}"
 DEMO_DEST="${DEMO_DEST:-https://example.com}"
@@ -27,6 +28,13 @@ if [[ ! -f "$WALLET_PATH" ]]; then
   exit 1
 fi
 
+if [[ -z "$CLIENT_WALLET_PATH" ]]; then
+  CLIENT_WALLET_PATH="$LOG_DIR/demo-client.json"
+fi
+if [[ ! -f "$CLIENT_WALLET_PATH" ]]; then
+  solana-keygen new --no-bip39-passphrase -o "$CLIENT_WALLET_PATH" -f >/dev/null
+fi
+
 wait_http() {
   local url="$1"
   local tries="${2:-40}"
@@ -43,32 +51,7 @@ wait_http() {
 
 extract_tx() {
   local blob="$1"
-  local pattern="tx: '[^']+'"
-  if command -v rg >/dev/null 2>&1; then
-    printf "%s\n" "$blob" | rg -o "$pattern" | sed -E "s/tx: '([^']+)'/\1/" | head -n 1 || true
-  else
-    printf "%s\n" "$blob" | grep -oE "$pattern" | sed -E "s/tx: '([^']+)'/\1/" | head -n 1 || true
-  fi
-}
-
-slice_block() {
-  local pattern="$1"
-  local blob="$2"
-  if command -v rg >/dev/null 2>&1; then
-    echo "$blob" | rg "$pattern" -A3 || true
-  else
-    echo "$blob" | grep -A3 -E "$pattern" || true
-  fi
-}
-
-contains_pattern() {
-  local pattern="$1"
-  local blob="$2"
-  if command -v rg >/dev/null 2>&1; then
-    echo "$blob" | rg -q "$pattern"
-  else
-    echo "$blob" | grep -qE "$pattern"
-  fi
+  printf "%s\n" "$blob" | rg -o "tx: '[^']+'" | sed -E "s/tx: '([^']+)'/\1/" | head -n 1 || true
 }
 
 echo "==> verify deployed MVP programs on devnet"
@@ -78,10 +61,12 @@ echo "==> devnet funding/rent snapshot"
 npm -C solana run devnet:audit
 
 WALLET_PUBKEY="$(solana-keygen pubkey "$WALLET_PATH")"
-DEMO_LABEL="${DEMO_LABEL:-u-$(printf "%s" "$WALLET_PUBKEY" | tr 'A-Z' 'a-z' | cut -c1-8)}"
+CLIENT_WALLET_PUBKEY="$(solana-keygen pubkey "$CLIENT_WALLET_PATH")"
+DEMO_LABEL="${DEMO_LABEL:-u-$(printf "%s" "$CLIENT_WALLET_PUBKEY" | tr 'A-Z' 'a-z' | cut -c1-8)}"
 DEMO_NAME="${DEMO_NAME:-${DEMO_LABEL}.dns}"
 
 echo "wallet: $WALLET_PUBKEY"
+echo "client_wallet: $CLIENT_WALLET_PUBKEY"
 echo "rpc: $RPC_URL"
 echo "demo_name: $DEMO_NAME"
 
@@ -132,7 +117,7 @@ echo "==> set .dns route via tollbooth devnet flow"
 set +e
 FLOW_OUT="$(
   TOLLBOOTH_URL="http://127.0.0.1:${TOLLBOOTH_PORT}" \
-  CLIENT_WALLET="$WALLET_PATH" \
+  CLIENT_WALLET="$CLIENT_WALLET_PATH" \
   LABEL="$DEMO_LABEL" \
   NAME="$DEMO_NAME" \
   DEST="$DEMO_DEST" \
@@ -143,10 +128,10 @@ FLOW_CMD_RC=$?
 set -e
 echo "$FLOW_OUT" | tail -n 30
 
-CLAIM_TX="$(extract_tx "$(slice_block "claim_passport:" "$FLOW_OUT")")"
-ASSIGN_TX="$(extract_tx "$(slice_block "assign_route:" "$FLOW_OUT")")"
+CLAIM_TX="$(extract_tx "$(echo "$FLOW_OUT" | rg "claim_passport:" -A3 || true)")"
+ASSIGN_TX="$(extract_tx "$(echo "$FLOW_OUT" | rg "assign_route:" -A3 || true)")"
 FLOW_OK=1
-if [[ $FLOW_CMD_RC -ne 0 ]] || ! contains_pattern "assign_route:[[:space:]]+200" "$FLOW_OUT"; then
+if [[ $FLOW_CMD_RC -ne 0 ]] || ! echo "$FLOW_OUT" | rg -q "assign_route:\s+200"; then
   FLOW_OK=0
   echo "warning: tollbooth devnet flow did not return assign_route 200; continuing for audit visibility"
 fi
@@ -170,7 +155,7 @@ fi
 
 echo "==> resolve .dns via tollbooth (route proof)"
 set +e
-TOLL_JSON="$(curl -sS "http://127.0.0.1:${TOLLBOOTH_PORT}/v1/resolve?wallet=${WALLET_PUBKEY}&name=${DEMO_NAME}")"
+TOLL_JSON="$(curl -sS "http://127.0.0.1:${TOLLBOOTH_PORT}/v1/resolve?wallet=${CLIENT_WALLET_PUBKEY}&name=${DEMO_NAME}")"
 TOLL_RC=$?
 set -e
 if [[ $TOLL_RC -eq 0 ]]; then

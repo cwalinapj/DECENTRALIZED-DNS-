@@ -158,12 +158,6 @@ Attack Mode is a resilience layer that makes the system degrade safely under act
 - Endpoints: `GET /v1/attack-mode` on gateway/tollbooth/miner.
 - Review checklist: `docs/REVIEW_CHECKLIST_ATTACK_MODE.md`.
 
-### PR Merge Order (Do Not Mix)
-
-1. PR1: docs
-2. PR2: on-chain programs
-3. PR3: miner + client
-
 ### Auto-merge Policy
 
 - Auto-merge is executed by `scripts/automerge_prs.sh` (zero human approval flow).
