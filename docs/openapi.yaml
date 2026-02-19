@@ -520,6 +520,14 @@ components:
       enum: [A_SOFT_WARNING, B_HARD_WARNING, HOLD_BANNER, C_SAFE_PARKED, D_REGISTRY_FINALIZATION]
     CreditsBalanceResponse:
       type: object
+      required:
+        - domain
+        - credits_balance
+        - renewal_cost_estimate
+        - covered_amount
+        - renewal_covered_by_credits
+        - auth_required
+        - auth_mode
       properties:
         domain: { type: string }
         credits_balance: { type: number }
@@ -537,6 +545,11 @@ components:
         reason: { type: string }
     CreditsMutationResponse:
       type: object
+      required:
+        - domain
+        - credits_balance
+        - reason
+        - accepted
       properties:
         domain: { type: string }
         credits_balance: { type: number }

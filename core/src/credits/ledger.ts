@@ -37,7 +37,12 @@ function ensureStore(filePath: string): CreditsLedgerStore {
     return seeded;
   }
   const raw = fs.readFileSync(filePath, "utf8");
-  const parsed = JSON.parse(raw) as CreditsLedgerStore;
+  let parsed: CreditsLedgerStore;
+  try {
+    parsed = JSON.parse(raw) as CreditsLedgerStore;
+  } catch {
+    return defaultStore();
+  }
   if (!parsed.balances || typeof parsed.balances !== "object") return defaultStore();
   if (!Array.isArray(parsed.entries)) parsed.entries = [];
   return parsed;
@@ -45,7 +50,9 @@ function ensureStore(filePath: string): CreditsLedgerStore {
 
 function saveStore(filePath: string, store: CreditsLedgerStore): void {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, JSON.stringify(store, null, 2) + "\n", "utf8");
+  const tmpPath = `${filePath}.${process.pid}.tmp`;
+  fs.writeFileSync(tmpPath, JSON.stringify(store, null, 2) + "\n", "utf8");
+  fs.renameSync(tmpPath, filePath);
 }
 
 export function createCreditsLedger(filePath = path.resolve(process.cwd(), "gateway/.cache/credits_ledger.json")) {

@@ -592,3 +592,23 @@ Tests  37 passed (37)
 {"domain":"good-traffic.com","continuity":{"phase":"HOLD_BANNER","hold_banner_active":true,"renewal_covered_by_credits":true,"reason_codes":["TRAFFIC_HOLD_ELIGIBLE"],...},"credits":{"credits_balance":205,"renewal_cost_estimate":110,"covered_by_credits":true,...}}
 ```
 - Result: `PASS`
+
+### 2026-02-19T13:20:00Z — PR105 Copilot follow-up triage fixes
+- Base commit SHA: `8b0efaa670b63d7fe9180dac038017b04e368992`
+- Worktree: `/tmp/ddns-pr-105-review`
+- Commands run:
+```bash
+npm -C gateway test && npm -C gateway run build
+npm -C core test
+```
+- Output snippet:
+```text
+RUN  v4.0.18 /private/tmp/ddns-pr-105-review/gateway
+Test Files  12 passed (12)
+Tests  39 passed (39)
+
+RUN  v2.1.9 /private/tmp/ddns-pr-105-review/core
+Test Files  7 passed (7)
+Tests  14 passed (14)
+```
+- Result: `PASS`
