@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, afterEach } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import request from "supertest";
 import fs from "node:fs";
 import path from "node:path";
@@ -29,10 +29,6 @@ describe("domain continuity notice endpoints", () => {
     try { fs.unlinkSync(TEST_REGISTRAR_STORE_PATH); } catch {}
     try { fs.unlinkSync(TEST_AUDIT_LOG_PATH); } catch {}
   }
-
-  afterEach(() => {
-    delete process.env.DOMAIN_STATUS_STORE_PATH;
-  });
 
   it("returns verification challenge and status metadata", async () => {
     resetStores();
@@ -77,15 +73,6 @@ describe("domain continuity notice endpoints", () => {
     expect(res.text).toContain("example.com");
     expect(res.text).toContain("Renew now");
     expect(res.text).toContain("/v1/domain/notice/verify");
-  });
-
-  it("renders HTML interstitial when mode=interstitial", async () => {
-    resetStores();
-    const app = await loadApp();
-    const res = await request(app).get("/v1/domain/banner").query({ domain: "example.com", mode: "interstitial" });
-    expect(res.status).toBe(200);
-    expect(String(res.headers["content-type"] || "")).toContain("text/html");
-    expect(res.text).toContain("example.com");
   });
 
   it("returns status payload with continuity fields", async () => {

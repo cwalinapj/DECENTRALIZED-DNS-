@@ -1,0 +1,8 @@
+{
+  "balances": {
+    "good-traffic.com": 180,
+    "low-traffic.com": 20,
+    "active.com": 75
+  },
+  "entries": []
+}

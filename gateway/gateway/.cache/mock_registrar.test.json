@@ -1,0 +1,40 @@
+{
+  "domains": {
+    "good-traffic.com": {
+      "domain": "good-traffic.com",
+      "status": "expiring",
+      "renewal_due_date": "2026-02-26T12:22:22.209Z",
+      "grace_expires_at": "2026-03-28T12:22:22.209Z",
+      "ns": [
+        "ns1.tolldns.io",
+        "ns2.tolldns.io"
+      ],
+      "traffic_signal": "real",
+      "credits_balance": 180
+    },
+    "low-traffic.com": {
+      "domain": "low-traffic.com",
+      "status": "expired",
+      "renewal_due_date": "2026-02-16T12:22:22.209Z",
+      "grace_expires_at": "2026-03-05T12:22:22.209Z",
+      "ns": [
+        "ns1.tolldns.io",
+        "ns2.tolldns.io"
+      ],
+      "traffic_signal": "low",
+      "credits_balance": 20
+    },
+    "active.com": {
+      "domain": "active.com",
+      "status": "active",
+      "renewal_due_date": "2026-08-18T12:22:22.209Z",
+      "grace_expires_at": "2026-09-17T12:22:22.209Z",
+      "ns": [
+        "ns1.tolldns.io",
+        "ns2.tolldns.io"
+      ],
+      "traffic_signal": "real",
+      "credits_balance": 75
+    }
+  }
+}

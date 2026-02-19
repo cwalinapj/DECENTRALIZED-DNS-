@@ -61,6 +61,10 @@ export default {
       name: "example.dns",
       type: "A"
     });
+    const continuity = await getDomainStatus({
+      baseUrl: "https://gateway.example.com",
+      domain: "example.com"
+    });
     return new Response(JSON.stringify(out), {
       headers: { "content-type": "application/json" }
     });

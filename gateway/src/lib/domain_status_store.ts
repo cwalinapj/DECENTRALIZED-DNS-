@@ -1,8 +1,7 @@
 import fs from "node:fs";
-import fsp from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
-import type { DomainContinuityPolicyInput } from "@ddns/core";
+import type { DomainContinuityPolicyInput } from "./domain_continuity_policy.js";
 import type { DomainContinuityPhase } from "./notice_token.js";
 
 export type StoredDomainStatus = {
@@ -40,81 +39,47 @@ function normalizeDomain(value: string): string {
   return value.trim().toLowerCase().replace(/\.$/, "");
 }
 
-async function ensureStoreFile(filePath: string) {
+function ensureStoreFile(filePath: string) {
   if (!fs.existsSync(filePath)) {
-    await fsp.mkdir(path.dirname(filePath), { recursive: true });
-    await fsp.writeFile(filePath, JSON.stringify({ domains: {} }, null, 2) + "\n", "utf8");
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, JSON.stringify({ domains: {} }, null, 2) + "\n", "utf8");
   }
 }
 
-async function loadStore(filePath: string): Promise<DomainStatusStoreShape> {
-  await ensureStoreFile(filePath);
-  try {
-    const raw = await fsp.readFile(filePath, "utf8");
-    const parsed = JSON.parse(raw) as DomainStatusStoreShape;
-    if (!parsed.domains || typeof parsed.domains !== "object") {
-      return { domains: {} };
-    }
-    return parsed;
-  } catch (err) {
-    // Handle corrupted JSON
+function loadStore(filePath: string): DomainStatusStoreShape {
+  ensureStoreFile(filePath);
+  const raw = fs.readFileSync(filePath, "utf8");
+  const parsed = JSON.parse(raw) as DomainStatusStoreShape;
+  if (!parsed.domains || typeof parsed.domains !== "object") {
     return { domains: {} };
   }
+  return parsed;
 }
 
-async function saveStore(filePath: string, store: DomainStatusStoreShape) {
-  await fsp.mkdir(path.dirname(filePath), { recursive: true });
-  const tmpPath = `${filePath}.tmp.${Date.now()}.${Math.random().toString(36).slice(2)}`;
-  await fsp.writeFile(tmpPath, JSON.stringify(store, null, 2) + "\n", "utf8");
-  await fsp.rename(tmpPath, filePath);
+function saveStore(filePath: string, store: DomainStatusStoreShape) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, JSON.stringify(store, null, 2) + "\n", "utf8");
 }
 
 export function createDomainStatusStore(filePath: string) {
-  // In-memory cache to prevent race conditions
-  let cache: DomainStatusStoreShape | null = null;
-  let pendingWrite: Promise<void> | null = null;
-  const writeLock: Promise<void>[] = [];
-
-  async function getCache(): Promise<DomainStatusStoreShape> {
-    if (!cache) {
-      cache = await loadStore(filePath);
-    }
-    return cache;
-  }
-
-  async function persistCache(store: DomainStatusStoreShape) {
-    // Wait for any pending writes to complete
-    if (pendingWrite) {
-      await pendingWrite;
-    }
-    
-    // Atomic write
-    pendingWrite = saveStore(filePath, store);
-    await pendingWrite;
-    pendingWrite = null;
-  }
-
   return {
-    async get(domainRaw: string): Promise<StoredDomainStatus | null> {
+    get(domainRaw: string): StoredDomainStatus | null {
       const domain = normalizeDomain(domainRaw);
       if (!domain) return null;
-      const store = await getCache();
+      const store = loadStore(filePath);
       return store.domains[domain] || null;
     },
-    async upsert(domainRaw: string, updater: (current: StoredDomainStatus | null) => StoredDomainStatus): Promise<StoredDomainStatus> {
+    upsert(domainRaw: string, updater: (current: StoredDomainStatus | null) => StoredDomainStatus): StoredDomainStatus {
       const domain = normalizeDomain(domainRaw);
       if (!domain) throw new Error("invalid_domain");
-      
-      const store = await getCache();
+      const store = loadStore(filePath);
       const current = store.domains[domain] || null;
       const next = updater(current);
       store.domains[domain] = next;
-      cache = store;
-      
-      await persistCache(store);
+      saveStore(filePath, store);
       return next;
     },
-    async createChallenge(domainRaw: string): Promise<StoredDomainStatus> {
+    createChallenge(domainRaw: string) {
       const domain = normalizeDomain(domainRaw);
       if (!domain) throw new Error("invalid_domain");
       const token = crypto.randomBytes(12).toString("hex");

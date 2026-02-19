@@ -6,7 +6,7 @@ port=8056
 
 cd "$root/gateway"
 
-NODE_ENV=test LOG_LEVEL=verbose PORT="$port" node dist/server.js > /tmp/ddns-smoke.log 2>&1 &
+LOG_LEVEL=verbose PORT="$port" node dist/server.js > /tmp/ddns-smoke.log 2>&1 &
 server_pid=$!
 
 cleanup() {

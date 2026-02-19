@@ -336,9 +336,9 @@ function decodeLabelField(record: any): string | null {
 }
 
 export async function listOwnedNames(ddns: DdnsSolana, wallet: PublicKey): Promise<string[]> {
-  // NameRecord layout: discriminator(8) + name_hash(32) + label(64) + owner_wallet(32) ...
+  // NameRecord layout: discriminator(8) + name_hash(32) + owner_wallet(32) ...
   const accounts = await ddns.connection.getProgramAccounts(ddns.programId, {
-    filters: [{ memcmp: { offset: 105, bytes: wallet.toBase58() } }],
+    filters: [{ memcmp: { offset: 40, bytes: wallet.toBase58() } }],
   });
   const out = new Set<string>();
   for (const a of accounts) {
@@ -351,7 +351,7 @@ export async function listOwnedNames(ddns: DdnsSolana, wallet: PublicKey): Promi
       // Ignore non-NameRecord accounts returned by filter collisions.
     }
   }
-  return [...out].sort();
+  return [...out];
 }
 
 export async function ensureProgramExists(ddns: DdnsSolana): Promise<void> {

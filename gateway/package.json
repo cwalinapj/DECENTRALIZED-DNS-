@@ -15,7 +15,6 @@
   },
   "dependencies": {
     "@ddns/attack-mode": "file:../packages/attack-mode",
-    "@ddns/core": "file:../core",
     "@bonfida/spl-name-service": "^2.5.1",
     "@noble/ed25519": "^2.1.0",
     "@noble/hashes": "^1.4.0",
