@@ -9,20 +9,21 @@ export type ResolveAnswer = {
 
 export type UpstreamUsed = {
   url: string;
-  rtt_ms: number;
+  rttMs: number;
   status: string;
-  answers_count: number;
+  answersCount: number;
 };
 
 export type ResolveResponse = {
   name: string;
   type: ResolveType;
   answers: ResolveAnswer[];
+  /** Time-to-live in seconds (integer) */
   ttl_s: number;
   source: string;
   confidence?: "high" | "medium" | "low";
   upstreams_used?: UpstreamUsed[];
-  chosen_upstream?: { url: string; rtt_ms: number };
+  chosen_upstream?: { url: string; rttMs: number };
   cache?: { hit: boolean; stale_used?: boolean };
   status?: string;
   rrset_hash?: string;
