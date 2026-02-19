@@ -105,6 +105,73 @@ npm run miner:cf:deploy -- --help
 - `docs/miner-onboard/index.html`
 - `package.json` (root scripts: `miner:cf:dev`, `miner:cf:deploy`)
 
+## Devnet Inventory
+
+Date (UTC): 2026-02-19T03:56:19Z  
+RPC: `https://api.devnet.solana.com`  
+Wallet: `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5`
+
+Command run:
+
+```bash
+bash scripts/devnet_inventory.sh
+```
+
+Output snippet:
+
+```text
+solana balance: 0.02432396 SOL
+
+[ddns_anchor] 9hwvtFzawMZ6R9eWJZ8YjC7rLCGgNK7PZBNeKMRCPBes
+owner: BPFLoaderUpgradeab1e11111111111111111111111
+upgrade_authority: B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5
+programdata_address: rgQTn2mWkpck5zBNeAHwk8P3aADMbhNeTGWTgBPwJEK
+executable: true
+lamports: 1141440
+sol: 0.001141440
+
+total_program_sol: 0.007990080
+recommended_wallet_topup_sol: 4.975676040
+```
+
+## Devnet Inventory (authoritative tool)
+
+Date (UTC): 2026-02-19T04:31:36Z  
+Branch: `codex/devnet-inventory`  
+Worktree: `/private/tmp/ddns-devnet-inventory`
+
+Command run from clean worktree:
+
+```bash
+npm run devnet:inventory
+```
+
+Output snippet:
+
+```text
+# Devnet Inventory
+- rpc: https://api.devnet.solana.com
+- wallet: B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5
+
+## Program Inventory (Anchor.toml [programs.devnet])
+| Program | Tier | ... | Exists | Executable | ... | Status |
+| ddns_anchor | REQUIRED | ... | yes | yes | ... | ok |
+| ddns_escrow | REQUIRED | ... | no  | no  | ... | missing |
+| ddns_miner_score | REQUIRED | ... | no | no | ... | missing |
+| ddns_cache_head | REQUIRED | ... | no | no | ... | missing |
+
+## Key Demo PDAs / Vaults (rent + top-up guidance)
+| ddns_anchor:config | ... | Exists: yes | Rent Exempt Lamports: 1197120 | Recommended Top-up Lamports: 0 |
+| ddns_witness_rewards:config | ... | Exists: yes | Rent Exempt Lamports: 1941840 | Recommended Top-up Lamports: 0 |
+
+required_failures: ddns_cache_head, ddns_escrow, ddns_miner_score
+EXIT_CODE:1
+```
+
+Artifact generated:
+
+- `artifacts/devnet_inventory.json`
+
 ## Phase 0 Demo Command Wiring (mvp:demo:devnet)
 
 Date (UTC): 2026-02-19  
