@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "bash tests/run_all.sh",
-    "miner:cf:deploy": "bash scripts/cf_miner_deploy.sh",
-    "miner:cf:dev": "npm --prefix services/cf-worker-miner run dev"
+    "miner:cf:deploy": "cd services/cf-worker-miner && npm i && npx wrangler deploy",
+    "miner:cf:dev": "cd services/cf-worker-miner && npm i && npx wrangler dev"
   },
   "dependencies": {
     "@noble/ed25519": "^2.1.0",
