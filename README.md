@@ -96,6 +96,7 @@ See `docs/DOMAIN_CONTINUITY.md`.
 Domain Continuity UI: `docs/DOMAIN_CONTINUITY_UI.md`.
 Notice tokens: `docs/NOTICE_TOKENS.md`.
 Banner/interstitial integration: `docs/DOMAIN_BANNER_INTEGRATION.md`.
+Real registrar adapter flags: `REGISTRAR_ENABLED`, `REGISTRAR_PROVIDER`, `REGISTRAR_DRY_RUN` (off by default).
 
 ## Domain-owner earnings wedge (MVP accuracy)
 

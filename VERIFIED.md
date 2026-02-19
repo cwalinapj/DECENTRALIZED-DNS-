@@ -401,6 +401,33 @@ npm -C gateway test && npm -C gateway run build
 ```
 - Result: `PASS`
 
+### 2026-02-19T11:13:00Z — PR7 Real registrar adapter v1 behind flags + dry-run gating
+- Base commit SHA: `a9d9359`
+- Worktree: `/tmp/ddns-pr7-registrar-v1`
+- Commands run:
+```bash
+npm ci && npm test
+npm -C gateway test && npm -C gateway run build
+PORT=39021 REGISTRAR_ENABLED=1 REGISTRAR_PROVIDER=porkbun REGISTRAR_DRY_RUN=0 node gateway/dist/server.js
+PORT=39022 REGISTRAR_ENABLED=1 REGISTRAR_PROVIDER=porkbun REGISTRAR_DRY_RUN=1 node gateway/dist/server.js & sleep 1
+curl 'http://127.0.0.1:39022/v1/registrar/domain?domain=example.com'
+curl -X POST 'http://127.0.0.1:39022/v1/registrar/renew' -H 'content-type: application/json' -d '{"domain":"example.com","years":1}'
+```
+- Output snippet:
+```text
+==> run_all: complete
+
+ RUN  v4.0.18 /private/tmp/ddns-pr7-registrar-v1/gateway
+ Test Files  12 passed (12)
+ Tests  38 passed (38)
+
+Error: registrar_config_error: REGISTRAR_ENABLED=1 requires provider secrets unless REGISTRAR_DRY_RUN=1
+
+{"domain":"example.com","status":"active",...,"registrar_enabled":true,"provider":"porkbun","dry_run":true}
+{"domain":"example.com","years":1,"status":"insufficient_credits","required_usd":11,"covered_usd":4,"remaining_usd":7,...,"dry_run":true}
+```
+- Result: `PASS`
+
 ### 2026-02-19T08:56:24Z — Domain Continuity notice tokens + endpoint stubs
 - Base commit SHA: `87afd71`
 - Worktree: `/tmp/ddns-pr-domain-notice`

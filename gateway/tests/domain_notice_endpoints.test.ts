@@ -10,6 +10,11 @@ async function loadApp() {
   vi.resetModules();
   process.env.DOMAIN_STATUS_STORE_PATH = TEST_STORE_PATH;
   process.env.MOCK_REGISTRAR_STORE_PATH = TEST_REGISTRAR_STORE_PATH;
+  process.env.REGISTRAR_ENABLED = "0";
+  process.env.REGISTRAR_PROVIDER = "mock";
+  process.env.REGISTRAR_DRY_RUN = "1";
+  delete process.env.PORKBUN_API_KEY;
+  delete process.env.PORKBUN_SECRET_API_KEY;
   const mod = await import("../src/server.js");
   return mod.createApp();
 }
@@ -95,5 +100,38 @@ describe("domain continuity notice endpoints", () => {
       .send({ domain: "good-traffic.com", years: 1 });
     expect(renewRes.status).toBe(200);
     expect(renewRes.body.submitted).toBe(true);
+    expect(renewRes.body.status).toBe("submitted");
+  });
+
+  it("supports real-provider dry-run mode without secrets", async () => {
+    resetStores();
+    vi.resetModules();
+    process.env.DOMAIN_STATUS_STORE_PATH = TEST_STORE_PATH;
+    process.env.MOCK_REGISTRAR_STORE_PATH = TEST_REGISTRAR_STORE_PATH;
+    process.env.REGISTRAR_ENABLED = "1";
+    process.env.REGISTRAR_PROVIDER = "porkbun";
+    process.env.REGISTRAR_DRY_RUN = "1";
+    delete process.env.PORKBUN_API_KEY;
+    delete process.env.PORKBUN_SECRET_API_KEY;
+    const mod = await import("../src/server.js");
+    const app = mod.createApp();
+
+    const res = await request(app).get("/v1/registrar/domain").query({ domain: "example.com" });
+    expect(res.status).toBe(200);
+    expect(res.body.provider).toBe("porkbun");
+    expect(res.body.dry_run).toBe(true);
+  });
+
+  it("returns insufficient_credits response when coverage is too low", async () => {
+    resetStores();
+    const app = await loadApp();
+
+    const renewRes = await request(app)
+      .post("/v1/registrar/renew")
+      .send({ domain: "low-traffic.com", years: 1 });
+    expect(renewRes.status).toBe(200);
+    expect(renewRes.body.status).toBe("insufficient_credits");
+    expect(typeof renewRes.body.remaining_usd).toBe("number");
+    expect(renewRes.body.remaining_usd).toBeGreaterThan(0);
   });
 });

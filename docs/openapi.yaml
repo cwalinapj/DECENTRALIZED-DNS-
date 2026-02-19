@@ -142,6 +142,8 @@ paths:
   /v1/registrar/domain:
     get:
       summary: Mock registrar domain status
+      x-feature-flag: REGISTRAR_ENABLED
+      x-provider: REGISTRAR_PROVIDER
       parameters:
         - in: query
           name: domain
@@ -157,6 +159,8 @@ paths:
   /v1/registrar/quote:
     get:
       summary: Renewal quote from registrar adapter
+      x-feature-flag: REGISTRAR_ENABLED
+      x-provider: REGISTRAR_PROVIDER
       parameters:
         - in: query
           name: domain
@@ -172,6 +176,8 @@ paths:
   /v1/registrar/renew:
     post:
       summary: Request renewal through registrar adapter
+      x-feature-flag: REGISTRAR_ENABLED
+      x-provider: REGISTRAR_PROVIDER
       requestBody:
         required: true
         content:
@@ -188,6 +194,8 @@ paths:
   /v1/registrar/ns:
     post:
       summary: Update domain nameservers via registrar adapter
+      x-feature-flag: REGISTRAR_ENABLED
+      x-provider: REGISTRAR_PROVIDER
       requestBody:
         required: true
         content:
@@ -364,6 +372,9 @@ components:
           type: string
           enum: [none, low, real]
         credits_balance: { type: number }
+        registrar_enabled: { type: boolean }
+        provider: { type: string }
+        dry_run: { type: boolean }
     RegistrarRenewalQuoteResponse:
       type: object
       properties:
@@ -374,6 +385,9 @@ components:
         expires_at:
           type: string
           format: date-time
+        registrar_enabled: { type: boolean }
+        provider: { type: string }
+        dry_run: { type: boolean }
     RegistrarRenewRequest:
       type: object
       required: [domain, years]
@@ -385,11 +399,21 @@ components:
       properties:
         domain: { type: string }
         years: { type: integer }
+        status:
+          type: string
+          enum: [submitted, failed, insufficient_credits]
         submitted: { type: boolean }
         provider_ref: { type: string }
         errors:
           type: array
           items: { type: string }
+        required_usd: { type: number }
+        covered_usd: { type: number }
+        remaining_usd: { type: number }
+        instruction: { type: string, nullable: true }
+        registrar_enabled: { type: boolean }
+        provider: { type: string }
+        dry_run: { type: boolean }
     RegistrarNsUpdateRequest:
       type: object
       required: [domain, ns]
@@ -411,6 +435,9 @@ components:
         errors:
           type: array
           items: { type: string }
+        registrar_enabled: { type: boolean }
+        provider: { type: string }
+        dry_run: { type: boolean }
     DomainContinuityPhase:
       type: string
       enum: [A_SOFT_WARNING, B_HARD_WARNING, C_SAFE_PARKED, D_REGISTRY_FINALIZATION]

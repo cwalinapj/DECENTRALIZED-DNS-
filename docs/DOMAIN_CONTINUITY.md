@@ -86,3 +86,22 @@ Later phases include:
 - registrar integration
 - automatic renewal execution
 - full policy enforcement + production incident workflows
+
+## Registrar Adapter v1 Feature Flags (MVP-safe)
+
+Real registrar calls are disabled by default. Use feature flags explicitly:
+
+- `REGISTRAR_ENABLED=0|1` (default `0`)
+- `REGISTRAR_PROVIDER=mock|porkbun` (default `mock`)
+- `REGISTRAR_DRY_RUN=0|1` (safe default: `1` if provider secrets are missing)
+
+Provider credentials are env-only and never committed:
+
+- `PORKBUN_API_KEY`
+- `PORKBUN_SECRET_API_KEY`
+- `PORKBUN_ENDPOINT` (optional override)
+
+Safety behavior:
+
+- If `REGISTRAR_ENABLED=1` with missing provider secrets and `REGISTRAR_DRY_RUN=1`, endpoints return simulated provider-shaped responses.
+- If `REGISTRAR_ENABLED=1` with missing secrets and `REGISTRAR_DRY_RUN=0`, gateway startup fails with a clear configuration error.
