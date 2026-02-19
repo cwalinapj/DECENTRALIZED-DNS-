@@ -105,6 +105,9 @@
   - install: PASS (0 vulnerabilities)
   - wrangler dev help: PASS
   - wrangler deploy dry-run: PASS (bindings rendered, no auth needed for dry-run)
+  - local endpoint checks via wrangler dev: PASS
+    - `GET /v1/health` => `{"ok": true, "service": "cf-worker-miner"}`
+    - `GET /resolve?name=netflix.com&type=A` => returned `confidence`, `upstreams_used`, `chosen_upstream`, `rrset_hash`, `answers`, `ttl_s`
 - Files added/updated:
   - `services/cf-worker-miner/{package.json,wrangler.toml,src/index.js,README.md}`
   - `scripts/cf_miner_deploy.sh`

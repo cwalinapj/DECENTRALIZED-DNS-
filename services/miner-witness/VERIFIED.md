@@ -123,6 +123,29 @@ Output snippets:
   - `env.RECEIPT_ENDPOINT`
   - final line: `--dry-run: exiting now.`
 
+Local endpoint proof (wrangler dev):
+
+```bash
+cd services/cf-worker-miner
+npx wrangler dev --local --port 8787 --ip 127.0.0.1
+curl -s http://127.0.0.1:8787/v1/health
+curl -s "http://127.0.0.1:8787/resolve?name=netflix.com&type=A"
+```
+
+Sample `/v1/health`:
+
+```json
+{"ok":true,"service":"cf-worker-miner"}
+```
+
+Sample `/resolve` fields confirmed:
+- `confidence`
+- `upstreams_used`
+- `chosen_upstream`
+- `rrset_hash`
+- `answers`
+- `ttl_s`
+
 Notes:
 - No secrets were committed.
 - Cloudflare login/account creation is not automated; user must complete `wrangler login` once in browser.
