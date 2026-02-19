@@ -29,7 +29,7 @@ if [[ ! -f "$WALLET_PATH" ]]; then
 fi
 
 if [[ -z "$CLIENT_WALLET_PATH" ]]; then
-  # Default demo client to authority wallet so on-chain signer requirements are satisfied.
+  # Default demo client to authority wallet for convenience.
   CLIENT_WALLET_PATH="$WALLET_PATH"
 fi
 if [[ ! -f "$CLIENT_WALLET_PATH" ]]; then

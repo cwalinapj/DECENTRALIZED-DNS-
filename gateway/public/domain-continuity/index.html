@@ -119,8 +119,8 @@
       </div>
 
       <div class="row">
-        <input id="domain" value="example.com" placeholder="example.com" />
-        <input id="apiBase" value="http://localhost:8054" placeholder="http://localhost:8054" />
+        <input id="domain" value="example.com" placeholder="example.com" aria-label="Domain name" />
+        <input id="apiBase" value="http://localhost:8054" placeholder="http://localhost:8054" aria-label="API base URL" />
         <button id="checkBtn">Check status</button>
       </div>
 
@@ -170,7 +170,9 @@
       function statusCurl() {
         const domain = $("domain").value.trim();
         const base = $("apiBase").value.trim();
-        return `curl '${base}/v1/domain/status?domain=${encodeURIComponent(domain)}'`;
+        const escapedBase = base.replace(/'/g, "'\\''");
+        const escapedDomain = domain.replace(/'/g, "'\\''");
+        return `curl '${escapedBase}/v1/domain/status?domain=${escapedDomain}'`;
       }
 
       function setText(id, value, cls = "") {
@@ -180,7 +182,12 @@
       }
 
       async function copyText(text) {
-        await navigator.clipboard.writeText(text);
+        try {
+          await navigator.clipboard.writeText(text);
+        } catch (err) {
+          console.error("Clipboard write failed:", err);
+          alert("Failed to copy to clipboard. Please copy manually.");
+        }
       }
 
       async function checkStatus() {

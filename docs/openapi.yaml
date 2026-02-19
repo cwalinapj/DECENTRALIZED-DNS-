@@ -142,7 +142,7 @@ paths:
                 type: object
   /v1/registrar/domain:
     get:
-      summary: Mock registrar domain status
+      summary: Registrar domain status
       x-feature-flag: REGISTRAR_ENABLED
       x-provider: REGISTRAR_PROVIDER
       parameters:
