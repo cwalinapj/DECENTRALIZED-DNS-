@@ -4,17 +4,24 @@ import fs from "node:fs";
 import path from "node:path";
 
 const TEST_STORE_PATH = path.join(process.cwd(), "gateway/.cache/domain_status.test.json");
+const TEST_REGISTRAR_STORE_PATH = path.join(process.cwd(), "gateway/.cache/mock_registrar.test.json");
 
 async function loadApp() {
   vi.resetModules();
   process.env.DOMAIN_STATUS_STORE_PATH = TEST_STORE_PATH;
+  process.env.MOCK_REGISTRAR_STORE_PATH = TEST_REGISTRAR_STORE_PATH;
   const mod = await import("../src/server.js");
   return mod.createApp();
 }
 
 describe("domain continuity notice endpoints", () => {
-  it("returns verification challenge and status metadata", async () => {
+  function resetStores() {
     try { fs.unlinkSync(TEST_STORE_PATH); } catch {}
+    try { fs.unlinkSync(TEST_REGISTRAR_STORE_PATH); } catch {}
+  }
+
+  it("returns verification challenge and status metadata", async () => {
+    resetStores();
     const app = await loadApp();
     const verify = await request(app).post("/v1/domain/verify").send({ domain: "example.com" });
     expect(verify.status).toBe(200);
@@ -33,7 +40,7 @@ describe("domain continuity notice endpoints", () => {
   });
 
   it("issues and verifies notice token", async () => {
-    try { fs.unlinkSync(TEST_STORE_PATH); } catch {}
+    resetStores();
     const app = await loadApp();
     const issue = await request(app).get("/v1/domain/notice").query({ domain: "example.com" });
     expect(issue.status).toBe(200);
@@ -48,7 +55,7 @@ describe("domain continuity notice endpoints", () => {
   });
 
   it("renders HTML banner with injected token", async () => {
-    try { fs.unlinkSync(TEST_STORE_PATH); } catch {}
+    resetStores();
     const app = await loadApp();
     const res = await request(app).get("/v1/domain/banner").query({ domain: "example.com" });
     expect(res.status).toBe(200);
@@ -59,7 +66,7 @@ describe("domain continuity notice endpoints", () => {
   });
 
   it("returns status payload with continuity fields", async () => {
-    try { fs.unlinkSync(TEST_STORE_PATH); } catch {}
+    resetStores();
     const app = await loadApp();
     const res = await request(app).get("/v1/domain/status").query({ domain: "example.com" });
     expect(res.status).toBe(200);
@@ -69,5 +76,24 @@ describe("domain continuity notice endpoints", () => {
     expect(Array.isArray(res.body.next_steps)).toBe(true);
     expect(res.body.auth_mode).toBe("stub");
     expect(typeof res.body.auth_required).toBe("boolean");
+  });
+
+  it("supports registrar adapter endpoints backed by mock store", async () => {
+    resetStores();
+    const app = await loadApp();
+
+    const domainRes = await request(app).get("/v1/registrar/domain").query({ domain: "good-traffic.com" });
+    expect(domainRes.status).toBe(200);
+    expect(domainRes.body.status).toBe("expiring");
+
+    const quoteRes = await request(app).get("/v1/registrar/quote").query({ domain: "good-traffic.com" });
+    expect(quoteRes.status).toBe(200);
+    expect(quoteRes.body.supported).toBe(true);
+
+    const renewRes = await request(app)
+      .post("/v1/registrar/renew")
+      .send({ domain: "good-traffic.com", years: 1 });
+    expect(renewRes.status).toBe(200);
+    expect(renewRes.body.submitted).toBe(true);
   });
 });

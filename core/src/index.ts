@@ -17,3 +17,5 @@ export * from "./domain_continuity_policy.js";
 export * from "../credits/types.js";
 export * from "../credits/receipts.js";
 export * from "../credits/verify.js";
+export * from "./registrar/adapter.js";
+export * from "./registrar/mock_registrar.js";
