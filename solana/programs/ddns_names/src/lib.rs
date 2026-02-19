@@ -12,12 +12,16 @@ const TRANSFER_PARENT_CONTROLLED: u8 = 1;
 
 const SEED_CONFIG: &[u8] = b"names_config";
 const SEED_PREMIUM: &[u8] = b"premium";
+const SEED_PREMIUM_CONFIG: &[u8] = b"premium_config";
+const SEED_AUCTION: &[u8] = b"auction";
+const SEED_ESCROW: &[u8] = b"escrow";
+const SEED_ESCROW_VAULT: &[u8] = b"escrow_vault";
 const SEED_SUB: &[u8] = b"sub";
 const SEED_PRIMARY: &[u8] = b"primary";
 const SEED_POLICY: &[u8] = b"parent_policy";
 
 // `solana-keygen pubkey solana/target/deploy/ddns_names-keypair.json`
-declare_id!("9VLXME6bCbwwtdB2AbJN36TMAu3JKAtuZu44sF5hAJ44");
+declare_id!("BJgHrrTukutZPWxMDNdd6SXe2A7UzX56Qru6uKfVeHjK");
 
 #[program]
 pub mod ddns_names {
@@ -113,22 +117,31 @@ pub mod ddns_names {
         name_hash: [u8; 32],
     ) -> Result<()> {
         let cfg = &ctx.accounts.config;
-        require!(cfg.enable_premium, NamesError::Disabled);
-
+        let pcfg = &ctx.accounts.premium_config;
+        require!(cfg.enable_premium && pcfg.enabled, NamesError::Disabled);
         let normalized = normalize_full_name(&name)?;
         let label = premium_label(&normalized)?;
-        validate_label(label)?;
+        validate_premium_label(label)?;
         let computed = hash_name(&normalized);
         require!(computed == name_hash, NamesError::InvalidHash);
+        let label_len = label.len() as u8;
 
-        anchor_lang::solana_program::program::invoke(
-            &system_instruction::transfer(&ctx.accounts.owner.key(), &cfg.treasury, cfg.premium_price_lamports),
-            &[
-                ctx.accounts.owner.to_account_info(),
-                ctx.accounts.treasury.to_account_info(),
-                ctx.accounts.system_program.to_account_info(),
-            ],
-        )?;
+        if label_len <= pcfg.reserved_max_len {
+            require_keys_eq!(ctx.accounts.owner.key(), pcfg.treasury_authority, NamesError::ReservedName);
+        } else if (pcfg.premium_min_len..=pcfg.premium_max_len).contains(&label_len) {
+            return err!(NamesError::AuctionRequired);
+        }
+
+        if cfg.premium_price_lamports > 0 {
+            anchor_lang::solana_program::program::invoke(
+                &system_instruction::transfer(&ctx.accounts.owner.key(), &cfg.treasury, cfg.premium_price_lamports),
+                &[
+                    ctx.accounts.owner.to_account_info(),
+                    ctx.accounts.treasury.to_account_info(),
+                    ctx.accounts.system_program.to_account_info(),
+                ],
+            )?;
+        }
 
         let premium = &mut ctx.accounts.premium_name;
         premium.name_hash = name_hash;
@@ -152,6 +165,206 @@ pub mod ddns_names {
             ctx.bumps.primary,
         );
 
+        Ok(())
+    }
+
+    pub fn init_premium_config(
+        ctx: Context<InitPremiumConfig>,
+        treasury_vault: Pubkey,
+        treasury_authority: Pubkey,
+        min_bid_lamports_default: u64,
+        auction_duration_slots_default: u64,
+        anti_sniping_extension_slots: u64,
+        enabled: bool,
+    ) -> Result<()> {
+        let pcfg = &mut ctx.accounts.premium_config;
+        pcfg.authority = ctx.accounts.authority.key();
+        pcfg.treasury_vault = treasury_vault;
+        pcfg.treasury_authority = treasury_authority;
+        pcfg.reserved_max_len = 2;
+        pcfg.premium_min_len = 3;
+        pcfg.premium_max_len = 4;
+        pcfg.min_bid_lamports_default = min_bid_lamports_default;
+        pcfg.auction_duration_slots_default = auction_duration_slots_default;
+        pcfg.anti_sniping_extension_slots = anti_sniping_extension_slots;
+        pcfg.enabled = enabled;
+        pcfg.bump = ctx.bumps.premium_config;
+        Ok(())
+    }
+
+    pub fn create_auction(
+        ctx: Context<CreateAuction>,
+        name: String,
+        name_hash: [u8; 32],
+        min_bid_lamports: Option<u64>,
+        duration_slots: Option<u64>,
+    ) -> Result<()> {
+        let pcfg = &ctx.accounts.premium_config;
+        require!(pcfg.enabled, NamesError::Disabled);
+        require_keys_eq!(pcfg.authority, ctx.accounts.authority.key(), NamesError::Unauthorized);
+
+        let normalized = normalize_full_name(&name)?;
+        let label = premium_label(&normalized)?;
+        validate_premium_label(label)?;
+        let computed = hash_name(&normalized);
+        require!(computed == name_hash, NamesError::InvalidHash);
+        let label_len = label.len() as u8;
+        require!(
+            (pcfg.premium_min_len..=pcfg.premium_max_len).contains(&label_len),
+            NamesError::InvalidAuctionDomain
+        );
+
+        let now_slot = Clock::get()?.slot;
+        let min_bid = min_bid_lamports.unwrap_or(pcfg.min_bid_lamports_default);
+        let duration = duration_slots.unwrap_or(pcfg.auction_duration_slots_default);
+        require!(duration > 0, NamesError::InvalidAuctionConfig);
+
+        let auction = &mut ctx.accounts.auction;
+        auction.name_hash = name_hash;
+        auction.start_slot = now_slot;
+        auction.end_slot = now_slot
+            .checked_add(duration)
+            .ok_or_else(|| error!(NamesError::MathOverflow))?;
+        auction.min_bid_lamports = min_bid;
+        auction.highest_bidder = Pubkey::default();
+        auction.highest_bid_lamports = 0;
+        auction.settled = false;
+        auction.bump = ctx.bumps.auction;
+        Ok(())
+    }
+
+    pub fn place_bid(
+        ctx: Context<PlaceBid>,
+        name_hash: [u8; 32],
+        lamports: u64,
+    ) -> Result<()> {
+        require!(lamports > 0, NamesError::InvalidBid);
+        let pcfg = &ctx.accounts.premium_config;
+        let auction = &mut ctx.accounts.auction;
+        require!(pcfg.enabled && !auction.settled, NamesError::Disabled);
+        require!(auction.name_hash == name_hash, NamesError::InvalidHash);
+
+        let now_slot = Clock::get()?.slot;
+        require!(now_slot < auction.end_slot, NamesError::AuctionClosed);
+
+        let current_total = {
+            let escrow = &mut ctx.accounts.bid_escrow;
+            if escrow.bidder == Pubkey::default() {
+                escrow.name_hash = name_hash;
+                escrow.bidder = ctx.accounts.bidder.key();
+                escrow.amount_lamports = 0;
+                escrow.active = true;
+                escrow.refunded = false;
+                escrow.bump = ctx.bumps.bid_escrow;
+            } else {
+                require!(escrow.name_hash == name_hash, NamesError::InvalidHash);
+                require_keys_eq!(escrow.bidder, ctx.accounts.bidder.key(), NamesError::Unauthorized);
+                require!(escrow.active && !escrow.refunded, NamesError::EscrowInactive);
+            }
+            escrow.amount_lamports
+        };
+
+        let new_total = current_total
+            .checked_add(lamports)
+            .ok_or_else(|| error!(NamesError::MathOverflow))?;
+
+        let min_required = auction
+            .highest_bid_lamports
+            .max(auction.min_bid_lamports)
+            .checked_add(if auction.highest_bid_lamports > 0 { 1 } else { 0 })
+            .ok_or_else(|| error!(NamesError::MathOverflow))?;
+        require!(new_total >= min_required, NamesError::BidTooLow);
+
+        anchor_lang::solana_program::program::invoke(
+            &system_instruction::transfer(&ctx.accounts.bidder.key(), &ctx.accounts.escrow_vault.key(), lamports),
+            &[
+                ctx.accounts.bidder.to_account_info(),
+                ctx.accounts.escrow_vault.to_account_info(),
+                ctx.accounts.system_program.to_account_info(),
+            ],
+        )?;
+        ctx.accounts.bid_escrow.amount_lamports = new_total;
+
+        auction.highest_bidder = ctx.accounts.bidder.key();
+        auction.highest_bid_lamports = new_total;
+
+        if pcfg.anti_sniping_extension_slots > 0 {
+            let remaining = auction.end_slot.saturating_sub(now_slot);
+            if remaining <= pcfg.anti_sniping_extension_slots {
+                auction.end_slot = auction
+                    .end_slot
+                    .checked_add(pcfg.anti_sniping_extension_slots)
+                    .ok_or_else(|| error!(NamesError::MathOverflow))?;
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn withdraw_losing_bid(
+        ctx: Context<WithdrawLosingBid>,
+        name_hash: [u8; 32],
+    ) -> Result<()> {
+        let auction = &ctx.accounts.auction;
+        require!(auction.name_hash == name_hash, NamesError::InvalidHash);
+        require!(!auction.settled || auction.highest_bidder != ctx.accounts.bidder.key(), NamesError::WinnerCannotWithdraw);
+        require!(auction.highest_bidder != ctx.accounts.bidder.key(), NamesError::WinnerCannotWithdraw);
+
+        let escrow = &ctx.accounts.bid_escrow;
+        require!(escrow.name_hash == name_hash, NamesError::InvalidHash);
+        require_keys_eq!(escrow.bidder, ctx.accounts.bidder.key(), NamesError::Unauthorized);
+        require!(escrow.active && !escrow.refunded, NamesError::EscrowInactive);
+        require!(escrow.amount_lamports > 0, NamesError::NothingToWithdraw);
+        let amount = escrow.amount_lamports;
+        let vault_info = ctx.accounts.escrow_vault.to_account_info();
+        let bidder_info = ctx.accounts.bidder.to_account_info();
+        let vault_balance = **vault_info.lamports.borrow();
+        require!(vault_balance >= amount, NamesError::EscrowInsufficient);
+        **vault_info.try_borrow_mut_lamports()? = vault_balance
+            .checked_sub(amount)
+            .ok_or_else(|| error!(NamesError::MathOverflow))?;
+        **bidder_info.try_borrow_mut_lamports()? = (**bidder_info.lamports.borrow())
+            .checked_add(amount)
+            .ok_or_else(|| error!(NamesError::MathOverflow))?;
+        Ok(())
+    }
+
+    pub fn settle_auction(
+        ctx: Context<SettleAuction>,
+        name_hash: [u8; 32],
+    ) -> Result<()> {
+        let pcfg = &ctx.accounts.premium_config;
+        let auction = &mut ctx.accounts.auction;
+        require!(auction.name_hash == name_hash, NamesError::InvalidHash);
+        require!(!auction.settled, NamesError::AlreadySettled);
+        require!(Clock::get()?.slot >= auction.end_slot, NamesError::AuctionNotEnded);
+        require!(auction.highest_bid_lamports > 0, NamesError::NoWinningBid);
+        require_keys_eq!(auction.highest_bidder, ctx.accounts.winner.key(), NamesError::Unauthorized);
+
+        require!(ctx.accounts.treasury.key() == pcfg.treasury_vault, NamesError::InvalidTreasury);
+        let premium = &mut ctx.accounts.premium_name;
+        premium.name_hash = name_hash;
+        premium.owner = ctx.accounts.winner.key();
+        premium.purchase_lamports = auction.highest_bid_lamports;
+        premium.created_at = Clock::get()?.unix_timestamp;
+        premium.transferable = true;
+        premium.bump = ctx.bumps.premium_name;
+
+        let policy = &mut ctx.accounts.parent_policy;
+        policy.parent_hash = name_hash;
+        policy.parent_owner = ctx.accounts.winner.key();
+        policy.transfers_enabled = false;
+        policy.bump = ctx.bumps.parent_policy;
+
+        upsert_primary_if_empty(
+            &mut ctx.accounts.primary,
+            ctx.accounts.winner.key(),
+            name_hash,
+            KIND_PREMIUM,
+            ctx.bumps.primary,
+        );
+
+        auction.settled = true;
         Ok(())
     }
 
@@ -366,6 +579,9 @@ pub struct PurchasePremium<'info> {
     #[account(seeds = [SEED_CONFIG], bump = config.bump)]
     pub config: Account<'info, NamesConfig>,
 
+    #[account(seeds = [SEED_PREMIUM_CONFIG], bump = premium_config.bump)]
+    pub premium_config: Account<'info, PremiumConfig>,
+
     #[account(mut, address = config.treasury)]
     /// CHECK: validated by address constraint.
     pub treasury: UncheckedAccount<'info>,
@@ -527,6 +743,145 @@ pub struct SetPrimaryName<'info> {
     pub system_program: Program<'info, System>,
 }
 
+#[derive(Accounts)]
+pub struct InitPremiumConfig<'info> {
+    #[account(
+        init,
+        payer = authority,
+        space = 8 + PremiumConfig::SIZE,
+        seeds = [SEED_PREMIUM_CONFIG],
+        bump
+    )]
+    pub premium_config: Account<'info, PremiumConfig>,
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction(name: String, name_hash: [u8; 32], min_bid_lamports: Option<u64>, duration_slots: Option<u64>)]
+pub struct CreateAuction<'info> {
+    #[account(seeds = [SEED_PREMIUM_CONFIG], bump = premium_config.bump)]
+    pub premium_config: Account<'info, PremiumConfig>,
+    #[account(
+        init,
+        payer = authority,
+        space = 8 + Auction::SIZE,
+        seeds = [SEED_AUCTION, name_hash.as_ref()],
+        bump
+    )]
+    pub auction: Account<'info, Auction>,
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction(name_hash: [u8; 32], lamports: u64)]
+pub struct PlaceBid<'info> {
+    #[account(seeds = [SEED_PREMIUM_CONFIG], bump = premium_config.bump)]
+    pub premium_config: Account<'info, PremiumConfig>,
+    #[account(
+        mut,
+        seeds = [SEED_AUCTION, name_hash.as_ref()],
+        bump = auction.bump
+    )]
+    pub auction: Account<'info, Auction>,
+    #[account(
+        init_if_needed,
+        payer = bidder,
+        space = 8 + BidEscrow::SIZE,
+        seeds = [SEED_ESCROW, name_hash.as_ref(), bidder.key().as_ref()],
+        bump
+    )]
+    pub bid_escrow: Account<'info, BidEscrow>,
+    #[account(
+        init_if_needed,
+        payer = bidder,
+        space = 0,
+        seeds = [SEED_ESCROW_VAULT, name_hash.as_ref(), bidder.key().as_ref()],
+        bump
+    )]
+    /// CHECK: lamport vault PDA with zero data.
+    pub escrow_vault: UncheckedAccount<'info>,
+    #[account(mut)]
+    pub bidder: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction(name_hash: [u8; 32])]
+pub struct WithdrawLosingBid<'info> {
+    #[account(
+        seeds = [SEED_AUCTION, name_hash.as_ref()],
+        bump = auction.bump
+    )]
+    pub auction: Account<'info, Auction>,
+    #[account(seeds = [SEED_ESCROW, name_hash.as_ref(), bidder.key().as_ref()], bump = bid_escrow.bump)]
+    pub bid_escrow: Account<'info, BidEscrow>,
+    #[account(
+        mut,
+        seeds = [SEED_ESCROW_VAULT, name_hash.as_ref(), bidder.key().as_ref()],
+        bump
+    )]
+    /// CHECK: lamport vault PDA with zero data.
+    pub escrow_vault: UncheckedAccount<'info>,
+    #[account(mut)]
+    pub bidder: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction(name_hash: [u8; 32])]
+pub struct SettleAuction<'info> {
+    #[account(seeds = [SEED_CONFIG], bump = config.bump)]
+    pub config: Account<'info, NamesConfig>,
+    #[account(seeds = [SEED_PREMIUM_CONFIG], bump = premium_config.bump)]
+    pub premium_config: Account<'info, PremiumConfig>,
+    #[account(
+        mut,
+        seeds = [SEED_AUCTION, name_hash.as_ref()],
+        bump = auction.bump
+    )]
+    pub auction: Account<'info, Auction>,
+    #[account(mut, seeds = [SEED_ESCROW, name_hash.as_ref(), winner.key().as_ref()], bump)]
+    /// CHECK: escrow checked off-chain in MVP settle path.
+    pub winner_escrow: UncheckedAccount<'info>,
+    #[account(mut, seeds = [SEED_ESCROW_VAULT, name_hash.as_ref(), winner.key().as_ref()], bump)]
+    /// CHECK: lamport vault PDA with zero data.
+    pub winner_escrow_vault: UncheckedAccount<'info>,
+    #[account(mut, address = premium_config.treasury_vault)]
+    /// CHECK: validated by address constraint.
+    pub treasury: UncheckedAccount<'info>,
+    #[account(
+        init,
+        payer = winner,
+        space = 8 + PremiumName::SIZE,
+        seeds = [SEED_PREMIUM, name_hash.as_ref()],
+        bump
+    )]
+    pub premium_name: Account<'info, PremiumName>,
+    #[account(
+        init_if_needed,
+        payer = winner,
+        space = 8 + ParentPolicy::SIZE,
+        seeds = [SEED_POLICY, name_hash.as_ref()],
+        bump
+    )]
+    pub parent_policy: Account<'info, ParentPolicy>,
+    #[account(
+        init_if_needed,
+        payer = winner,
+        space = 8 + PrimaryName::SIZE,
+        seeds = [SEED_PRIMARY, winner.key().as_ref()],
+        bump
+    )]
+    pub primary: Account<'info, PrimaryName>,
+    #[account(mut)]
+    pub winner: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
 #[account]
 pub struct NamesConfig {
     pub authority: Pubkey,
@@ -605,6 +960,55 @@ impl PrimaryName {
     pub const SIZE: usize = 32 + 32 + 1 + 1 + 1;
 }
 
+#[account]
+pub struct PremiumConfig {
+    pub authority: Pubkey,
+    pub treasury_vault: Pubkey,
+    pub treasury_authority: Pubkey,
+    pub reserved_max_len: u8,
+    pub premium_min_len: u8,
+    pub premium_max_len: u8,
+    pub min_bid_lamports_default: u64,
+    pub auction_duration_slots_default: u64,
+    pub anti_sniping_extension_slots: u64,
+    pub enabled: bool,
+    pub bump: u8,
+}
+
+impl PremiumConfig {
+    pub const SIZE: usize = 32 + 32 + 32 + 1 + 1 + 1 + 8 + 8 + 8 + 1 + 1;
+}
+
+#[account]
+pub struct Auction {
+    pub name_hash: [u8; 32],
+    pub start_slot: u64,
+    pub end_slot: u64,
+    pub min_bid_lamports: u64,
+    pub highest_bidder: Pubkey,
+    pub highest_bid_lamports: u64,
+    pub settled: bool,
+    pub bump: u8,
+}
+
+impl Auction {
+    pub const SIZE: usize = 32 + 8 + 8 + 8 + 32 + 8 + 1 + 1;
+}
+
+#[account]
+pub struct BidEscrow {
+    pub name_hash: [u8; 32],
+    pub bidder: Pubkey,
+    pub amount_lamports: u64,
+    pub active: bool,
+    pub refunded: bool,
+    pub bump: u8,
+}
+
+impl BidEscrow {
+    pub const SIZE: usize = 32 + 32 + 8 + 1 + 1 + 1;
+}
+
 fn upsert_primary_if_empty(primary: &mut Account<PrimaryName>, owner: Pubkey, name_hash: [u8; 32], kind: u8, bump: u8) {
     if !primary.is_set {
         primary.owner = owner;
@@ -631,6 +1035,17 @@ fn normalize_label(input: &str) -> Result<String> {
 
 fn validate_label(label: &str) -> Result<()> {
     require!((3..=32).contains(&label.len()), NamesError::InvalidLabel);
+    let bytes = label.as_bytes();
+    require!(bytes[0] != b'-' && bytes[bytes.len() - 1] != b'-', NamesError::InvalidLabel);
+    for &b in bytes {
+        let ok = b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-';
+        require!(ok, NamesError::InvalidLabel);
+    }
+    Ok(())
+}
+
+fn validate_premium_label(label: &str) -> Result<()> {
+    require!((1..=32).contains(&label.len()), NamesError::InvalidLabel);
     let bytes = label.as_bytes();
     require!(bytes[0] != b'-' && bytes[bytes.len() - 1] != b'-', NamesError::InvalidLabel);
     for &b in bytes {
@@ -688,4 +1103,36 @@ pub enum NamesError {
     InvalidKind,
     #[msg("Missing required account")]
     MissingRequiredAccount,
+    #[msg("Name reserved for treasury authority")]
+    ReservedName,
+    #[msg("Auction required for this premium domain")]
+    AuctionRequired,
+    #[msg("Invalid auction domain length")]
+    InvalidAuctionDomain,
+    #[msg("Invalid auction configuration")]
+    InvalidAuctionConfig,
+    #[msg("Auction has already closed")]
+    AuctionClosed,
+    #[msg("Bid is too low")]
+    BidTooLow,
+    #[msg("Invalid bid amount")]
+    InvalidBid,
+    #[msg("Bid escrow is inactive")]
+    EscrowInactive,
+    #[msg("Winning bidder cannot withdraw during active winner state")]
+    WinnerCannotWithdraw,
+    #[msg("Nothing to withdraw")]
+    NothingToWithdraw,
+    #[msg("Auction already settled")]
+    AlreadySettled,
+    #[msg("Auction has not ended")]
+    AuctionNotEnded,
+    #[msg("No winning bid present")]
+    NoWinningBid,
+    #[msg("Escrow balance is insufficient")]
+    EscrowInsufficient,
+    #[msg("Treasury account mismatch")]
+    InvalidTreasury,
+    #[msg("Math overflow")]
+    MathOverflow,
 }

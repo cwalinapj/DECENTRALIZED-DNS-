@@ -46,8 +46,10 @@ Identity + premium commands (devnet):
 ```bash
 cd solana
 npm run names -- init-config --rpc https://api.devnet.solana.com --parent-zone user.dns --premium-price-sol 0.05
+npm run names -- init-premium-config --rpc https://api.devnet.solana.com --min-bid-sol 0.1 --duration-slots 500
 npm run names -- claim-sub --rpc https://api.devnet.solana.com --parent user.dns --label alice
 npm run names -- buy-premium --rpc https://api.devnet.solana.com --name alice.dns
+npm run names -- create-auction --rpc https://api.devnet.solana.com --name abcd.dns --min-bid-sol 0.5 --duration-slots 500
 npm run names -- set-primary --rpc https://api.devnet.solana.com --name alice.dns
 npm run names -- resolve-primary --rpc https://api.devnet.solana.com --owner <WALLET_PUBKEY>
 ```
@@ -147,6 +149,10 @@ Not yet decentralized in MVP:
 - Free identity path: wallet claims subdomains under controlled parent zone `user.dns` (for example `alice.user.dns`).
 - `user.dns` subdomains are always non-transferable in MVP.
 - Premium path: users buy second-level names (for example `alice.dns`) with one-time SOL payment and keep ownership.
+- Short-name policy (MVP):
+  - `1-2` char labels are treasury-authority reserved.
+  - `3-4` char labels are auction-only.
+  - `5+` char labels remain on normal premium registration flow.
 - Premium parents can delegate mint subdomains (for example `bob.alice.dns`), with parent-controlled transfer authorization.
 - Sellable miner reward claims are premium-gated:
   - wallet without a premium `.dns` name cannot claim sellable reward payouts

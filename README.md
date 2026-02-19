@@ -12,6 +12,7 @@ Repo: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 - Mass adoption roadmap (Web2-first): `docs/MASS_ADOPTION_ROADMAP.md`
 - How it works (protocol): `docs/PROTOCOL_CACHE_WITNESS.md`
 - Where it’s going (end state): `docs/END_STATE.md`
+- Premium short-name policy (MVP auctions): `docs/PREMIUM_AUCTIONS.md`
 - Adapter layer (PKDNS/IPFS/ENS/SNS): `docs/ADAPTERS.md`
 - Watchdogs + policy attestation formats: `docs/PROTOCOL_WATCHDOG_ATTESTATION.md`
 - Security: `docs/THREAT_MODEL.md` and `docs/ATTACK_MODE.md`
