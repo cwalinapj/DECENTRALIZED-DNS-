@@ -241,3 +241,24 @@ Tests  29 passed (29)
 > tsc -p tsconfig.json
 EXIT_CODE:0
 ```
+
+### 2026-02-19 — PR #97 post-merge main re-verification
+- Base commit SHA: `5be1a52`
+- Commands run:
+```bash
+git worktree add /tmp/ddns-main-verify origin/main
+cd /tmp/ddns-main-verify
+npm ci && npm test
+npm -C gateway test && npm -C gateway run build
+```
+- Output snippet (tail):
+```text
+==> run_all: complete
+Test Files  10 passed (10)
+Tests  29 passed (29)
+Duration  570ms
+
+> ddns-resolver@0.1.0 build
+> tsc -p tsconfig.json
+```
+- Result: `PASS` (exit code `0`)
