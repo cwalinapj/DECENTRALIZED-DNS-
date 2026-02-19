@@ -9,11 +9,78 @@ Repo: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 
 - What exists today (MVP): `docs/MVP.md`
 - Adoption wedge (why this gets used): `docs/ADOPTION.md`
+- Mass adoption roadmap (Web2-first): `docs/MASS_ADOPTION_ROADMAP.md`
 - How it works (protocol): `docs/PROTOCOL_CACHE_WITNESS.md`
 - Where it’s going (end state): `docs/END_STATE.md`
 - Adapter layer (PKDNS/IPFS/ENS/SNS): `docs/ADAPTERS.md`
 - Watchdogs + policy attestation formats: `docs/PROTOCOL_WATCHDOG_ATTESTATION.md`
 - Security: `docs/THREAT_MODEL.md` and `docs/ATTACK_MODE.md`
+- Merge guardrails + queue: `docs/MERGE_QUEUE.md` and `docs/MERGE_LOG.md`
+
+### Mass Adoption Roadmap (Web2-First, Web3-Backed)
+
+- Phase 0 (MVP): fast recursive ICANN DNS + `.dns` PKDNS + privacy-safe observation aggregation.
+- Phase 1 wedge: registrar + DNS protection + free hosting + AI/manual site builder UX.
+- Phase 2 identity: human-readable `.dns` identities with safe defaults (non-transferable by default).
+- Phase 3 scarcity: premium short-name auctions (`3-4` first, `1-2` treasury-reserved in MVP).
+- Planned ops layer: workers for backups/audits with proof-backed attestations.
+
+Details: `docs/MASS_ADOPTION_ROADMAP.md` and `docs/DEVELOPER_API.md`.
+
+## Mass Adoption Roadmap: Web2-first, Web3-backed
+
+### Phase 0 (MVP): usable today
+- Recursive DNS for ICANN names with multi-upstream quorum cache and conservative TTL behavior.
+- `.dns` remains opt-in via PKDNS routes; ICANN recursion is not forced into `.dns` consensus.
+- Privacy-safe observations improve reliability without user identifiers.
+
+### Phase 1: registrar wedge + bundled products
+- Registrar wedge: discounts/credits when domains keep DDNS nameservers set (policy-controlled).
+- Free static hosting up to 5 pages.
+- AI builder + manual editor.
+- Export/import content paths to avoid lock-in.
+
+### Phase 2: `.dns` identity layer (Bonfida-style UX)
+- Free default subdomain identity.
+- Premium primary `.dns` ownership path (forever-style ownership model).
+- Subdomains non-transferable by default to reduce flipping/squatting.
+- Premium owners can optionally enable sellable delegated subdomains.
+
+### Phase 3: premium auctions
+- Treasury controls `1-2` char labels in MVP.
+- Auction `3-4` char premium labels first.
+- Expand to `1-2` auctions only after abuse controls mature.
+
+### Why TOLL will be valuable
+- Demand sinks:
+  - premium primaries (auction paths),
+  - mining eligibility bond requirements,
+  - operator marketplace settlement,
+  - optional registrar discount subsidies.
+- Earning loops:
+  - useful contributions (cache/observations/operator service) feed reward paths.
+- REP gating:
+  - reputation and anti-sybil constraints gate higher earning/privilege tiers.
+
+### Why developers use this instead of raw DNS
+- Consistent JSON resolver response shape.
+- Cache confidence + upstream audit metadata.
+- Adapter proofs where applicable (`.dns`, IPFS, ENS, SNS).
+- Privacy-safe observations strengthen network reliability over time.
+- Policy-based monetization upside when projects keep DDNS nameservers.
+
+### Future: workers replace webadmin babysitting (Phase 3+ / End-state)
+- Backup sites to IPFS + on-chain proof anchors.
+- Daily AI-assisted function/security audits with hashed attestations.
+- Distributed synthetic probes from premium operators.
+
+### FAQ: Why would I switch nameservers?
+Cheaper renewals/credits, free hosting, better reliability defaults, and optional Web3 proof-backed features.
+
+See:
+- MVP adoption wedges: `docs/MVP.md#adoption-wedges-mvp`
+- End-state operator economy: `docs/END_STATE.md#registrar--cdnhosting--operator-economy`
+- Full roadmap: `docs/MASS_ADOPTION_ROADMAP.md`
 
 ### Adoption Wedge: Domain Owners Get Paid
 
@@ -23,6 +90,12 @@ Domain owners can delegate NS/DoH to the network and earn a **% of toll-event re
 - To resist censorship without tracking users, gateways can emit **privacy-safe witness receipts** (no IP/UA/client identifiers; time-bucketed) that attest only to answer facts.
 - End-state can incorporate stake-weighted witnesses + slashing and public receipt batch commitments.
 
+### Miner Rewards (MVP)
+
+- Miners earn **REP** (reputation points) now; REP is anti-sybil gated (bond + caps + diversity + cooldown).
+- **TOLL** is utility: toll payments and protocol settlement flows.
+- No free permissionless TOLL emissions in MVP (prevents low-cost cloud sybil farming).
+
 ### Status (MVP)
 
 - Devnet: reference environment for MVP demos. See `docs/STATUS.md` and `solana/VERIFIED.md`.
@@ -30,6 +103,14 @@ Domain owners can delegate NS/DoH to the network and earn a **% of toll-event re
 - Centralization points (explicit in MVP bootstrap):
   - allowlisted miner/verifier submitters
   - gateway/tollbooth services (clients verify on-chain and keep local cache).
+
+### Gateway DNS Behavior (MVP)
+
+- `.dns` resolution goes through PKDNS (Solana verification path).
+- ICANN domains use recursive DoH pass-through with local TTL cache.
+- ICANN answers are never written into canonical on-chain consensus.
+- Cache policy: TTL-respecting entries, stale-if-error fallback, and near-expiry prefetch.
+- Details and env vars: `gateway/README.md`.
 
 ### Quick Verify (Devnet)
 
@@ -61,6 +142,22 @@ Attack Mode is a resilience layer that makes the system degrade safely under act
 - Auto-merge is executed by `scripts/automerge_prs.sh` (zero human approval flow).
 - A PR is eligible only with label `automerge-ok`, `Risk: Low`, required checklist, green CI, and passing local-equivalent checks.
 - See `MERGE_QUEUE.md`, `MERGE_GUARDRAILS.md`, and `MERGE_LOG.md`.
+
+### Compat MVP Validation (CI)
+
+CI includes a compat harness intended to validate a WordPress + control-plane stack.
+
+- MVP behavior: `scripts/validate-compat-mvp.sh` skips with exit 0 when required inputs are not present.
+- Enforced later: set `STRICT_COMPAT=1` to fail if inputs are missing.
+- Expected future inputs: `docker-compose.validation.yml`, `workers/compat-runner/`.
+
+### How Merges Happen
+
+- Codex runs one PR at a time via `scripts/merge_prs_one_by_one.sh` in isolated worktrees.
+- CI must be green on both the PR and `main` before anything is marked ready.
+- No automatic merge by default: script stops at `READY TO MERGE`.
+- Override is explicit only via `OVERRIDE_MERGE_OK` token.
+- Queue + run logs: `docs/MERGE_QUEUE.md` and `docs/MERGE_LOG.md`.
 
 ### What This Repo Contains
 
@@ -125,13 +222,19 @@ Protocol + roadmap docs:
 - `docs/MVP.md`
 - `docs/PROTOCOL_CACHE_WITNESS.md`
 - `docs/PROTOCOL_WITNESS_RECEIPT.md`
+- `docs/PROTOCOL_CACHE_LOG_V1.md`
 - `docs/END_STATE.md`
 
 Miner-first decentralization:
 
 - MVP uses a centralized gateway/tollbooth and allowlisted miners to bootstrap fast routing and quorum updates.
 - End-product removes those trust points via decentralized quorum and stake-weighted receipts.
+- Miners earn REP now; TOLL remains utility until stronger anti-sybil primitives are live.
 - End-state also includes Nameserver Delegation Incentives for ICANN domains (usage-based rewards in TOLL; not in MVP).
+- Premium `.dns` parents can run chronological cache rollups:
+  - gateway emits privacy-safe `CacheEntryV1` observations (RRset-only; no client identifiers)
+  - rollups are published to IPFS and anchored on-chain via `ddns_cache_head`
+  - accepted contributors accrue non-transferable REP (`ddns_rep`) for useful cache contribution
 - Everyday users get a lightweight client (cache-first + verify on refresh); miners run the heavy infrastructure (verification, aggregation, feeds).
 - (Optional) ICANN domain incentives: domain owners can claim a revenue share in TOLL for NS adoption (MVP uses centralized verification; end-state moves to verifier/oracle attestations).
 - A browser extension (Firefox) is not shipped in MVP; MVP uses CLI/scripts and services.
@@ -154,6 +257,15 @@ Then follow `docs/MVP.md` to:
 2. Write a route record on devnet (`solana/scripts/set_route.ts`)
 
 Devnet is the reference environment. Localnet is optional for MVP.
+
+## .dns Identity + Premium Reward Gate (MVP)
+
+- Every wallet can claim identity subdomains under a controlled parent zone: `label.user.dns`.
+- `user.dns` subdomains are non-transferable by default (identity-first, not resale inventory).
+- Premium second-level names (for example `alice.dns`) are one-time SOL purchases and remain transferable.
+- Premium parent owners can mint delegated subdomains (for example `bob.alice.dns`) with parent-controlled transfer rules.
+- Sellable miner reward claims are premium-gated: claimants must prove ownership of a premium `.dns` account.
+- This gate changes reward eligibility only; it does not write ICANN results into canonical `.dns` consensus.
 
 ---
 

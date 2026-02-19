@@ -25,6 +25,7 @@ import {
   evaluateAttackMode,
   policyForMode
 } from "@ddns/attack-mode";
+import { createCacheLogger, computeRrsetHashFromAnswers } from "./cache_log.js";
 
 const PORT = Number(process.env.PORT || "8054");
 const HOST = process.env.HOST || "0.0.0.0";
@@ -47,6 +48,10 @@ const RECURSIVE_QUORUM_MIN = Number(process.env.RECURSIVE_QUORUM_MIN || "2");
 const RECURSIVE_TIMEOUT_MS = Number(process.env.RECURSIVE_TIMEOUT_MS || "2000");
 const RECURSIVE_MAX_CONCURRENCY = Number(process.env.RECURSIVE_MAX_CONCURRENCY || "3");
 const RECURSIVE_OVERLAP_RATIO = Number(process.env.RECURSIVE_OVERLAP_RATIO || "0.34");
+const CACHE_LOG_ENABLED = process.env.CACHE_LOG_ENABLED === "1";
+const CACHE_SPOOL_PATH = process.env.CACHE_SPOOL_PATH || "gateway/.cache/cache_entries.jsonl";
+const CACHE_ROLLUP_URL = process.env.CACHE_ROLLUP_URL || "";
+const CACHE_PARENT_EXTRACT_RULE = process.env.CACHE_PARENT_EXTRACT_RULE || "last2-dns";
 const LOG_LEVEL = process.env.LOG_LEVEL || (process.env.NODE_ENV === "development" ? "verbose" : "quiet");
 const GATED_SUFFIXES = (process.env.GATED_SUFFIXES || ".premium")
   .split(",")
@@ -164,6 +169,13 @@ const adapterRegistry = createAdapterRegistry({
   ipfs: createIpfsAdapter({ httpGateways: [IPFS_HTTP_GATEWAY_BASE_URL] }),
   ens: createEnsAdapter({ rpcUrl: ETH_RPC_URL, chainId: 1 }),
   sns: createSnsAdapter({ rpcUrl: SOLANA_RPC_URL })
+});
+
+const cacheLogger = createCacheLogger({
+  enabled: CACHE_LOG_ENABLED,
+  spoolPath: CACHE_SPOOL_PATH,
+  rollupUrl: CACHE_ROLLUP_URL || undefined,
+  parentExtractRule: CACHE_PARENT_EXTRACT_RULE
 });
 
 const cache = new Map<string, { expiresAt: number; payload: ResolveResponse }>();
@@ -457,10 +469,32 @@ export function createApp() {
                   : undefined
           }
         });
+        if (cacheLogger.enabled && ans?.ttlS) {
+          const rrsetHashHex =
+            (ans.destHashHex || "").replace(/^0x/, "") ||
+            String(ans.canonical?.destHashHex || "").replace(/^0x/, "");
+          if (rrsetHashHex.length === 64) {
+            await cacheLogger.logEntry({
+              name,
+              rrsetHashHex,
+              ttlS: Number(ans.ttlS || 60),
+              confidenceBps: Number(ans.source?.confidenceBps || 5000)
+            });
+          }
+        }
         return res.json(ans);
       }
 
       const out = await recursiveAdapter.resolveRecursive(name, type);
+      if (cacheLogger.enabled && out?.answers?.length) {
+        const rrsetHashHex = computeRrsetHashFromAnswers(out.name, out.type, out.answers);
+        await cacheLogger.logEntry({
+          name: out.name,
+          rrsetHashHex,
+          ttlS: Number(out.ttlS || 60),
+          confidenceBps: out.source === "stale" ? 7000 : 9000
+        });
+      }
       return res.json({
         name: out.name,
         type: out.type,

@@ -2,8 +2,8 @@
 
 **This doc contains:** [MVP ✅] [End State 🔮]
 
-**MVP**: centralized pieces still exist (gateway availability, allowlisted miners).  
-**End State**: fully decentralized quorum + stake-weighted witnesses + optional IPFS receipt batches.
+**MVP**: centralized pieces still exist (gateway availability, allowlisted fraud handling).  
+**End State**: fully decentralized quorum + stake-weighted witnesses + optional IPFS receipt batches + fraud proofs.
 
 ## 1) Who Benefits
 
@@ -12,7 +12,7 @@ Domain owners:
 - get an “install once, earn continuously” incentive for adoption
 
 Miners / verifiers:
-- earn from verification + aggregation work (and later, stake rewards)
+- earn **REP** (reputation points) now for verification + aggregation work
 - provide the strongest decentralization path first (heavy infra, proofs, reconciliation)
 
 Everyday users:
@@ -36,21 +36,32 @@ Payment surface:
 - toll events only (cache miss / acquisition / refresh)
 - not per raw DNS query
 
-Reward split (bps; sum must be `10,000`):
+Reward split (bps; sum must be `10,000`) for toll events:
 - `owner_bps`: domain owner payout
 - `miners_bps`: miners/verifiers
 - `treasury_bps`: protocol treasury
 
-Why per-query isn’t used in MVP:
+Token roles (MVP):
+- `TOLL` = utility token (payments, fees, treasury/domain-owner flows)
+- `REP` = early-adopter reputation reward (non-transferable in MVP; anti-sybil gated)
+
+Why per-query and free token mining aren’t used in MVP:
 - per-query is cheap to fake with bots
 - toll events are scarce and map to real demand and cost (route acquisition / refresh)
+- free cloud infra (Workers/proxies) makes liquid token farming too easy
 
 ## 4) Trust Model (MVP vs End State)
 
 MVP trust assumptions (explicit):
 - gateway/tollbooth services may be centralized and can be censored or down
-- miners/verifiers can be allowlisted
+- slashing/fraud detection remains centralized or allowlisted
 - receipt verification can be off-chain (miners)
+
+Anti-sybil guardrails in MVP miner rewards:
+- miner bond required
+- daily REP cap per miner
+- diversity minimums (unique names + unique colos)
+- cooldown between rewardable submissions
 
 What makes it still censorship-resistant:
 - clients can retain cached routes and verify canonical state on refresh

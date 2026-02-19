@@ -1,45 +1,55 @@
-# Gateway (MVP)
+# Gateway Resolver (MVP)
 
-## Resolver behavior
-- `.dns` names are resolved through **PKDNS** first (on-chain canonical/hash verification path).
-- Non-`.dns` ICANN names use **recursive DoH** with local TTL cache.
-- ICANN answers are never written into canonical consensus; they are local gateway cache state only.
+Resolver behavior is split by namespace:
 
-## Recursive quorum (ICANN)
-- Upstreams are queried in parallel (default: Cloudflare + Google).
-- Confidence levels:
-  - `high`: normalized RRset hash quorum match.
-  - `medium`: upstream sets overlap (CDN rotation tolerance).
-  - `low`: only one usable upstream or disagreement.
-- TTL policy:
-  - base TTL = minimum upstream TTL for chosen RRset.
-  - caps: `high -> TTL_CAP_S`, `medium -> min(TTL_CAP_S,120)`, `low -> min(TTL_CAP_S,30)`.
-  - NXDOMAIN TTL is capped to 30 seconds.
+- `.dns` names are handled by **PKDNS** (Solana-backed path).
+- Non-`.dns` ICANN names are handled by **recursive DoH** with local TTL cache.
+- ICANN pass-through answers are never written into canonical on-chain consensus.
 
-## Cache behavior
-- Keyed by `name:qtype`.
-- Supports stale-if-error (`STALE_MAX_S`) and prefetch (`PREFETCH_FRACTION`).
-- Cache file defaults to `gateway/.cache/rrset.json`.
+Cache behavior for ICANN names:
 
-## API
+- TTL-respecting local cache (`qname:qtype` key)
+- stale-if-error fallback
+- prefetch near expiry
+- bounded eviction when cache exceeds max entries
+
+## Endpoints
+
 - `GET /v1/resolve?name=<domain>&type=A|AAAA`
+- `GET /v1/route?name=<domain>[&dest=<candidate>]`
+- `GET /healthz`
 
-Response keys:
-- `name`, `type`, `answers`, `ttl_s`
-- `source` (`recursive`)
-- `confidence`
-- `upstreams_used[]`, `chosen_upstream`
-- `cache` (`hit`, `stale_used?`)
-- `status`, `rrset_hash`
+Example:
 
-## Env (recursive)
-- `RECURSIVE_UPSTREAMS` (default `https://cloudflare-dns.com/dns-query,https://dns.google/dns-query`)
-- `RECURSIVE_QUORUM_MIN` (default `2`)
-- `RECURSIVE_TIMEOUT_MS` (default `2000`)
-- `RECURSIVE_MAX_CONCURRENCY` (default `3`)
-- `RECURSIVE_OVERLAP_RATIO` (default `0.34`)
-- `TTL_CAP_S` (default `300`)
-- `CACHE_PATH` (default `gateway/.cache/rrset.json`)
-- `STALE_MAX_S` (default `1800`)
-- `PREFETCH_FRACTION` (default `0.1`)
-- `CACHE_MAX_ENTRIES` (default `50000`)
+```bash
+curl 'http://localhost:8054/v1/resolve?name=netflix.com&type=A'
+curl 'http://localhost:8054/v1/resolve?name=example.dns&type=A'
+```
+
+## Env Vars (MVP)
+
+| Variable | Default | Notes |
+|---|---|---|
+| `UPSTREAM_DOH_URL` | `https://cloudflare-dns.com/dns-query` | Single-upstream default used by legacy paths. |
+| `UPSTREAM_DOH_URLS` | `https://cloudflare-dns.com/dns-query,https://dns.google/dns-query` | Comma-separated upstream list used by recursive adapter. |
+| `CACHE_PATH` | `gateway/.cache/rrset.json` | Local cache file path. |
+| `STALE_MAX_S` | `1800` | Serve expired cache for up to this many seconds only on upstream error. |
+| `PREFETCH_FRACTION` | `0.1` | Prefetch threshold: refresh when `time_left < max(5s, ttl*fraction)`. |
+| `CACHE_MAX_ENTRIES` | `50000` | Max cache keys before oldest-entry eviction. |
+| `REQUEST_TIMEOUT_MS` | `2000` | Upstream HTTP timeout. |
+| `PORT` | `8054` | Gateway HTTP port. |
+
+## Run
+
+```bash
+cd /Users/root1/scripts/DECENTRALIZED-DNS-/gateway
+npm install
+npm run build
+PORT=8054 npm run dev
+```
+
+## Tests
+
+```bash
+npm test
+```

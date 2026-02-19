@@ -398,9 +398,9 @@ dependencies = [
 
 [[package]]
 name = "bumpalo"
-version = "3.19.1"
+version = "3.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5dd9dc738b7a8311c7ade152424974d8115f2cdad61e8dab8dac9f2362298510"
+checksum = "5c6f81257d10a0f602a294ae4182251151ff97dbb504ef9afcdda4a64b24d9b4"
 
 [[package]]
 name = "bv"
@@ -553,6 +553,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "ddns_cache_head"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+]
+
+[[package]]
 name = "ddns_domain_rewards"
 version = "0.1.0"
 dependencies = [
@@ -576,6 +583,15 @@ version = "0.1.0"
 dependencies = [
  "anchor-lang",
  "anchor-spl",
+ "sha2 0.10.9",
+]
+
+[[package]]
+name = "ddns_names"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+ "sha2 0.10.9",
 ]
 
 [[package]]
@@ -606,6 +622,13 @@ dependencies = [
 
 [[package]]
 name = "ddns_registry"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+]
+
+[[package]]
+name = "ddns_rep"
 version = "0.1.0"
 dependencies = [
  "anchor-lang",

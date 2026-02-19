@@ -6,6 +6,8 @@
 
 This document describes the end-product vision. Miners/verifiers get the full decentralized stack first; everyday users get a minimal client that still verifies canonical state.
 
+Roadmap reference: `docs/MASS_ADOPTION_ROADMAP.md`
+
 ## 1) End-State Objectives
 
 - Censorship resistance: no single operator can block or rewrite `.dns` routes.
@@ -26,8 +28,28 @@ Miners run:
 
 Rewards direction:
 
-- miners earn the majority of rewards for heavy lifting + uptime
+- miners start with REP (reputation) and later earn stake-weighted economic rewards
+- liquid token emissions are introduced only after strong anti-sybil cost-of-identity exists
 - invalid aggregates become slashable later (fraud proofs / equivocation proofs)
+
+## Mass Adoption Path (End State)
+
+- Web2 entrypoint remains primary: domain registration, DNS protection, hosting, and developer tools in one path.
+- Over time, policy-backed rebates/credits can align domain retention on DDNS nameservers with network usage.
+- Worker attestations (backup/audit/perf) become stronger proof-backed infrastructure for trust and compliance.
+
+## Registrar + CDN/Hosting + Operator Economy
+
+- Registrar path:
+  - initial white-label registrar integration evolves toward eventual ICANN accreditation.
+- Hosting/CDN supply:
+  - premium operators participate in a hosting and edge-capacity marketplace with policy and proof constraints.
+- Proof-based ops:
+  - IPFS backups, audit attestations, and reliability proofs feed payout eligibility.
+- Economic controls:
+  - payout caps, reputation thresholds, and anti-abuse constraints remain explicit.
+- Premium allocation roadmap:
+  - `3-4` char auctions first; `1-2` char auction expansion only after abuse controls mature.
 
 ## 3) Everyday User Path (Lightweight)
 
@@ -78,6 +100,12 @@ Witness receipts (direction):
 
 - gateways/operators publish witness batches (e.g., IPFS) with deterministic roots
 - third parties can sample-verify and audit without user identifiers
+
+Utility vs reputation in the end-state:
+
+- `TOLL` remains the utility/payment token.
+- `REP` becomes a durable signal for eligibility, governance influence, and fee discounts.
+- REP-to-economic conversion stays constrained by slashing risk, stake, and proof quality.
 
 ## 8) End-State: Permissionless Watchdogs + Dispute-Backed Policy
 
