@@ -400,3 +400,24 @@ npm -C gateway test && npm -C gateway run build
 > tsc -p tsconfig.json
 ```
 - Result: `PASS`
+
+### 2026-02-19T08:56:24Z — Domain Continuity notice tokens + endpoint stubs
+- Base commit SHA: `87afd71`
+- Worktree: `/tmp/ddns-pr-domain-notice`
+- Commands run:
+```bash
+npm ci && npm test
+npm -C gateway test && npm -C gateway run build
+```
+- Output snippet:
+```text
+==> run_all: complete
+
+ RUN  v4.0.18 /private/tmp/ddns-pr-domain-notice/gateway
+ Test Files  12 passed (12)
+ Tests  33 passed (33)
+
+> ddns-resolver@0.1.0 build
+> tsc -p tsconfig.json
+```
+- Result: `PASS`

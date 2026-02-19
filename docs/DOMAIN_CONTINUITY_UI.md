@@ -32,6 +32,10 @@ Then open:
 5. Use copy buttons for:
 - `curl /v1/domain/status?...`
 - TXT challenge helper value (when available)
+6. Use signed notice flow:
+- click **Fetch notice token**
+- click **Verify notice token**
+- confirm returned `valid: true` and decoded payload
 
 ## Expected MVP Behavior
 

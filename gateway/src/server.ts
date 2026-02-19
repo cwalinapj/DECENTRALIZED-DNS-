@@ -26,6 +26,11 @@ import {
   policyForMode
 } from "@ddns/attack-mode";
 import { createCacheLogger, computeRrsetHashFromAnswers } from "./cache_log.js";
+import {
+  createNoticeToken,
+  verifyNoticeToken,
+  type DomainContinuityPhase
+} from "./lib/notice_token.js";
 
 const PORT = Number(process.env.PORT || "8054");
 const HOST = process.env.HOST || "0.0.0.0";
@@ -81,6 +86,7 @@ const REQUIRE_MINT_OWNER = process.env.REQUIRE_MINT_OWNER === "1";
 const SOLANA_RPC_URL_FOR_MINT = process.env.SOLANA_RPC_URL || SOLANA_RPC_URL;
 const ATTACK_MODE_ENABLED = process.env.ATTACK_MODE_ENABLED === "1";
 const ATTACK_WINDOW_SECS = Number(process.env.ATTACK_WINDOW_SECS || "120");
+const DOMAIN_CONTINUITY_POLICY_VERSION = process.env.DOMAIN_CONTINUITY_POLICY_VERSION || "mvp-2026-02";
 const attackThresholds = defaultThresholdsFromEnv(process.env);
 
 ed.etc.sha512Sync = (...m) => sha512(ed.etc.concatBytes(...m));
@@ -110,6 +116,45 @@ const attackCounters: AttackCounters = {
 let attackMode: AttackMode = AttackMode.NORMAL;
 let attackMemory: { lastStableUnix?: number } = {};
 let attackDecision: { score: number; reasons: string[] } = { score: 0, reasons: [] };
+
+function normalizeDomainInput(value: string): string {
+  return value.trim().toLowerCase().replace(/\.$/, "");
+}
+
+function phaseFromDomain(domain: string): DomainContinuityPhase {
+  if (domain.startsWith("park-")) return "C_SAFE_PARKED";
+  if (domain.startsWith("warn-")) return "B_HARD_WARNING";
+  return "A_SOFT_WARNING";
+}
+
+function continuityStatus(domainRaw: string) {
+  const domain = normalizeDomainInput(domainRaw);
+  const now = Date.now();
+  const renewalDueDate = new Date(now + 1000 * 60 * 60 * 24 * 20).toISOString();
+  const graceExpiresAt = new Date(now + 1000 * 60 * 60 * 24 * 35).toISOString();
+  const phase = phaseFromDomain(domain);
+  const eligible = !domain.endsWith(".invalid");
+  const reasonCodes = eligible ? [] : ["ELIGIBILITY_POLICY_FAILED"];
+  const nextSteps = eligible
+    ? [
+        "Verify control with /v1/domain/verify",
+        "Confirm contact channels in dashboard",
+        "Enable credits on renew request"
+      ]
+    : ["Fix eligibility gates (nameserver continuity, verification, abuse checks)"];
+  return {
+    domain,
+    eligible,
+    phase,
+    reason_codes: reasonCodes,
+    next_steps: nextSteps,
+    credits_balance: 120,
+    credits_applied_estimate: 25,
+    renewal_due_date: renewalDueDate,
+    grace_expires_at: graceExpiresAt,
+    policy_version: DOMAIN_CONTINUITY_POLICY_VERSION
+  };
+}
 
 function resetAttackWindow(nowUnix: number) {
   if (nowUnix - attackCounters.windowStartUnix >= ATTACK_WINDOW_SECS) {
@@ -373,6 +418,88 @@ export function createApp() {
   app.use("/dns-query", express.raw({ type: ["application/dns-message"], limit: "512kb" }));
 
   app.get("/healthz", (_req, res) => res.json({ status: "ok" }));
+
+  app.get("/v1/domain/status", (req, res) => {
+    const domain = typeof req.query.domain === "string" ? req.query.domain : "";
+    if (!domain) return res.status(400).json({ error: "missing_domain" });
+    return res.json({
+      ...continuityStatus(domain),
+      notice_signature: "mvp-local-policy"
+    });
+  });
+
+  app.post("/v1/domain/verify", express.json(), (req, res) => {
+    const domain = typeof req.body?.domain === "string" ? req.body.domain : "";
+    if (!domain) return res.status(400).json({ error: "missing_domain" });
+    const normalized = normalizeDomainInput(domain);
+    const token = crypto.randomBytes(12).toString("hex");
+    return res.json({
+      domain: normalized,
+      verification_method: "dns_txt",
+      txt_record_name: `_tolldns-verify.${normalized}`,
+      txt_record_value: `tolldns-verify=${token}`,
+      verification_token: token,
+      expires_at: new Date(Date.now() + 1000 * 60 * 15).toISOString(),
+      policy_version: DOMAIN_CONTINUITY_POLICY_VERSION
+    });
+  });
+
+  app.post("/v1/domain/renew", express.json(), (req, res) => {
+    const domain = typeof req.body?.domain === "string" ? req.body.domain : "";
+    if (!domain) return res.status(400).json({ error: "missing_domain" });
+    const useCredits = req.body?.use_credits !== false;
+    const status = continuityStatus(domain);
+    return res.json({
+      domain: status.domain,
+      accepted: true,
+      reason_codes: [],
+      credits_applied_estimate: useCredits ? status.credits_applied_estimate : 0,
+      renewal_due_date: status.renewal_due_date,
+      grace_expires_at: status.grace_expires_at,
+      policy_version: DOMAIN_CONTINUITY_POLICY_VERSION,
+      notice_signature: "mvp-local-policy"
+    });
+  });
+
+  app.post("/v1/domain/continuity/claim", express.json(), (req, res) => {
+    const domain = typeof req.body?.domain === "string" ? req.body.domain : "";
+    if (!domain) return res.status(400).json({ error: "missing_domain" });
+    const status = continuityStatus(domain);
+    return res.json({
+      domain: status.domain,
+      accepted: status.eligible,
+      eligible: status.eligible,
+      phase: status.phase,
+      reason_codes: status.reason_codes,
+      next_steps: status.next_steps,
+      policy_version: DOMAIN_CONTINUITY_POLICY_VERSION,
+      notice_signature: "mvp-local-policy"
+    });
+  });
+
+  app.get("/v1/domain/notice", async (req, res) => {
+    const domain = typeof req.query.domain === "string" ? req.query.domain : "";
+    if (!domain) return res.status(400).json({ error: "missing_domain" });
+    const status = continuityStatus(domain);
+    const now = new Date();
+    const { token, pubkey } = await createNoticeToken({
+      domain: status.domain,
+      phase: status.phase,
+      issued_at: now.toISOString(),
+      expires_at: new Date(now.getTime() + 1000 * 60 * 15).toISOString(),
+      reason_codes: status.reason_codes,
+      policy_version: DOMAIN_CONTINUITY_POLICY_VERSION,
+      nonce: crypto.randomBytes(8).toString("hex")
+    });
+    return res.json({ domain: status.domain, phase: status.phase, token, pubkey });
+  });
+
+  app.post("/v1/domain/notice/verify", express.json(), async (req, res) => {
+    const token = typeof req.body?.token === "string" ? req.body.token : "";
+    if (!token) return res.status(400).json({ error: "missing_token" });
+    const result = await verifyNoticeToken(token);
+    return res.json(result);
+  });
 
   app.get("/v1/attack-mode", (_req, res) => {
     const now = Math.floor(Date.now() / 1000);

@@ -202,6 +202,37 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DomainContinuityClaimResponse'
+  /v1/domain/notice:
+    get:
+      summary: Issue a signed continuity notice token
+      parameters:
+        - in: query
+          name: domain
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Signed notice token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DomainNoticeTokenResponse'
+  /v1/domain/notice/verify:
+    post:
+      summary: Verify signed continuity notice token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DomainNoticeVerifyRequest'
+      responses:
+        '200':
+          description: Notice verification result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DomainNoticeVerifyResponse'
 components:
   schemas:
     ResolveAnswer:
@@ -315,3 +346,37 @@ components:
           items: { type: string }
         policy_version: { type: string }
         notice_signature: { type: string }
+    DomainNoticeTokenResponse:
+      type: object
+      properties:
+        domain: { type: string }
+        phase:
+          $ref: '#/components/schemas/DomainContinuityPhase'
+        token: { type: string }
+        pubkey: { type: string }
+    DomainNoticeVerifyRequest:
+      type: object
+      required: [token]
+      properties:
+        token: { type: string }
+    DomainNoticeVerifyResponse:
+      type: object
+      properties:
+        valid: { type: boolean }
+        payload:
+          type: object
+          properties:
+            domain: { type: string }
+            phase:
+              $ref: '#/components/schemas/DomainContinuityPhase'
+            issued_at:
+              type: string
+              format: date-time
+            expires_at:
+              type: string
+              format: date-time
+            reason_codes:
+              type: array
+              items: { type: string }
+            policy_version: { type: string }
+            nonce: { type: string }
