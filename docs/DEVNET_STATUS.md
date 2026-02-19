@@ -1,6 +1,6 @@
 # Devnet Status Audit
 
-- Generated at (UTC): 2026-02-19T00:44:08.446Z
+- Generated at (UTC): 2026-02-19T03:01:54.590Z
 - Deploy wallet: `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5`
 - RPC: `https://api.devnet.solana.com`
 
@@ -20,13 +20,14 @@
 | ddns_rewards | `8GQJrUpNhCFodqKdhEvWub6pjTtgoXBtBZUqxeEDujAY` | yes | `BPFLoaderUpgradeab1e11111111111111111111111` | `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5` | 36 | 1141440 | 0.001141440 |
 | ddns_operators | `3Q5VCoAT4TZ9xMrpbt4jbN9LhHfihxGH3TiD6PmSqHhp` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
 | ddns_miner_score | `37yrHgDgALGe4fUwWhJigQfD95jPFd9g2fDuYHkPAYaS` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
-| ddns_names | `9VLXME6bCbwwtdB2AbJN36TMAu3JKAtuZu44sF5hAJ44` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
+| ddns_names | `BJgHrrTukutZPWxMDNdd6SXe2A7UzX56Qru6uKfVeHjK` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
 | ddns_cache_head | `J3LCbeg9ocpGcGWdAAFjM8N4G7FTU9na1Lhe5VHBivZt` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
 | ddns_rep | `FAPdRsatJoucFL6h1XQAQnQYN9KRxp7m2vzLLwnNmuLb` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
+| ddns_witness_rewards | `AVsmrpWUMLsdaHr5Y8p2N96fBMPTHVV7WLz8iiu4nBge` | yes | `BPFLoaderUpgradeab1e11111111111111111111111` | `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5` | 36 | 1141440 | 0.001141440 |
 
 ## Funding / Reserve Summary
 
-- Total SOL locked in program accounts: **0.006848640 SOL** (6848640 lamports)
+- Total SOL locked in program accounts: **0.007990080 SOL** (7990080 lamports)
 - Deploy wallet balance: **11.945643640 SOL** (11945643640 lamports)
 - Biggest recent deploy-cost estimate (MVP proxy): **0.001141440 SOL** (1141440 lamports)
 - Recommended reserve rule: `max(5 SOL, 2x biggest_recent_deploy_cost + 1 SOL tx buffer)`

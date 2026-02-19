@@ -34,6 +34,7 @@ services/tollbooth/config/test-client.json
 # build artifacts
 solana/target/
 labs/solana/target/
+artifacts/
 **/target/
 **/node_modules/
 # Solana

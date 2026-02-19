@@ -138,3 +138,37 @@ Results:
   - total program SOL: 0.006848640
   - deploy wallet SOL: 11.945643640
   - recommended reserve SOL: 5.000000000 (OK)
+
+## 2026-02-19T03:05:00Z — Priority Block Refresh (Baseline + Devnet + Happy Path + Audit)
+
+- Branch: `codex/priority-block-clean`
+- Scope: rerun clean-main baseline smoke, refresh devnet inventory/rent report, add one-command devnet happy-path script, refresh `AUDIT_REPORT.md`.
+
+Commands run:
+
+```bash
+git fetch origin --prune
+git worktree add /tmp/ddns-priority-block-clean -b codex/priority-block-clean origin/main
+npm ci
+npm test
+npm -C solana i
+npm -C solana run devnet:verify
+npm -C solana run devnet:audit
+npm run mvp:demo:devnet
+```
+
+Results:
+
+- Baseline smoke: PASS (`npm test` => `run_all: complete`)
+- Devnet verify: PASS (`✅ all required programs are deployed (6)`)
+- Devnet audit: PASS (`docs/DEVNET_STATUS.md` refreshed)
+  - programs audited: 16
+  - total SOL in program accounts: 0.007990080
+  - deploy wallet SOL: 11.945643640
+  - recommended reserve SOL: 5.000000000 (OK)
+- One-command happy path: PASS with blocker visibility (`✅ demo complete`)
+  - ICANN resolve path works in gateway
+  - Known blocker: tollbooth route flow returns `offset out of range` and `.dns` route assignment does not complete
+
+Consistency rule carried forward:
+- For every future squash merge log: record `PR #`, `squash commit SHA on main`, and final smoke commands with pass/fail.
