@@ -745,3 +745,26 @@ Missing:
 - ddns_rewards (D2P9nj4aVS9GiWu4UoLeBtJxKwVfu7FXqnj76f1sKwBd)
 ```
 - Result: `PASS` (prep behavior correct; demo now fails fast until required deploys exist)
+
+### 2026-02-19T23:52:00Z — PR-2 inventory hardening (no faucet)
+- Base commit SHA: `7e8158a`
+- Worktree: `/tmp/ddns-pr-devnet-inventory`
+- Commands run:
+```bash
+npm ci && npm test
+bash scripts/devnet_inventory.sh
+```
+- Output snippet:
+```text
+npm test: EXIT 1
+[id-check] FAIL (existing fresh-worktree keypair drift under solana/target/deploy)
+
+bash scripts/devnet_inventory.sh: EXIT 1
+| ddns_anchor | REQUIRED | `EJVVNdwBdZiEpA4QjVaeV79WPsoUpa4zLA4mqpxWxXi5` | yes | yes | `BPFLoaderUpgradeab1e11111111111111111111111` | `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5` | `B8JBWF6LrmsVp6yFsvML4EEcuMoRNwHxrni5nGw37PA4` | 1141440 | 2869392240 | 2870533680 | 2.870533680 | ok |
+| ddns_anchor:program_account | `EJVVNdwBdZiEpA4QjVaeV79WPsoUpa4zLA4mqpxWxXi5` | `EJVVNdwBdZiEpA4QjVaeV79WPsoUpa4zLA4mqpxWxXi5` | yes | 1141440 | 36 | 1141440 | 0 |
+required_failures: ddns_cache_head, ddns_domain_rewards, ddns_miner_score, ddns_rewards, ddns_witness_rewards
+```
+- Artifact files:
+  - `artifacts/devnet_inventory.json`
+  - `artifacts/devnet_inventory.md`
+- Result: `PASS` (script behavior matches requirements; exits non-zero only for missing REQUIRED programs)
