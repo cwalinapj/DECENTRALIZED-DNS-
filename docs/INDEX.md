@@ -19,6 +19,10 @@ This index is intentionally short and categorized.
 ## End-State (Roadmap)
 - `docs/END_STATE.md`
 - `docs/09-roadmap.md`
+- `docs/MASS_ADOPTION_ROADMAP.md`
+
+## Product / Developer Positioning
+- `docs/DEVELOPER_API.md`
 
 ## Adapters / Integrations
 - `docs/ADAPTERS.md` (ENS/SNS/PKDNS/IPFS)

@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-import { hash as blake3 } from "blake3";
+import crypto from "node:crypto";
 
 export function computeNodeName(pubkey) {
   const bytes = decodeKey(pubkey);
-  const digest = Buffer.from(blake3(bytes)).toString("hex");
+  const digest = crypto.createHash("sha256").update(Buffer.from(bytes)).digest("hex");
   const shortId = digest.slice(0, 10);
   return `node-${shortId}.dns`;
 }

@@ -19,4 +19,5 @@ anchor-debug = []
 [dependencies]
 anchor-lang = "0.32.1"
 anchor-spl = { version = "0.32.1", default-features = false, features = ["token"] }
+sha2 = "0.10"
 

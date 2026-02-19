@@ -19,7 +19,7 @@ This MVP ships a working `.dns` flow on Solana devnet while explicitly allowing 
   - Route writes (current MVP: tollbooth or allowlisted miner submits).
   - Route reads (canonical route PDAs in Design 3; existing per-wallet records remain usable).
 - Off-chain witness receipts (client-signed) collected and aggregated by miners (MVP: off-chain verification).
-- Staking rewards (TOLL token) so users can earn funds to pay future tolls (mechanics are minimal in MVP).
+- Miner rewards in MVP are **REP points** (reputation), not free liquid TOLL emissions.
 
 Verification logs (devnet/localnet commands + tx signatures) live in:
 
@@ -39,6 +39,19 @@ Build IDLs:
 cd solana
 npm install
 anchor build
+```
+
+Identity + premium commands (devnet):
+
+```bash
+cd solana
+npm run names -- init-config --rpc https://api.devnet.solana.com --parent-zone user.dns --premium-price-sol 0.05
+npm run names -- init-premium-config --rpc https://api.devnet.solana.com --min-bid-sol 0.1 --duration-slots 500
+npm run names -- claim-sub --rpc https://api.devnet.solana.com --parent user.dns --label alice
+npm run names -- buy-premium --rpc https://api.devnet.solana.com --name alice.dns
+npm run names -- create-auction --rpc https://api.devnet.solana.com --name abcd.dns --min-bid-sol 0.5 --duration-slots 500
+npm run names -- set-primary --rpc https://api.devnet.solana.com --name alice.dns
+npm run names -- resolve-primary --rpc https://api.devnet.solana.com --owner <WALLET_PUBKEY>
 ```
 
 Start gateway (optional; for adapter-based resolves):
@@ -131,6 +144,25 @@ Not yet decentralized in MVP:
 - Rotating stake-weighted committees and slashing.
 - Browser extension distribution (Firefox).
 
+## MVP .dns Identity + Premium Reward Bonding Gate
+
+- Free identity path: wallet claims subdomains under controlled parent zone `user.dns` (for example `alice.user.dns`).
+- `user.dns` subdomains are always non-transferable in MVP.
+- Premium path: users buy second-level names (for example `alice.dns`) with one-time SOL payment and keep ownership.
+- Short-name policy (MVP):
+  - `1-2` char labels are treasury-authority reserved.
+  - `3-4` char labels are auction-only.
+  - `5+` char labels remain on normal premium registration flow.
+- Premium parents can delegate mint subdomains (for example `bob.alice.dns`), with parent-controlled transfer authorization.
+- Sellable miner reward claims are premium-gated:
+  - wallet without a premium `.dns` name cannot claim sellable reward payouts
+  - wallet with premium ownership can claim (subject to miner program rules)
+- Non-premium participants can still use `.dns` and run non-sellable participation paths.
+
+Compat validation note:
+- `scripts/validate-compat-mvp.sh` intentionally skips when compat harness inputs are missing (`docker-compose.validation.yml`, `workers/compat-runner`) during MVP bootstrap.
+- Set `STRICT_COMPAT=1` to enforce hard failure once compat assets are present.
+
 ## MVP Incentives (Adoption Wedge)
 
 MVP adoption wedge: domain owners get paid when the network is used.
@@ -141,15 +173,65 @@ Toll-event payment split (basis points, bps; sums to `10,000`):
 - miners/verifiers share (aggregation + availability)
 - treasury share (protocol funding)
 
-Why not “per-query payouts” in MVP:
+Token roles in MVP:
+
+- `TOLL` is utility only: toll payments, route writes/updates, treasury/domain-owner settlement.
+- `REP` is the early-adopter miner reward: on-chain reputation points with caps/guardrails.
+
+Why not “per-query payouts” or free TOLL mining in MVP:
 
 - raw query counts are trivial to bot and break economics
+- free cloud infrastructure makes permissionless liquid-token mining easy to sybil
 - toll events represent scarce value (route acquisition/refresh), so wash behavior costs real funds.
+
+## Mass Adoption Wedge (MVP Now vs Planned)
+
+MVP now:
+- ICANN resolution performance and reliability improvements (recursive quorum + cache).
+- `.dns` identity with free subdomains and premium ownership paths.
+- privacy-safe observation contribution (no user identifiers in protocol objects).
+
+Planned next phases:
+- registrar + DNS + hosting bundle for Web2 users
+- discount/rebate policy for domains that keep DDNS nameservers
+- AI/manual site builder experience and worker-backed ops attestations
+
+See roadmap: `docs/MASS_ADOPTION_ROADMAP.md`.
+
+## Adoption Wedges (MVP)
+
+- Registrar discount wedge:
+  - registration/renewal discounts or credits are tied to keeping DDNS nameservers set (policy-controlled).
+- Free hosting wedge:
+  - free static hosting baseline (up to 5 pages).
+- Identity wedge:
+  - free `.dns` subdomains by default plus premium primary ownership path.
+- Transfer policy clarity:
+  - subdomains are non-transferable by default; premium owners can optionally enable delegated transfer models.
+
+## Premium Chronological Cache Rollup (MVP)
+
+- Premium parent domains (for example `acme.dns`) can fund cache reliability with IPFS-backed chronological rollups.
+- Gateway emits privacy-safe `CacheEntryV1` entries for names under premium parents:
+  - RRset hash only
+  - TTL + confidence + 10-minute bucket
+  - witness signature
+  - no client identifiers/IP/UA/wallet-user linkage
+- `services/cache-rollup` ingests entries, computes `cache_root`, writes rollup JSON, and publishes to IPFS (or stub CID in MVP fallback).
+- On-chain head (`ddns_cache_head`) stores latest `{cache_root, cid_hash, epoch_id}` per premium parent.
+- Accepted contributor entries (subdomain users/miners/witnesses) earn non-transferable REP points in `ddns_rep`.
+
+MVP anti-sybil gates for REP accrual:
+- bond requirement
+- daily cap per miner
+- diversity minimums (unique names + colos)
+- cooldown between rewardable aggregate submissions
 
 ## Privacy Notes (MVP)
 
 - Witness receipts must not include client IP, user agent, wallet pubkeys, or per-request IDs.
 - Observations should be time-bucketed (e.g., 10-minute buckets) to reduce tracking surface.
+- Cache rollup entries (`CacheEntryV1`) must remain RRset-only observation facts and never include per-user identifiers.
 
 ## MVP: Watchdogs + Policy (Bootstrap)
 
@@ -173,4 +255,3 @@ How other components use policy:
 See:
 
 - `docs/PROTOCOL_WATCHDOG_ATTESTATION.md`
-

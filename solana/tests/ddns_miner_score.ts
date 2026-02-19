@@ -10,6 +10,7 @@ import {
 } from "@solana/spl-token";
 import { expect } from "chai";
 import BN from "bn.js";
+import crypto from "node:crypto";
 
 function u64le(n: bigint): Buffer {
   const b = Buffer.alloc(8);
@@ -22,6 +23,7 @@ describe("ddns_miner_score", () => {
   anchor.setProvider(provider);
 
   const program = anchor.workspace.DdnsMinerScore as Program;
+  const names = anchor.workspace.DdnsNames as Program;
 
   it("reports stats, finalizes epoch, sets rewards, claims, penalizes", async () => {
     const feePayer = provider.wallet.publicKey;
@@ -67,7 +69,9 @@ describe("ddns_miner_score", () => {
         1000,
         2000,
         2500,
-        100
+        100,
+        names.programId,
+        true
       )
       .accounts({
         config: configPda,
@@ -228,7 +232,7 @@ describe("ddns_miner_score", () => {
     const aAfter: any = await program.account.minerEpochStats.fetch(aPda);
     expect(aAfter.rewardAmount.lt(aBefore.rewardAmount)).to.equal(true);
 
-    // Claim miner B reward.
+    // Claim miner B reward (premium gate enforced).
     const bAta = await getOrCreateAssociatedTokenAccount(
       provider.connection,
       feePayerKp,
@@ -242,6 +246,95 @@ describe("ddns_miner_score", () => {
       program.programId
     );
 
+    // First attempt without valid premium account must fail.
+    let blockedWithoutPremium = false;
+    try {
+      await program.methods
+        .claimMinerReward(new BN(epochId.toString()))
+        .accounts({
+          config: configPda,
+          vaultAuthority,
+          rewardVault: rewardVaultPda,
+          minerEpoch: bPda,
+          miner: minerB.publicKey,
+          minerAta: bAta.address,
+          namesProgram: names.programId,
+          premiumName: minerB.publicKey,
+          claimReceipt: bClaimPda,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .signers([minerB])
+        .rpc();
+    } catch {
+      blockedWithoutPremium = true;
+    }
+    expect(blockedWithoutPremium).to.equal(true);
+
+    // Mint premium name for minerB in ddns_names, then claim succeeds.
+    const [namesConfig] = PublicKey.findProgramAddressSync([Buffer.from("names_config")], names.programId);
+    const [premiumConfig] = PublicKey.findProgramAddressSync([Buffer.from("premium_config")], names.programId);
+    const existingNamesCfg = await names.account.namesConfig.fetchNullable(namesConfig);
+    if (!existingNamesCfg) {
+      await names.methods
+        .initNamesConfig(
+          feePayer,
+          "user.dns",
+          new BN(1_000_000),
+          new BN(0),
+          true,
+          true
+        )
+        .accounts({
+          config: namesConfig,
+          authority: feePayer,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .rpc();
+    }
+    const existingPremiumCfg = await names.account.premiumConfig.fetchNullable(premiumConfig);
+    if (!existingPremiumCfg) {
+      await names.methods
+        .initPremiumConfig(feePayer, feePayer, new BN(10_000_000), new BN(100), new BN(0), true)
+        .accounts({
+          premiumConfig,
+          authority: feePayer,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .rpc();
+    }
+    const premiumLabel = `m${minerB.publicKey.toBase58().slice(0, 10).toLowerCase()}`;
+    const premiumName = `${premiumLabel}.dns`;
+    const premiumHashBuf = crypto.createHash("sha256").update(premiumName).digest();
+    const [premiumPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("premium"), premiumHashBuf],
+      names.programId
+    );
+    const [policyPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("parent_policy"), premiumHashBuf],
+      names.programId
+    );
+    const [primaryPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("primary"), minerB.publicKey.toBuffer()],
+      names.programId
+    );
+    await program.provider.connection.requestAirdrop(minerB.publicKey, 2e9);
+    await new Promise((r) => setTimeout(r, 800));
+    await names.methods
+      .purchasePremium(premiumName, [...premiumHashBuf])
+      .accounts({
+        config: namesConfig,
+        premiumConfig,
+        treasury: feePayer,
+        premiumName: premiumPda,
+        parentPolicy: policyPda,
+        primary: primaryPda,
+        owner: minerB.publicKey,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([minerB])
+      .rpc();
+
     const bStart = (await getAccount(provider.connection, bAta.address)).amount;
     await program.methods
       .claimMinerReward(new BN(epochId.toString()))
@@ -252,6 +345,8 @@ describe("ddns_miner_score", () => {
         minerEpoch: bPda,
         miner: minerB.publicKey,
         minerAta: bAta.address,
+        namesProgram: names.programId,
+        premiumName: premiumPda,
         claimReceipt: bClaimPda,
         tokenProgram: TOKEN_PROGRAM_ID,
         systemProgram: anchor.web3.SystemProgram.programId,
@@ -273,6 +368,8 @@ describe("ddns_miner_score", () => {
           minerEpoch: bPda,
           miner: minerB.publicKey,
           minerAta: bAta.address,
+          namesProgram: names.programId,
+          premiumName: premiumPda,
           claimReceipt: bClaimPda,
           tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: anchor.web3.SystemProgram.programId,

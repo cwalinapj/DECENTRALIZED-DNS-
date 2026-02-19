@@ -27,6 +27,7 @@ describe("/v1/resolve recursive cache", () => {
     process.env.STALE_MAX_S = "1800";
     process.env.PREFETCH_FRACTION = "0.1";
     process.env.CACHE_MAX_ENTRIES = "50000";
+    process.env.RECURSIVE_QUORUM_MIN = "2";
   });
 
   afterEach(() => {
@@ -36,6 +37,7 @@ describe("/v1/resolve recursive cache", () => {
     delete process.env.STALE_MAX_S;
     delete process.env.PREFETCH_FRACTION;
     delete process.env.CACHE_MAX_ENTRIES;
+    delete process.env.RECURSIVE_QUORUM_MIN;
   });
 
   it("cache miss -> upstream fetch -> caches", async () => {
@@ -45,9 +47,10 @@ describe("/v1/resolve recursive cache", () => {
     const app = await loadApp();
     const res = await request(app).get("/v1/resolve").query({ name: "netflix.com", type: "A" });
     expect(res.status).toBe(200);
-    expect(res.body.source).toBe("upstream");
+    expect(res.body.source).toBe("recursive");
+    expect(res.body.cache?.hit).toBe(false);
     expect(res.body.answers[0].data).toBe("203.0.113.10");
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("cache hit within TTL uses cache with no upstream call", async () => {
@@ -57,17 +60,23 @@ describe("/v1/resolve recursive cache", () => {
     const app = await loadApp();
     const first = await request(app).get("/v1/resolve").query({ name: "netflix.com", type: "A" });
     expect(first.status).toBe(200);
-    expect(first.body.source).toBe("upstream");
+    expect(first.body.source).toBe("recursive");
+    expect(first.body.cache?.hit).toBe(false);
     const second = await request(app).get("/v1/resolve").query({ name: "netflix.com", type: "A" });
     expect(second.status).toBe(200);
-    expect(second.body.source).toBe("cache");
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(second.body.source).toBe("recursive");
+    expect(second.body.cache?.hit).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("upstream failure after expiry serves stale within STALE_MAX_S", async () => {
     const fetchMock = vi
       .fn()
       .mockImplementationOnce(async () => ({ ok: true, json: async () => dnsJsonAnswer("netflix.com", 1, "203.0.113.12", 10) }))
+      .mockImplementationOnce(async () => ({ ok: true, json: async () => dnsJsonAnswer("netflix.com", 1, "203.0.113.12", 10) }))
+      .mockImplementationOnce(async () => {
+        throw new Error("upstream_down");
+      })
       .mockImplementationOnce(async () => {
         throw new Error("upstream_down");
       }) as any;
@@ -75,11 +84,12 @@ describe("/v1/resolve recursive cache", () => {
     globalThis.fetch = fetchMock;
     const app = await loadApp();
     const warm = await request(app).get("/v1/resolve").query({ name: "netflix.com", type: "A" });
-    expect(warm.body.source).toBe("upstream");
+    expect(warm.body.source).toBe("recursive");
     vi.advanceTimersByTime(11_000);
     const stale = await request(app).get("/v1/resolve").query({ name: "netflix.com", type: "A" });
     expect(stale.status).toBe(200);
-    expect(stale.body.source).toBe("stale");
+    expect(stale.body.source).toBe("recursive");
+    expect(stale.body.cache?.stale_used).toBe(true);
     expect(stale.body.answers[0].data).toBe("203.0.113.12");
   });
 
@@ -87,6 +97,8 @@ describe("/v1/resolve recursive cache", () => {
     const fetchMock = vi
       .fn()
       .mockImplementationOnce(async () => ({ ok: true, json: async () => dnsJsonAnswer("netflix.com", 1, "203.0.113.13", 10) }))
+      .mockImplementationOnce(async () => ({ ok: true, json: async () => dnsJsonAnswer("netflix.com", 1, "203.0.113.13", 10) }))
+      .mockImplementationOnce(async () => ({ ok: true, json: async () => dnsJsonAnswer("netflix.com", 1, "203.0.113.14", 120) }))
       .mockImplementationOnce(async () => ({ ok: true, json: async () => dnsJsonAnswer("netflix.com", 1, "203.0.113.14", 120) })) as any;
     // @ts-expect-error test mock
     globalThis.fetch = fetchMock;
@@ -95,9 +107,10 @@ describe("/v1/resolve recursive cache", () => {
     vi.advanceTimersByTime(11_000);
     const refreshed = await request(app).get("/v1/resolve").query({ name: "netflix.com", type: "A" });
     expect(refreshed.status).toBe(200);
-    expect(refreshed.body.source).toBe("upstream");
+    expect(refreshed.body.source).toBe("recursive");
+    expect(refreshed.body.cache?.hit).toBe(false);
     expect(refreshed.body.answers[0].data).toBe("203.0.113.14");
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
   });
 
   it(".dns remains on PKDNS adapter path (unchanged)", async () => {

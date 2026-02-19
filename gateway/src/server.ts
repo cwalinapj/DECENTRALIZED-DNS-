@@ -25,20 +25,33 @@ import {
   evaluateAttackMode,
   policyForMode
 } from "@ddns/attack-mode";
+import { createCacheLogger, computeRrsetHashFromAnswers } from "./cache_log.js";
 
 const PORT = Number(process.env.PORT || "8054");
 const HOST = process.env.HOST || "0.0.0.0";
-const UPSTREAM_DOH_URLS = (process.env.UPSTREAM_DOH_URLS || "https://cloudflare-dns.com/dns-query,https://dns.google/dns-query")
+const RECURSIVE_UPSTREAMS = (
+  process.env.RECURSIVE_UPSTREAMS ||
+  process.env.UPSTREAM_DOH_URLS ||
+  "https://cloudflare-dns.com/dns-query,https://dns.google/dns-query"
+)
   .split(",")
   .map((v) => v.trim())
   .filter(Boolean);
 const UPSTREAM_DOH_URL = process.env.UPSTREAM_DOH_URL || "https://cloudflare-dns.com/dns-query";
 const REQUEST_TIMEOUT_MS = Number(process.env.REQUEST_TIMEOUT_MS || "5000");
-const CACHE_TTL_MAX_S = Number(process.env.CACHE_TTL_MAX_S || "3600");
+const CACHE_TTL_MAX_S = Number(process.env.CACHE_TTL_MAX_S || process.env.TTL_CAP_S || "300");
 const CACHE_PATH = process.env.CACHE_PATH || "gateway/.cache/rrset.json";
 const STALE_MAX_S = Number(process.env.STALE_MAX_S || "1800");
 const PREFETCH_FRACTION = Number(process.env.PREFETCH_FRACTION || "0.1");
 const CACHE_MAX_ENTRIES = Number(process.env.CACHE_MAX_ENTRIES || "50000");
+const RECURSIVE_QUORUM_MIN = Number(process.env.RECURSIVE_QUORUM_MIN || "2");
+const RECURSIVE_TIMEOUT_MS = Number(process.env.RECURSIVE_TIMEOUT_MS || "2000");
+const RECURSIVE_MAX_CONCURRENCY = Number(process.env.RECURSIVE_MAX_CONCURRENCY || "3");
+const RECURSIVE_OVERLAP_RATIO = Number(process.env.RECURSIVE_OVERLAP_RATIO || "0.34");
+const CACHE_LOG_ENABLED = process.env.CACHE_LOG_ENABLED === "1";
+const CACHE_SPOOL_PATH = process.env.CACHE_SPOOL_PATH || "gateway/.cache/cache_entries.jsonl";
+const CACHE_ROLLUP_URL = process.env.CACHE_ROLLUP_URL || "";
+const CACHE_PARENT_EXTRACT_RULE = process.env.CACHE_PARENT_EXTRACT_RULE || "last2-dns";
 const LOG_LEVEL = process.env.LOG_LEVEL || (process.env.NODE_ENV === "development" ? "verbose" : "quiet");
 const GATED_SUFFIXES = (process.env.GATED_SUFFIXES || ".premium")
   .split(",")
@@ -134,12 +147,16 @@ function currentAttackPolicy(nowUnix: number) {
 }
 
 const recursiveAdapter = createRecursiveAdapter({
-  upstreamDohUrls: UPSTREAM_DOH_URLS,
+  upstreamDohUrls: RECURSIVE_UPSTREAMS,
   cachePath: CACHE_PATH,
   staleMaxS: STALE_MAX_S,
   prefetchFraction: PREFETCH_FRACTION,
   cacheMaxEntries: CACHE_MAX_ENTRIES,
-  requestTimeoutMs: REQUEST_TIMEOUT_MS
+  requestTimeoutMs: RECURSIVE_TIMEOUT_MS,
+  maxConcurrency: RECURSIVE_MAX_CONCURRENCY,
+  quorumMin: RECURSIVE_QUORUM_MIN,
+  overlapRatio: RECURSIVE_OVERLAP_RATIO,
+  ttlCapS: CACHE_TTL_MAX_S
 });
 
 const adapterRegistry = createAdapterRegistry({
@@ -152,6 +169,13 @@ const adapterRegistry = createAdapterRegistry({
   ipfs: createIpfsAdapter({ httpGateways: [IPFS_HTTP_GATEWAY_BASE_URL] }),
   ens: createEnsAdapter({ rpcUrl: ETH_RPC_URL, chainId: 1 }),
   sns: createSnsAdapter({ rpcUrl: SOLANA_RPC_URL })
+});
+
+const cacheLogger = createCacheLogger({
+  enabled: CACHE_LOG_ENABLED,
+  spoolPath: CACHE_SPOOL_PATH,
+  rollupUrl: CACHE_ROLLUP_URL || undefined,
+  parentExtractRule: CACHE_PARENT_EXTRACT_RULE
 });
 
 const cache = new Map<string, { expiresAt: number; payload: ResolveResponse }>();
@@ -445,17 +469,47 @@ export function createApp() {
                   : undefined
           }
         });
+        if (cacheLogger.enabled && ans?.ttlS) {
+          const rrsetHashHex =
+            (ans.destHashHex || "").replace(/^0x/, "") ||
+            String(ans.canonical?.destHashHex || "").replace(/^0x/, "");
+          if (rrsetHashHex.length === 64) {
+            await cacheLogger.logEntry({
+              name,
+              rrsetHashHex,
+              ttlS: Number(ans.ttlS || 60),
+              confidenceBps: Number(ans.source?.confidenceBps || 5000)
+            });
+          }
+        }
         return res.json(ans);
       }
 
       const out = await recursiveAdapter.resolveRecursive(name, type);
+      if (cacheLogger.enabled && out?.answers?.length) {
+        const rrsetHashHex = computeRrsetHashFromAnswers(out.name, out.type, out.answers);
+        await cacheLogger.logEntry({
+          name: out.name,
+          rrsetHashHex,
+          ttlS: Number(out.ttlS || 60),
+          confidenceBps: out.source === "stale" ? 7000 : 9000
+        });
+      }
       return res.json({
         name: out.name,
         type: out.type,
         answers: out.answers,
         ttl_s: out.ttlS,
-        source: out.source,
-        ...(out.upstream ? { upstream: out.upstream } : {})
+        source: "recursive",
+        confidence: out.confidence,
+        upstreams_used: out.upstreamsUsed,
+        chosen_upstream: out.chosenUpstream,
+        cache: {
+          hit: out.source === "cache",
+          ...(out.source === "stale" ? { stale_used: true } : {})
+        },
+        status: out.status,
+        rrset_hash: out.rrsetHash
       });
     } catch (err: any) {
       return res.status(502).json({ error: String(err?.message || err) });
