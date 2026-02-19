@@ -17,7 +17,11 @@ export type DomainNoticePayload = {
   nonce: string;
 };
 
-const PRIVATE_KEY_HEX = process.env.DOMAIN_NOTICE_PRIVATE_KEY_HEX || crypto.randomBytes(32).toString("hex");
+const PRIVATE_KEY_HEX =
+  process.env.DOMAIN_NOTICE_PRIVATE_KEY_HEX ||
+  (process.env.NODE_ENV === "test" ? crypto.randomBytes(32).toString("hex") : (() => {
+    throw new Error("DOMAIN_NOTICE_PRIVATE_KEY_HEX required in non-test environments");
+  })());
 
 function hexToBytes(hex: string): Uint8Array {
   const cleaned = hex.replace(/^0x/, "");
@@ -51,7 +55,9 @@ export async function createNoticeToken(payload: DomainNoticePayload): Promise<{
 
 export async function verifyNoticeToken(token: string): Promise<{ valid: boolean; payload?: DomainNoticePayload }> {
   try {
-    const [payloadPart, sigPart] = token.split(".");
+    const parts = token.split(".");
+    if (parts.length !== 2) return { valid: false };
+    const [payloadPart, sigPart] = parts;
     if (!payloadPart || !sigPart) return { valid: false };
     const payloadBytes = b64urlDecode(payloadPart);
     const sigBytes = b64urlDecode(sigPart);

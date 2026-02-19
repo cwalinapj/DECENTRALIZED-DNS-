@@ -104,7 +104,7 @@ const PORKBUN_ENDPOINT = process.env.PORKBUN_ENDPOINT || "https://api.porkbun.co
 const REGISTRAR_DRY_RUN =
   process.env.REGISTRAR_DRY_RUN !== undefined
     ? process.env.REGISTRAR_DRY_RUN === "1"
-    : REGISTRAR_ENABLED && !PORKBUN_API_KEY;
+    : REGISTRAR_ENABLED && (!PORKBUN_API_KEY || !PORKBUN_SECRET_API_KEY);
 const BANNER_TEMPLATE_PATH =
   process.env.DOMAIN_BANNER_TEMPLATE_PATH || path.resolve(process.cwd(), "gateway/public/domain-continuity/banner.html");
 const INTERSTITIAL_TEMPLATE_PATH =
