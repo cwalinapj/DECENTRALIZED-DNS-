@@ -1,3 +1,0 @@
-{"timestamp":"2026-02-19T12:38:17.798Z","endpoint":"/v1/registrar/domain","domain":"example.com","decision":"dry_run","actor":"3e48ef9d22e096da","provider_ref":null}
-{"timestamp":"2026-02-19T12:38:17.799Z","endpoint":"/v1/registrar/domain","domain":"example.com","decision":"dry_run","actor":"3e48ef9d22e096da","provider_ref":null}
-{"timestamp":"2026-02-19T12:38:17.800Z","endpoint":"/v1/registrar/domain","domain":"example.com","decision":"rate_limited","actor":"3e48ef9d22e096da","provider_ref":null}
