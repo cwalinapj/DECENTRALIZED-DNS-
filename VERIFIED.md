@@ -262,3 +262,21 @@ Duration  570ms
 > tsc -p tsconfig.json
 ```
 - Result: `PASS` (exit code `0`)
+
+### 2026-02-19 — fix: unblock mvp devnet demo startup
+- Branch: `codex/pr-unblock-mvp-demo`
+- Commands run:
+```bash
+npm run mvp:demo:devnet
+```
+- Output snippet:
+```text
+==> ensure anchor IDL for tollbooth (ddns_anchor)
+==> install + start tollbooth
+==> install + start gateway
+==> set .dns route via tollbooth devnet flow
+assign_route: 400 { ok: false, error: 'name_not_claimed' }
+logs_dir: /var/folders/.../ddns-devnet-demo
+✅ demo complete
+```
+- Result: `PASS` (exit code 0; startup crash removed, route assignment still blocked by existing devnet passport/name state)

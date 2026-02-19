@@ -13,6 +13,7 @@ import {
   setRoute,
   validateLabel,
   fetchRouteRecord,
+  listOwnedNames,
   nameHashFromFullName,
   pdaNameRecord,
   pdaRouteRecord,
@@ -237,6 +238,19 @@ app.get("/v1/resolve", async (req, res) => {
         signature: local?.tx ?? null,
       },
     });
+  } catch (e: any) {
+    return httpError(res, 500, e?.message || "server_error");
+  }
+});
+
+app.get("/v1/names", async (req, res) => {
+  try {
+    const wallet = String(req.query.wallet || "");
+    if (!wallet) return httpError(res, 400, "missing_wallet");
+    const ownerWallet = new PublicKey(wallet);
+    await ensureProgramExists(ddns);
+    const names = await listOwnedNames(ddns, ownerWallet);
+    return res.json({ ok: true, wallet, names });
   } catch (e: any) {
     return httpError(res, 500, e?.message || "server_error");
   }
