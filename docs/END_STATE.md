@@ -98,7 +98,10 @@ Prerequisite policy:
 Anti-abuse and economic controls:
 - Hosting capacity is escrow/bond-gated per premium primary domain.
 - Bond scales with resource profile (sites, traffic, feature tier).
-- Violations (spam/malware/churn abuse/policy breaches) trigger slashing and eligibility suspension.
+- Slashing triggers are policy-driven:
+  - sustained real traffic/load that consumes shared network resources, and/or
+  - abuse signals (spam/malware/churn/policy breaches).
+- Low-traction projects should not face meaningful infra cost before real usage.
 
 Reliability model:
 - ICANN name handling remains multi-upstream recursive with confidence/fallback mechanics.
@@ -108,6 +111,7 @@ Reliability model:
 Tokenomics tie-in:
 - Defi-liquid reward eligibility for mining/hosting is premium-and-bond gated.
 - Free subdomain users still contribute privacy-safe observations and can receive limited REP/participation rewards.
+- Auto-Kubernetes + load balancing (bonded) is a roadmap tier with policy-governed slashing and eligibility controls.
 
 ## 8) End-State: Permissionless Watchdogs + Dispute-Backed Policy
 

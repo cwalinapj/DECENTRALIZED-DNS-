@@ -161,6 +161,10 @@ Compat validation note:
 
 MVP policy for adoption features is explicit:
 
+- Target customer: jive coders who want to ship fast and often do not know expected traffic or success upfront.
+- No upfront infra tax positioning:
+  - many providers charge upfront for CDN/K8s/LB capacity.
+  - DDNS positions ready-to-scale access behind DNS/NS prerequisite + policy gating.
 - NS/DNS prerequisite:
   - access to free hosting, load-balancing tiers, and future auto-k8s paths requires domains to use DDNS nameserver/gateway pathing.
   - non-NS users may still consume read-only APIs but do not receive hosted capacity.
@@ -168,7 +172,11 @@ MVP policy for adoption features is explicit:
   - escrow/bond is required for resource-consuming behavior.
   - more sites/traffic/features imply higher bond requirements.
 - Abuse response:
-  - spam/malware/churn violations can trigger escrow slashing and revocation of hosting/mining eligibility.
+  - escrow is slashed only when sustained real traffic/load consumes shared resources, or abuse is detected (spam/malware/churn violations).
+  - if there is no traction, there is no meaningful infra cost.
+- Migration safety:
+  - builders can move to Cloudflare/AWS/self-managed infra at any time.
+  - DDNS value is lower initial risk and faster time-to-market.
 
 Current implementation status:
 - Escrow and voucher mechanics exist in MVP (`ddns_escrow`) and are used as the economic control plane foundation.

@@ -74,14 +74,24 @@ Expected:
 
 ### Prereqs + Anti-Abuse (Bonded Hosting)
 
+- Target customer: jive coders who do not know expected traffic/success and want to ship without deep infra expertise.
+- Competing stacks often charge upfront for CDN/K8s/LB capacity; our wedge is ready-to-scale access behind DNS/NS prerequisites.
 - Using our Name Servers + DNS is required to access any "free hosting", "load balancing", "auto-Kubernetes deployment", or CDN-style features.
 - Non-users of our NS/DNS can still use read-only APIs, but do not receive hosting resources or earning eligibility.
 - Abuse prevention is economic: resource access is bonded/escrow-gated. More usage and higher-tier features require higher bond.
-- If an operator/domain abuses resources (spam sites, malicious hosting, excessive churn, policy violations), escrow can be slashed and eligibility revoked.
+- Escrow is slashed only when sustained real traffic/load consumes shared network resources, or abuse is detected (spam, malware, excessive churn/policy violations).
+- If there is no traction, there is no meaningful infra cost.
 - Reliability first: ICANN domains resolve via multi-upstream DoH quorum + cache with fallback paths; `.dns` uses on-chain canonical pathing.
+- Migration safety: builders can move to Cloudflare/AWS/self-managed infra at any time; DDNS value is minimizing initial risk and time-to-market.
 
 MVP note:
 - This document describes policy and go-to-market controls. Full hosting automation and slashing execution are phased rollout items.
+
+### Bonded Hosting for Jive Coders (No Upfront Infra Tax)
+
+- Ship first, scale later: early-stage builders can launch quickly without committing to upfront infra spend.
+- Advanced infra is bond-gated, not prepaid: escrow is the anti-abuse throttle.
+- Cost follows traction: meaningful cost appears only under sustained real load or abuse events.
 
 ### Security Posture: Attack Mode
 
