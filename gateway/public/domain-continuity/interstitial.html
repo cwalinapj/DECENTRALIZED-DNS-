@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TollDNS Continuity Interstitial</title>
+    <style>
+      body { margin: 0; font-family: "Segoe UI", Tahoma, sans-serif; background: #0f1725; color: #e7f0ff; }
+      .wrap { max-width: 860px; margin: 40px auto; background: #1a2538; border: 1px solid #314866; border-radius: 14px; padding: 22px; }
+      h1 { margin: 0 0 10px; font-size: 26px; color: #ffd677; }
+      .phase { margin: 0 0 16px; color: #b4c8e8; }
+      .actions { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0; }
+      .btn { display: inline-block; text-decoration: none; border-radius: 10px; padding: 10px 14px; font-weight: 600; }
+      .primary { background: #ffaf2e; color: #111; }
+      .secondary { background: #24344d; color: #d4e5ff; border: 1px solid #425e86; }
+      pre, code { background: #121c2b; border-radius: 8px; padding: 4px 6px; }
+      pre { padding: 10px; white-space: pre-wrap; word-break: break-word; }
+      .small { color: #8ea6cc; font-size: 12px; margin-top: 12px; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Domain continuity protection active</h1>
+      <p class="phase">Domain: <strong>{{domain}}</strong> · phase: <strong>{{phase}}</strong></p>
+      <p>This domain is temporarily served in safe continuity mode while renewal is outstanding.</p>
+      <div class="actions">
+        <a class="btn primary" href="{{renew_url}}">Renew now</a>
+        <a class="btn secondary" href="{{dashboard_url}}">Open continuity dashboard</a>
+      </div>
+      <p><strong>Notice token:</strong></p>
+      <pre>{{token}}</pre>
+      <p><strong>Verify endpoint:</strong> <code>{{verify_url}}</code></p>
+      <p class="small">MVP interstitial. Registry actions remain policy-constrained and registrar integration is pending.</p>
+    </div>
+  </body>
+</html>

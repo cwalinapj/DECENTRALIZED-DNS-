@@ -445,3 +445,29 @@ curl 'http://127.0.0.1:8054/v1/domain/notice?domain=example.com'
 {"domain":"example.com","phase":"A_SOFT_WARNING","token":"<base64url-token>","pubkey":"25811fa4e3a6cf109176b5e4fab1d1b21a04e5bf7c31fb1f847248dd54a91307"}
 ```
 - Result: `PASS`
+
+### 2026-02-19T09:44:30Z — PR4 Domain Continuity banner/interstitial template + HTML endpoint
+- Base commit SHA: `25c717a2ec2f441ce7ad8646c5bff87fd347b5a9`
+- Worktree: `/tmp/ddns-pr-domain-banner`
+- Commands run:
+```bash
+npm ci && npm test
+npm -C gateway test && npm -C gateway run build
+node gateway/dist/server.js & sleep 1
+curl -i 'http://127.0.0.1:8054/v1/domain/banner?domain=example.com'
+```
+- Output snippet:
+```text
+==> run_all: complete
+
+ RUN  v4.0.18 /private/tmp/ddns-pr-domain-banner/gateway
+ Test Files  12 passed (12)
+ Tests  35 passed (35)
+
+HTTP/1.1 200 OK
+Content-Type: text/html; charset=utf-8
+...
+<h1>Renewal Notice: example.com</h1>
+<p class="meta">Current continuity phase: <strong>A_SOFT_WARNING</strong></p>
+```
+- Result: `PASS`
