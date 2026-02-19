@@ -151,7 +151,11 @@ function persistJson(relPath: string, payload: unknown) {
 function loadJson(relPath: string, fallback: unknown) {
   const file = path.join(dataDir, relPath);
   if (!fs.existsSync(file)) return fallback;
-  return JSON.parse(fs.readFileSync(file, "utf8"));
+  try {
+    return JSON.parse(fs.readFileSync(file, "utf8"));
+  } catch {
+    return fallback;
+  }
 }
 
 function loadState() {

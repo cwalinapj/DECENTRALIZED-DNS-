@@ -50,3 +50,6 @@ labs/solana/target/
 **/.env.*
 !**/.env.example
 **/*wallet*.json
+
+# Test cache artifacts
+**/.cache/
