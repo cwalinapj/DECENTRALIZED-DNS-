@@ -69,6 +69,14 @@ Attack Mode is a resilience layer that makes the system degrade safely under act
 - A PR is eligible only with label `automerge-ok`, `Risk: Low`, required checklist, green CI, and passing local-equivalent checks.
 - See `MERGE_QUEUE.md`, `MERGE_GUARDRAILS.md`, and `MERGE_LOG.md`.
 
+### Compat MVP Validation (CI)
+
+CI includes a compat harness intended to validate a WordPress + control-plane stack.
+
+- MVP behavior: `scripts/validate-compat-mvp.sh` skips with exit 0 when required inputs are not present.
+- Enforced later: set `STRICT_COMPAT=1` to fail if inputs are missing.
+- Expected future inputs: `docker-compose.validation.yml`, `workers/compat-runner/`.
+
 ### How Merges Happen
 
 - Codex runs one PR at a time via `scripts/merge_prs_one_by_one.sh` in isolated worktrees.
