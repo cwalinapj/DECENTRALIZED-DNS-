@@ -24,6 +24,7 @@ This index is intentionally short and categorized.
 ## Product / Developer Positioning
 - `docs/DEVELOPER_API.md`
 - `docs/WHY_DEVS_USE_THIS.md`
+- `docs/DOMAIN_CONTINUITY.md`
 - `docs/openapi.yaml`
 
 ## Adapters / Integrations

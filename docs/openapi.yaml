@@ -139,6 +139,69 @@ paths:
             application/json:
               schema:
                 type: object
+  /v1/domain/status:
+    get:
+      summary: Domain continuity status
+      parameters:
+        - in: query
+          name: domain
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Domain continuity status snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DomainContinuityStatusResponse'
+  /v1/domain/verify:
+    post:
+      summary: Start domain control verification for continuity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DomainVerifyRequest'
+      responses:
+        '200':
+          description: Verification challenge details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DomainVerifyResponse'
+  /v1/domain/renew:
+    post:
+      summary: Request domain renewal (payment abstraction; optional credit usage)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DomainRenewRequest'
+      responses:
+        '200':
+          description: Renewal request result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DomainRenewResponse'
+  /v1/domain/continuity/claim:
+    post:
+      summary: Claim continuity protection enrollment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DomainContinuityClaimRequest'
+      responses:
+        '200':
+          description: Continuity claim result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DomainContinuityClaimResponse'
 components:
   schemas:
     ResolveAnswer:
@@ -163,3 +226,92 @@ components:
           type: string
           enum: [high, medium, low]
         rrset_hash: { type: string }
+    DomainContinuityPhase:
+      type: string
+      enum: [A_SOFT_WARNING, B_HARD_WARNING, C_SAFE_PARKED, D_REGISTRY_FINALIZATION]
+    DomainContinuityStatusResponse:
+      type: object
+      properties:
+        domain: { type: string }
+        eligible: { type: boolean }
+        phase:
+          $ref: '#/components/schemas/DomainContinuityPhase'
+        reason_codes:
+          type: array
+          items: { type: string }
+        next_steps:
+          type: array
+          items: { type: string }
+        credits_balance: { type: number }
+        credits_applied_estimate: { type: number }
+        renewal_due_date:
+          type: string
+          format: date-time
+        grace_expires_at:
+          type: string
+          format: date-time
+        policy_version: { type: string }
+        notice_signature: { type: string }
+    DomainVerifyRequest:
+      type: object
+      required: [domain]
+      properties:
+        domain: { type: string }
+    DomainVerifyResponse:
+      type: object
+      properties:
+        domain: { type: string }
+        verification_method:
+          type: string
+          enum: [dns_txt, account_token, signer_proof]
+        txt_record_name: { type: string }
+        txt_record_value: { type: string }
+        verification_token: { type: string }
+        expires_at:
+          type: string
+          format: date-time
+        policy_version: { type: string }
+    DomainRenewRequest:
+      type: object
+      required: [domain]
+      properties:
+        domain: { type: string }
+        use_credits: { type: boolean, default: true }
+    DomainRenewResponse:
+      type: object
+      properties:
+        domain: { type: string }
+        accepted: { type: boolean }
+        reason_codes:
+          type: array
+          items: { type: string }
+        credits_applied_estimate: { type: number }
+        renewal_due_date:
+          type: string
+          format: date-time
+        grace_expires_at:
+          type: string
+          format: date-time
+        policy_version: { type: string }
+        notice_signature: { type: string }
+    DomainContinuityClaimRequest:
+      type: object
+      required: [domain]
+      properties:
+        domain: { type: string }
+    DomainContinuityClaimResponse:
+      type: object
+      properties:
+        domain: { type: string }
+        accepted: { type: boolean }
+        eligible: { type: boolean }
+        phase:
+          $ref: '#/components/schemas/DomainContinuityPhase'
+        reason_codes:
+          type: array
+          items: { type: string }
+        next_steps:
+          type: array
+          items: { type: string }
+        policy_version: { type: string }
+        notice_signature: { type: string }
