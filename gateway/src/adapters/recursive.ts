@@ -56,7 +56,7 @@ type CacheEntry = {
 };
 
 type CacheFile = {
-  version: 1;
+  version: 2;
   entries: Record<string, CacheEntry>;
 };
 
@@ -379,7 +379,7 @@ export function createRecursiveAdapter(cfg: RecursiveAdapterConfig): RecursiveAd
   const urls = cfg.upstreamDohUrls.filter(Boolean);
   if (!urls.length) throw new Error("UPSTREAM_DOH_URLS_EMPTY");
   const fetchImpl = cfg.fetchImpl || fetch;
-  const timeoutMs = Number(cfg.requestTimeoutMs ?? 5000);
+  const timeoutMs = Number(cfg.requestTimeoutMs ?? 2000);
   const cache = loadCache(cfg.cachePath);
   const inFlight = new Map<string, Promise<RecursiveResolveResult>>();
   const quorumMin = Math.max(1, Number(cfg.quorumMin ?? (urls.length >= 2 ? 2 : 1)));
@@ -392,7 +392,7 @@ export function createRecursiveAdapter(cfg: RecursiveAdapterConfig): RecursiveAd
   }
 
   function persist() {
-    const payload: CacheFile = { version: 1, entries: Object.fromEntries(cache.entries()) };
+    const payload: CacheFile = { version: 2, entries: Object.fromEntries(cache.entries()) };
     fs.mkdirSync(path.dirname(cfg.cachePath), { recursive: true });
     fs.writeFileSync(cfg.cachePath, JSON.stringify(payload, null, 2), "utf8");
   }
@@ -451,7 +451,11 @@ export function createRecursiveAdapter(cfg: RecursiveAdapterConfig): RecursiveAd
 
   async function resolveRecursive(name: string, qtype = "A"): Promise<RecursiveResolveResult> {
     const qname = normalizeNameForHash(name);
-    const q = qtype.toUpperCase() === "AAAA" ? "AAAA" : "A";
+    const upperQtype = qtype.toUpperCase();
+    if (upperQtype !== "A" && upperQtype !== "AAAA") {
+      throw new Error(`Unsupported qtype "${qtype}". Only A and AAAA are supported by the recursive adapter.`);
+    }
+    const q = upperQtype as "A" | "AAAA";
     const k = key(qname, q);
     const now = nowS();
     const existing = cache.get(k);
@@ -558,9 +562,35 @@ export function createRecursiveAdapter(cfg: RecursiveAdapterConfig): RecursiveAd
 function loadCache(cachePath: string): Map<string, CacheEntry> {
   try {
     if (!fs.existsSync(cachePath)) return new Map();
-    const parsed = JSON.parse(fs.readFileSync(cachePath, "utf8")) as CacheFile;
-    if (!parsed || parsed.version !== 1 || typeof parsed.entries !== "object") return new Map();
-    return new Map(Object.entries(parsed.entries));
+    const parsed = JSON.parse(fs.readFileSync(cachePath, "utf8")) as Partial<CacheFile> & { entries?: Record<string, Partial<CacheEntry>> };
+    if (!parsed || typeof parsed.entries !== "object" || !parsed.entries) return new Map();
+    const migrated: Array<[string, CacheEntry]> = [];
+    for (const [k, v] of Object.entries(parsed.entries)) {
+      if (!v || typeof v !== "object") continue;
+      if (typeof v.qname !== "string" || typeof v.qtype !== "string") continue;
+      const chosenUpstream =
+        v.chosenUpstream && typeof v.chosenUpstream.url === "string" && typeof v.chosenUpstream.rttMs === "number"
+          ? v.chosenUpstream
+          : { url: "unknown", rttMs: 0 };
+      migrated.push([
+        k,
+        {
+          qname: v.qname,
+          qtype: v.qtype,
+          answers: Array.isArray(v.answers) ? (v.answers as CacheEntry["answers"]) : [],
+          ttlS: Number(v.ttlS ?? 60),
+          fetchedAt: Number(v.fetchedAt ?? nowS()),
+          expiresAt: Number(v.expiresAt ?? nowS()),
+          staleUntil: Number(v.staleUntil ?? nowS()),
+          sourceStatus: v.sourceStatus === "NXDOMAIN" ? "NXDOMAIN" : "NOERROR",
+          confidence: v.confidence === "high" || v.confidence === "medium" ? v.confidence : "low",
+          rrsetHash: typeof v.rrsetHash === "string" ? v.rrsetHash : hashHex(`${v.qtype}|${v.qname}|`),
+          upstreamsUsed: Array.isArray(v.upstreamsUsed) ? (v.upstreamsUsed as UpstreamAudit[]) : [],
+          chosenUpstream
+        }
+      ]);
+    }
+    return new Map(migrated);
   } catch {
     return new Map();
   }

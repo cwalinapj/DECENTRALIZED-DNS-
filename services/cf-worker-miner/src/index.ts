@@ -89,9 +89,15 @@ async function queryOne(url: string, name: string, qtype: "A" | "AAAA", timeoutM
   }
 }
 
-function overlap(a: string[], b: string[]): boolean {
+function overlapRatio(a: string[], b: string[]): number {
+  if (!a.length || !b.length) return 0;
+  const sa = new Set(a);
   const sb = new Set(b);
-  return a.some((v) => sb.has(v));
+  let shared = 0;
+  for (const ip of sa) {
+    if (sb.has(ip)) shared++;
+  }
+  return shared / Math.max(1, Math.min(sa.size, sb.size));
 }
 
 export default {
@@ -133,9 +139,8 @@ export default {
       } else {
         const a = ok[0];
         const b = ok[1];
-        const shared = overlap(a.ips, b.ips);
-        const ratio = shared ? 1 : 0;
-        if (shared || ratio >= overlapRatio) confidence = "medium";
+        const ratio = overlapRatio(a.ips, b.ips);
+        if (ratio >= overlapRatio) confidence = "medium";
       }
     }
 
@@ -146,6 +151,7 @@ export default {
     const response = {
       name,
       type: qtype,
+      status: chosen?.status || "ERROR",
       answers: chosen?.ips || [],
       ttl_s,
       rrset_hash: chosen?.rrset_hash || "",
@@ -170,6 +176,7 @@ export default {
       }).catch(() => undefined);
     }
 
-    return Response.json(response);
+    const statusCode = response.status === "NOERROR" || response.status === "NXDOMAIN" ? 200 : 502;
+    return Response.json(response, { status: statusCode });
   }
 };

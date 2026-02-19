@@ -44,7 +44,7 @@ const STALE_MAX_S = Number(process.env.STALE_MAX_S || "1800");
 const PREFETCH_FRACTION = Number(process.env.PREFETCH_FRACTION || "0.1");
 const CACHE_MAX_ENTRIES = Number(process.env.CACHE_MAX_ENTRIES || "50000");
 const RECURSIVE_QUORUM_MIN = Number(process.env.RECURSIVE_QUORUM_MIN || "2");
-const RECURSIVE_TIMEOUT_MS = Number(process.env.RECURSIVE_TIMEOUT_MS || REQUEST_TIMEOUT_MS);
+const RECURSIVE_TIMEOUT_MS = Number(process.env.RECURSIVE_TIMEOUT_MS || "2000");
 const RECURSIVE_MAX_CONCURRENCY = Number(process.env.RECURSIVE_MAX_CONCURRENCY || "3");
 const RECURSIVE_OVERLAP_RATIO = Number(process.env.RECURSIVE_OVERLAP_RATIO || "0.34");
 const LOG_LEVEL = process.env.LOG_LEVEL || (process.env.NODE_ENV === "development" ? "verbose" : "quiet");
