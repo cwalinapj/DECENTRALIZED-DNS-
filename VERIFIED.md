@@ -379,3 +379,24 @@ npm -C packages/sdk i && npm -C packages/sdk run build
 > tsc -p tsconfig.json
 ```
 - Result: `PASS` (all commands exited 0)
+
+### 2026-02-19T08:40:05Z — Domain Continuity UI dashboard (MVP)
+- Base commit SHA: `c10cfb5`
+- Worktree: `/tmp/ddns-pr-domain-continuity-ui`
+- Commands run:
+```bash
+npm ci && npm test
+npm -C gateway test && npm -C gateway run build
+```
+- Output snippet:
+```text
+==> run_all: complete
+
+ RUN  v4.0.18 /private/tmp/ddns-pr-domain-continuity-ui/gateway
+ Test Files  10 passed (10)
+ Tests  29 passed (29)
+
+> ddns-resolver@0.1.0 build
+> tsc -p tsconfig.json
+```
+- Result: `PASS`

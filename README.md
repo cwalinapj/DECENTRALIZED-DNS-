@@ -93,6 +93,7 @@ Important: Wrangler cannot create Cloudflare accounts or bypass CAPTCHA/email ve
 - This is expiration-loss protection, not a forever hold beyond registry rules.
 
 See `docs/DOMAIN_CONTINUITY.md`.
+Domain Continuity UI: `docs/DOMAIN_CONTINUITY_UI.md`.
 
 ## Domain-owner earnings wedge (MVP accuracy)
 
