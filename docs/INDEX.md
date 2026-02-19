@@ -23,6 +23,8 @@ This index is intentionally short and categorized.
 
 ## Product / Developer Positioning
 - `docs/DEVELOPER_API.md`
+- `docs/WHY_DEVS_USE_THIS.md`
+- `docs/openapi.yaml`
 
 ## Adapters / Integrations
 - `docs/ADAPTERS.md` (ENS/SNS/PKDNS/IPFS)

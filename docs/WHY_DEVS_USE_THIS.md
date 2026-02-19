@@ -1,0 +1,9 @@
+# Why Devs Use This Instead Of Raw DNS
+
+- consistent JSON response
+- cache confidence and upstream audit
+- adapter proofs (.dns / IPFS / ENS / SNS)
+- privacy-safe observations that strengthen network reliability
+- dev monetization hooks (toll share / discounts / credits), policy controlled
+
+MVP note: monetization and incentive distribution are policy-scoped and may be partially implemented per service/program path.
