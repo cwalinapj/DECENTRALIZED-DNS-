@@ -36,16 +36,16 @@ curl 'http://localhost:8054/v1/resolve?name=example.dns&type=A'
 | `STALE_MAX_S` | `1800` | Serve expired cache for up to this many seconds only on upstream error. |
 | `PREFETCH_FRACTION` | `0.1` | Prefetch threshold: refresh when `time_left < max(5s, ttl*fraction)`. |
 | `CACHE_MAX_ENTRIES` | `50000` | Max cache keys before oldest-entry eviction. |
-| `REQUEST_TIMEOUT_MS` | `2000` | Upstream HTTP timeout. |
+| `REQUEST_TIMEOUT_MS` | `5000` | Upstream HTTP timeout. |
 | `PORT` | `8054` | Gateway HTTP port. |
 
 ## Run
 
 ```bash
-cd /Users/root1/scripts/DECENTRALIZED-DNS-/gateway
+cd gateway
 npm install
 npm run build
-PORT=8054 npm run dev
+PORT=8054 npm start
 ```
 
 ## Tests
