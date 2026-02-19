@@ -105,3 +105,26 @@ Safety behavior:
 
 - If `REGISTRAR_ENABLED=1` with missing provider secrets and `REGISTRAR_DRY_RUN=1`, endpoints return simulated provider-shaped responses.
 - If `REGISTRAR_ENABLED=1` with missing secrets and `REGISTRAR_DRY_RUN=0`, gateway startup fails with a clear configuration error.
+
+## Rate Limits and Audit Trail (MVP)
+
+Registrar and continuity paths are rate-limited in gateway with per-IP + per-domain keys:
+
+- `RATE_LIMIT_WINDOW_S` (default `60`)
+- `RATE_LIMIT_MAX_REQUESTS` (default `20`)
+
+Audit logs are written as privacy-safe JSONL:
+
+- `AUDIT_LOG_PATH` (default `gateway/.cache/audit.log.jsonl`)
+- actor identifier is an IP hash, not raw IP
+- decisions include: `dry_run`, `executed`, `blocked`, `rate_limited`
+
+## Continuity Eligibility Enforcement Knobs
+
+Continuity responses include:
+
+- `uses_ddns_ns`
+- `eligible_for_hold`
+- `eligible_for_subsidy`
+
+If a domain does not use TollDNS nameservers, continuity status is still visible, but hold/subsidy eligibility is disabled in MVP policy output.

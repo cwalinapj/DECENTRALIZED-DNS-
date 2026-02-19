@@ -5,6 +5,7 @@ import path from "node:path";
 
 const TEST_STORE_PATH = path.join(process.cwd(), "gateway/.cache/domain_status.test.json");
 const TEST_REGISTRAR_STORE_PATH = path.join(process.cwd(), "gateway/.cache/mock_registrar.test.json");
+const TEST_AUDIT_LOG_PATH = path.join(process.cwd(), "gateway/.cache/audit.test.jsonl");
 
 async function loadApp() {
   vi.resetModules();
@@ -13,6 +14,9 @@ async function loadApp() {
   process.env.REGISTRAR_ENABLED = "0";
   process.env.REGISTRAR_PROVIDER = "mock";
   process.env.REGISTRAR_DRY_RUN = "1";
+  process.env.RATE_LIMIT_WINDOW_S = "60";
+  process.env.RATE_LIMIT_MAX_REQUESTS = "200";
+  process.env.AUDIT_LOG_PATH = TEST_AUDIT_LOG_PATH;
   delete process.env.PORKBUN_API_KEY;
   delete process.env.PORKBUN_SECRET_API_KEY;
   const mod = await import("../src/server.js");
@@ -23,6 +27,7 @@ describe("domain continuity notice endpoints", () => {
   function resetStores() {
     try { fs.unlinkSync(TEST_STORE_PATH); } catch {}
     try { fs.unlinkSync(TEST_REGISTRAR_STORE_PATH); } catch {}
+    try { fs.unlinkSync(TEST_AUDIT_LOG_PATH); } catch {}
   }
 
   it("returns verification challenge and status metadata", async () => {
@@ -81,6 +86,12 @@ describe("domain continuity notice endpoints", () => {
     expect(Array.isArray(res.body.next_steps)).toBe(true);
     expect(res.body.auth_mode).toBe("stub");
     expect(typeof res.body.auth_required).toBe("boolean");
+    expect(typeof res.body.uses_ddns_ns).toBe("boolean");
+    expect(typeof res.body.eligible_for_hold).toBe("boolean");
+    expect(typeof res.body.eligible_for_subsidy).toBe("boolean");
+    expect(res.body.uses_ddns_ns).toBe(false);
+    expect(res.body.eligible_for_hold).toBe(false);
+    expect(res.body.eligible_for_subsidy).toBe(false);
   });
 
   it("supports registrar adapter endpoints backed by mock store", async () => {
@@ -133,5 +144,31 @@ describe("domain continuity notice endpoints", () => {
     expect(renewRes.body.status).toBe("insufficient_credits");
     expect(typeof renewRes.body.remaining_usd).toBe("number");
     expect(renewRes.body.remaining_usd).toBeGreaterThan(0);
+  });
+
+  it("rate limits registrar endpoints and writes audit log entries", async () => {
+    resetStores();
+    vi.resetModules();
+    process.env.DOMAIN_STATUS_STORE_PATH = TEST_STORE_PATH;
+    process.env.MOCK_REGISTRAR_STORE_PATH = TEST_REGISTRAR_STORE_PATH;
+    process.env.AUDIT_LOG_PATH = TEST_AUDIT_LOG_PATH;
+    process.env.REGISTRAR_ENABLED = "0";
+    process.env.REGISTRAR_PROVIDER = "mock";
+    process.env.REGISTRAR_DRY_RUN = "1";
+    process.env.RATE_LIMIT_WINDOW_S = "60";
+    process.env.RATE_LIMIT_MAX_REQUESTS = "2";
+    const mod = await import("../src/server.js");
+    const app = mod.createApp();
+
+    const r1 = await request(app).get("/v1/registrar/domain").query({ domain: "example.com" });
+    const r2 = await request(app).get("/v1/registrar/domain").query({ domain: "example.com" });
+    const r3 = await request(app).get("/v1/registrar/domain").query({ domain: "example.com" });
+    expect(r1.status).toBe(200);
+    expect(r2.status).toBe(200);
+    expect(r3.status).toBe(429);
+
+    const auditText = fs.readFileSync(TEST_AUDIT_LOG_PATH, "utf8");
+    expect(auditText).toContain("\"endpoint\":\"/v1/registrar/domain\"");
+    expect(auditText).toContain("\"decision\":\"rate_limited\"");
   });
 });

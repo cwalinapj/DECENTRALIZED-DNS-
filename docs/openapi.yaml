@@ -256,6 +256,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DomainRenewResponse'
+  /v1/domain/continuity:
+    get:
+      summary: Combined continuity view with registrar status and subsidy eligibility
+      parameters:
+        - in: query
+          name: domain
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Continuity state + registrar summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DomainContinuityCombinedResponse'
   /v1/domain/continuity/claim:
     post:
       summary: Claim continuity protection enrollment
@@ -456,6 +471,9 @@ components:
           items: { type: string }
         credits_balance: { type: number }
         credits_applied_estimate: { type: number }
+        uses_ddns_ns: { type: boolean }
+        eligible_for_hold: { type: boolean }
+        eligible_for_subsidy: { type: boolean }
         renewal_due_date:
           type: string
           format: date-time
@@ -540,6 +558,13 @@ components:
         auth_mode: { type: string, enum: [stub] }
         policy_version: { type: string }
         notice_signature: { type: string }
+    DomainContinuityCombinedResponse:
+      allOf:
+        - $ref: '#/components/schemas/DomainContinuityStatusResponse'
+        - type: object
+          properties:
+            registrar_status:
+              $ref: '#/components/schemas/RegistrarDomainStatus'
     DomainNoticeTokenResponse:
       type: object
       properties:
