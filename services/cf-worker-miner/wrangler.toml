@@ -1,0 +1,10 @@
+name = "ddns-cf-worker-miner"
+main = "src/index.js"
+compatibility_date = "2025-02-01"
+
+[vars]
+UPSTREAMS = "https://cloudflare-dns.com/dns-query,https://dns.google/dns-query"
+TIMEOUT_MS = "2500"
+OVERLAP_RATIO = "0.34"
+# Optional: post observations/receipts
+RECEIPT_ENDPOINT = ""

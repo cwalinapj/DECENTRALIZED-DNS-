@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DDNS Miner Onboarding</title>
+  <style>
+    body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif; margin: 2rem; max-width: 860px; }
+    pre { background: #111; color: #eee; padding: 1rem; overflow: auto; border-radius: 8px; }
+    .warn { background: #fff8e1; border: 1px solid #f3d27a; padding: 0.75rem; border-radius: 8px; }
+    button { padding: 0.6rem 1rem; cursor: pointer; }
+    li { margin: 0.45rem 0; }
+  </style>
+</head>
+<body>
+  <h1>Cloudflare Miner Onboarding (MVP)</h1>
+  <p><strong>What is a miner?</strong> A worker that resolves domains and returns quorum/confidence output compatible with DDNS gateway-style responses.</p>
+
+  <div class="warn">
+    Wrangler cannot create Cloudflare accounts or bypass CAPTCHA/email verification. You must complete browser login once.
+  </div>
+
+  <h2>Checklist</h2>
+  <ol>
+    <li>Create Cloudflare account (free).</li>
+    <li>Run <code>wrangler login</code> and complete browser auth.</li>
+    <li>Deploy worker.</li>
+    <li>Verify health + resolve endpoints.</li>
+  </ol>
+
+  <h2>Copy deploy command</h2>
+  <button id="copy">Copy deploy command</button>
+  <pre id="cmd">cd /Users/root1/scripts/ddns-cf-miner-onboarding
+npm run miner:cf:deploy</pre>
+
+  <h2>Required vars (defaults)</h2>
+  <ul>
+    <li><code>UPSTREAMS</code>: Cloudflare + Google DoH</li>
+    <li><code>TIMEOUT_MS</code>: <code>2500</code></li>
+    <li><code>OVERLAP_RATIO</code>: <code>0.34</code></li>
+    <li><code>RECEIPT_ENDPOINT</code>: optional</li>
+  </ul>
+
+  <h2>After deploy tests</h2>
+  <pre>curl '&lt;WORKER_URL&gt;/v1/health'
+curl '&lt;WORKER_URL&gt;/resolve?name=netflix.com&type=A'</pre>
+
+  <h2>Common errors</h2>
+  <ul>
+    <li><code>wrangler: command not found</code> → run npm install in <code>services/cf-worker-miner</code>.</li>
+    <li>auth error → run <code>npx wrangler login</code>.</li>
+    <li>permission error → ensure account has Workers deploy permission.</li>
+  </ul>
+
+  <script>
+    document.getElementById('copy').addEventListener('click', async () => {
+      const text = document.getElementById('cmd').innerText;
+      await navigator.clipboard.writeText(text);
+      alert('Copied deploy command');
+    });
+  </script>
+</body>
+</html>

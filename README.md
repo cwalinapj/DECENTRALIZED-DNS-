@@ -7,6 +7,16 @@ Repo: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 
 ## Start Here (MVP)
 
+## Become a Miner (Cloudflare Worker)
+
+- Quickstart: `docs/MINER_QUICKSTART_CF.md`
+- Onboarding page: `docs/miner-onboard/index.html`
+- One-command deploy after login:
+  - `npm run miner:cf:deploy`
+- Local worker dev:
+  - `npm run miner:cf:dev`
+
+
 - What exists today (MVP): `docs/MVP.md`
 - Adoption wedge (why this gets used): `docs/ADOPTION.md`
 - Mass adoption roadmap (Web2-first): `docs/MASS_ADOPTION_ROADMAP.md`
