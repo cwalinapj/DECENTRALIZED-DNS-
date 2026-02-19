@@ -6,7 +6,8 @@
   "scripts": {
     "test": "bash tests/run_all.sh",
     "miner:cf:deploy": "cd services/cf-worker-miner && npm i && npx wrangler deploy",
-    "miner:cf:dev": "cd services/cf-worker-miner && npm i && npx wrangler dev"
+    "miner:cf:dev": "cd services/cf-worker-miner && npm i && npx wrangler dev",
+    "mvp:demo:devnet": "bash scripts/devnet_happy_path.sh"
   },
   "dependencies": {
     "@noble/ed25519": "^2.1.0",
