@@ -625,148 +625,164 @@ export function createApp() {
   });
 
   app.get("/v1/registrar/quote", async (req, res) => {
-    const domain = typeof req.query.domain === "string" ? req.query.domain : "";
-    if (!domain) return res.status(400).json({ error: "missing_domain" });
-    if (enforceRateLimit(req, "registrar_quote", domain)) {
-      auditEvent(req, { endpoint: "/v1/registrar/quote", domain, decision: "rate_limited" });
-      return res.status(429).json({ error: "rate_limited" });
-    }
-    const quote = await registrarAdapter.getRenewalQuote(domain);
-    auditEvent(req, {
-      endpoint: "/v1/registrar/quote",
-      domain,
-      decision: registrarRuntime.dryRun ? "dry_run" : "executed"
-    });
-    return res.json({
-      domain: normalizeDomainInput(domain),
-      ...quote,
-      registrar_enabled: registrarRuntime.enabled,
-      provider: registrarRuntime.provider,
-      dry_run: registrarRuntime.dryRun
-    });
-  });
-
-  app.post("/v1/registrar/renew", express.json(), async (req, res) => {
-    const domain = typeof req.body?.domain === "string" ? req.body.domain : "";
-    if (!domain) return res.status(400).json({ error: "missing_domain" });
-    if (enforceRateLimit(req, "registrar_renew", domain)) {
-      auditEvent(req, { endpoint: "/v1/registrar/renew", domain, decision: "rate_limited" });
-      return res.status(429).json({ error: "rate_limited" });
-    }
-    const years = Number(req.body?.years || 1);
-    const quote = await registrarAdapter.getRenewalQuote(domain);
-    const domainInfo = await registrarAdapter.getDomain(domain);
-    const credits = Number(domainInfo.credits_balance || 0);
-    const requiredCredits = Math.ceil(Number(quote.price_usd || 0) * 10);
-    const coveredCredits = Math.min(requiredCredits, credits);
-    if (requiredCredits > coveredCredits) {
-      auditEvent(req, { endpoint: "/v1/registrar/renew", domain, decision: "blocked" });
+    try {
+      const domain = typeof req.query.domain === "string" ? req.query.domain : "";
+      if (!domain) return res.status(400).json({ error: "missing_domain" });
+      if (enforceRateLimit(req, "registrar_quote", domain)) {
+        auditEvent(req, { endpoint: "/v1/registrar/quote", domain, decision: "rate_limited" });
+        return res.status(429).json({ error: "rate_limited" });
+      }
+      const quote = await registrarAdapter.getRenewalQuote(domain);
+      auditEvent(req, {
+        endpoint: "/v1/registrar/quote",
+        domain,
+        decision: registrarRuntime.dryRun ? "dry_run" : "executed"
+      });
       return res.json({
         domain: normalizeDomainInput(domain),
-        years,
-        status: "insufficient_credits",
-        required_usd: Number(quote.price_usd || 0),
-        covered_usd: Number((coveredCredits / 10).toFixed(2)),
-        remaining_usd: Number(((requiredCredits - coveredCredits) / 10).toFixed(2)),
-        instruction: "Add continuity credits or fallback to registrar payment flow",
+        ...quote,
         registrar_enabled: registrarRuntime.enabled,
         provider: registrarRuntime.provider,
         dry_run: registrarRuntime.dryRun
       });
+    } catch (err: any) {
+      return res.status(500).json({ error: String(err?.message || err) });
     }
-    const result = await registrarAdapter.renewDomain(domain, years, {
-      use_credits: true,
-      credits_amount: coveredCredits,
-      payment_method: "credits"
-    });
-    auditEvent(req, {
-      endpoint: "/v1/registrar/renew",
-      domain,
-      decision: registrarRuntime.dryRun ? "dry_run" : "executed",
-      provider_ref: result.provider_ref
-    });
-    return res.json({
-      domain: normalizeDomainInput(domain),
-      years,
-      ...result,
-      status: result.submitted ? "submitted" : "failed",
-      required_usd: Number(quote.price_usd || 0),
-      covered_usd: Number((coveredCredits / 10).toFixed(2)),
-      remaining_usd: 0,
-      registrar_enabled: registrarRuntime.enabled,
-      provider: registrarRuntime.provider,
-      dry_run: registrarRuntime.dryRun
-    });
+  });
+
+  app.post("/v1/registrar/renew", express.json(), async (req, res) => {
+    try {
+      const domain = typeof req.body?.domain === "string" ? req.body.domain : "";
+      if (!domain) return res.status(400).json({ error: "missing_domain" });
+      if (enforceRateLimit(req, "registrar_renew", domain)) {
+        auditEvent(req, { endpoint: "/v1/registrar/renew", domain, decision: "rate_limited" });
+        return res.status(429).json({ error: "rate_limited" });
+      }
+      const years = Number(req.body?.years || 1);
+      const quote = await registrarAdapter.getRenewalQuote(domain);
+      const domainInfo = await registrarAdapter.getDomain(domain);
+      const credits = Number(domainInfo.credits_balance || 0);
+      const requiredCredits = Math.ceil(Number(quote.price_usd || 0) * 10);
+      const coveredCredits = Math.min(requiredCredits, credits);
+      if (requiredCredits > coveredCredits) {
+        auditEvent(req, { endpoint: "/v1/registrar/renew", domain, decision: "blocked" });
+        return res.json({
+          domain: normalizeDomainInput(domain),
+          years,
+          status: "insufficient_credits",
+          required_usd: Number(quote.price_usd || 0),
+          covered_usd: Number((coveredCredits / 10).toFixed(2)),
+          remaining_usd: Number(((requiredCredits - coveredCredits) / 10).toFixed(2)),
+          instruction: "Add continuity credits or fallback to registrar payment flow",
+          registrar_enabled: registrarRuntime.enabled,
+          provider: registrarRuntime.provider,
+          dry_run: registrarRuntime.dryRun
+        });
+      }
+      const result = await registrarAdapter.renewDomain(domain, years, {
+        use_credits: true,
+        credits_amount: coveredCredits,
+        payment_method: "credits"
+      });
+      auditEvent(req, {
+        endpoint: "/v1/registrar/renew",
+        domain,
+        decision: registrarRuntime.dryRun ? "dry_run" : "executed",
+        provider_ref: result.provider_ref
+      });
+      return res.json({
+        domain: normalizeDomainInput(domain),
+        years,
+        ...result,
+        status: result.submitted ? "submitted" : "failed",
+        required_usd: Number(quote.price_usd || 0),
+        covered_usd: Number((coveredCredits / 10).toFixed(2)),
+        remaining_usd: 0,
+        registrar_enabled: registrarRuntime.enabled,
+        provider: registrarRuntime.provider,
+        dry_run: registrarRuntime.dryRun
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: String(err?.message || err) });
+    }
   });
 
   app.post("/v1/registrar/ns", express.json(), async (req, res) => {
-    const domain = typeof req.body?.domain === "string" ? req.body.domain : "";
-    const ns = Array.isArray(req.body?.ns) ? req.body.ns : [];
-    if (!domain) return res.status(400).json({ error: "missing_domain" });
-    if (enforceRateLimit(req, "registrar_ns", domain)) {
-      auditEvent(req, { endpoint: "/v1/registrar/ns", domain, decision: "rate_limited" });
-      return res.status(429).json({ error: "rate_limited" });
+    try {
+      const domain = typeof req.body?.domain === "string" ? req.body.domain : "";
+      const ns = Array.isArray(req.body?.ns) ? req.body.ns : [];
+      if (!domain) return res.status(400).json({ error: "missing_domain" });
+      if (enforceRateLimit(req, "registrar_ns", domain)) {
+        auditEvent(req, { endpoint: "/v1/registrar/ns", domain, decision: "rate_limited" });
+        return res.status(429).json({ error: "rate_limited" });
+      }
+      const result = await registrarAdapter.setNameServers(domain, ns);
+      auditEvent(req, {
+        endpoint: "/v1/registrar/ns",
+        domain,
+        decision: registrarRuntime.dryRun ? "dry_run" : "executed",
+        provider_ref: result.provider_ref
+      });
+      return res.json({
+        domain: normalizeDomainInput(domain),
+        ns,
+        ...result,
+        registrar_enabled: registrarRuntime.enabled,
+        provider: registrarRuntime.provider,
+        dry_run: registrarRuntime.dryRun
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: String(err?.message || err) });
     }
-    const result = await registrarAdapter.setNameServers(domain, ns);
-    auditEvent(req, {
-      endpoint: "/v1/registrar/ns",
-      domain,
-      decision: registrarRuntime.dryRun ? "dry_run" : "executed",
-      provider_ref: result.provider_ref
-    });
-    return res.json({
-      domain: normalizeDomainInput(domain),
-      ns,
-      ...result,
-      registrar_enabled: registrarRuntime.enabled,
-      provider: registrarRuntime.provider,
-      dry_run: registrarRuntime.dryRun
-    });
   });
 
   app.get("/v1/domain/status", async (req, res) => {
-    const domain = typeof req.query.domain === "string" ? req.query.domain : "";
-    if (!domain) return res.status(400).json({ error: "missing_domain" });
-    if (enforceRateLimit(req, "domain_status", domain)) {
-      auditEvent(req, { endpoint: "/v1/domain/status", domain, decision: "rate_limited" });
-      return res.status(429).json({ error: "rate_limited" });
-    }
-    const ownerPubkey = typeof req.header("X-Owner-Pubkey") === "string" ? req.header("X-Owner-Pubkey") : "";
-    const existing = domainStatusStore.get(domain);
-    const registrarDomain = await registrarAdapter.getDomain(domain);
-    const status = await continuityStatusFromSources(domain, {
-      nsStatus: existing?.inputs?.ns_status ?? registrarDomain.ns.some((entry) => entry.endsWith("tolldns.io")),
-      verifiedControl: existing?.inputs?.verified_control ?? false,
-      trafficSignal: existing?.inputs?.traffic_signal ?? registrarDomain.traffic_signal ?? "none",
-      renewalDueDate: existing?.inputs?.renewal_due_date || registrarDomain.renewal_due_date || undefined,
-      lastSeenAt: existing?.inputs?.last_seen_at || undefined,
-      abuseFlag: existing?.inputs?.abuse_flag ?? false,
-      claimRequested: existing?.claim_requested ?? false,
-      creditsBalance: registrarDomain.credits_balance
-    });
-    const persisted = domainStatusStore.upsert(domain, (current) => ({
-      domain: normalizeDomainInput(domain),
-      ...current,
-      status,
-      inputs: {
+    try {
+      const domain = typeof req.query.domain === "string" ? req.query.domain : "";
+      if (!domain) return res.status(400).json({ error: "missing_domain" });
+      if (enforceRateLimit(req, "domain_status", domain)) {
+        auditEvent(req, { endpoint: "/v1/domain/status", domain, decision: "rate_limited" });
+        return res.status(429).json({ error: "rate_limited" });
+      }
+      const ownerPubkey = typeof req.header("X-Owner-Pubkey") === "string" ? req.header("X-Owner-Pubkey") : "";
+      const existing = domainStatusStore.get(domain);
+      const registrarDomain = await registrarAdapter.getDomain(domain);
+      const status = await continuityStatusFromSources(domain, {
+        nsStatus: existing?.inputs?.ns_status ?? registrarDomain.ns.some((entry) => entry.endsWith("tolldns.io")),
+        verifiedControl: existing?.inputs?.verified_control ?? false,
+        trafficSignal: existing?.inputs?.traffic_signal ?? registrarDomain.traffic_signal ?? "none",
+        renewalDueDate: existing?.inputs?.renewal_due_date || registrarDomain.renewal_due_date || undefined,
+        lastSeenAt: existing?.inputs?.last_seen_at || undefined,
+        abuseFlag: existing?.inputs?.abuse_flag ?? false,
+        claimRequested: existing?.claim_requested ?? false,
+        creditsBalance: registrarDomain.credits_balance
+      });
+      const persisted = domainStatusStore.upsert(domain, (current) => ({
         domain: normalizeDomainInput(domain),
-        ns_status: existing?.inputs?.ns_status ?? registrarDomain.ns.some((entry) => entry.endsWith("tolldns.io")),
-        verified_control: existing?.inputs?.verified_control ?? false,
-        traffic_signal: existing?.inputs?.traffic_signal ?? registrarDomain.traffic_signal ?? "none",
-        renewal_due_date: existing?.inputs?.renewal_due_date || registrarDomain.renewal_due_date || status.renewal_due_date,
-        last_seen_at: new Date().toISOString(),
-        abuse_flag: existing?.inputs?.abuse_flag ?? false
-      },
-      last_updated_at: new Date().toISOString()
-    }));
-    auditEvent(req, { endpoint: "/v1/domain/status", domain, decision: "executed" });
-    return res.json({
-      ...status,
-      txt_record_name: persisted.challenge?.txt_record_name || null,
-      txt_record_value: persisted.challenge?.txt_record_value || null,
-      owner_pubkey: ownerPubkey || null,
-      notice_signature: "mvp-local-policy"
-    });
+        ...current,
+        status,
+        inputs: {
+          domain: normalizeDomainInput(domain),
+          ns_status: existing?.inputs?.ns_status ?? registrarDomain.ns.some((entry) => entry.endsWith("tolldns.io")),
+          verified_control: existing?.inputs?.verified_control ?? false,
+          traffic_signal: existing?.inputs?.traffic_signal ?? registrarDomain.traffic_signal ?? "none",
+          renewal_due_date: existing?.inputs?.renewal_due_date || registrarDomain.renewal_due_date || status.renewal_due_date,
+          last_seen_at: new Date().toISOString(),
+          abuse_flag: existing?.inputs?.abuse_flag ?? false
+        },
+        last_updated_at: new Date().toISOString()
+      }));
+      auditEvent(req, { endpoint: "/v1/domain/status", domain, decision: "executed" });
+      return res.json({
+        ...status,
+        txt_record_name: persisted.challenge?.txt_record_name || null,
+        txt_record_value: persisted.challenge?.txt_record_value || null,
+        owner_pubkey: ownerPubkey || null,
+        notice_signature: "mvp-local-policy"
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: String(err?.message || err) });
+    }
   });
 
   app.post("/v1/domain/verify", express.json(), (req, res) => {
@@ -788,211 +804,235 @@ export function createApp() {
   });
 
   app.post("/v1/domain/renew", express.json(), async (req, res) => {
-    const domain = typeof req.body?.domain === "string" ? req.body.domain : "";
-    if (!domain) return res.status(400).json({ error: "missing_domain" });
-    if (enforceRateLimit(req, "domain_renew", domain)) {
-      auditEvent(req, { endpoint: "/v1/domain/renew", domain, decision: "rate_limited" });
-      return res.status(429).json({ error: "rate_limited" });
+    try {
+      const domain = typeof req.body?.domain === "string" ? req.body.domain : "";
+      if (!domain) return res.status(400).json({ error: "missing_domain" });
+      if (enforceRateLimit(req, "domain_renew", domain)) {
+        auditEvent(req, { endpoint: "/v1/domain/renew", domain, decision: "rate_limited" });
+        return res.status(429).json({ error: "rate_limited" });
+      }
+      const useCredits = req.body?.use_credits !== false;
+      const years = Number(req.body?.years || 1);
+      const renewal = await registrarAdapter.renewDomain(domain, years, { use_credits: useCredits });
+      const existing = domainStatusStore.get(domain);
+      const registrarDomain = await registrarAdapter.getDomain(domain);
+      const status = await continuityStatusFromSources(domain, {
+        nsStatus: existing?.inputs?.ns_status ?? registrarDomain.ns.some((entry) => entry.endsWith("tolldns.io")),
+        verifiedControl: existing?.inputs?.verified_control ?? false,
+        trafficSignal: existing?.inputs?.traffic_signal ?? registrarDomain.traffic_signal ?? "none",
+        renewalDueDate: existing?.inputs?.renewal_due_date || registrarDomain.renewal_due_date || undefined,
+        lastSeenAt: existing?.inputs?.last_seen_at || undefined,
+        abuseFlag: existing?.inputs?.abuse_flag ?? false,
+        claimRequested: existing?.claim_requested ?? false,
+        creditsBalance: registrarDomain.credits_balance
+      });
+      domainStatusStore.upsert(domain, (current) => ({
+        domain: normalizeDomainInput(domain),
+        ...current,
+        status,
+        last_updated_at: new Date().toISOString()
+      }));
+      auditEvent(req, {
+        endpoint: "/v1/domain/renew",
+        domain,
+        decision: renewal.submitted ? (registrarRuntime.dryRun ? "dry_run" : "executed") : "blocked",
+        provider_ref: renewal.provider_ref
+      });
+      return res.json({
+        domain: status.domain,
+        accepted: renewal.submitted,
+        message: renewal.submitted ? "submitted_to_mock_registrar" : "stubbed: pending integration",
+        reason_codes: renewal.errors,
+        credits_applied_estimate: useCredits ? status.credits_applied_estimate : 0,
+        renewal_due_date: status.renewal_due_date,
+        grace_expires_at: status.grace_expires_at,
+        auth_required: false,
+        auth_mode: "stub",
+        policy_version: DOMAIN_CONTINUITY_POLICY_VERSION,
+        notice_signature: "mvp-local-policy"
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: String(err?.message || err) });
     }
-    const useCredits = req.body?.use_credits !== false;
-    const years = Number(req.body?.years || 1);
-    const renewal = await registrarAdapter.renewDomain(domain, years, { use_credits: useCredits });
-    const existing = domainStatusStore.get(domain);
-    const registrarDomain = await registrarAdapter.getDomain(domain);
-    const status = await continuityStatusFromSources(domain, {
-      nsStatus: existing?.inputs?.ns_status ?? registrarDomain.ns.some((entry) => entry.endsWith("tolldns.io")),
-      verifiedControl: existing?.inputs?.verified_control ?? false,
-      trafficSignal: existing?.inputs?.traffic_signal ?? registrarDomain.traffic_signal ?? "none",
-      renewalDueDate: existing?.inputs?.renewal_due_date || registrarDomain.renewal_due_date || undefined,
-      lastSeenAt: existing?.inputs?.last_seen_at || undefined,
-      abuseFlag: existing?.inputs?.abuse_flag ?? false,
-      claimRequested: existing?.claim_requested ?? false,
-      creditsBalance: registrarDomain.credits_balance
-    });
-    domainStatusStore.upsert(domain, (current) => ({
-      domain: normalizeDomainInput(domain),
-      ...current,
-      status,
-      last_updated_at: new Date().toISOString()
-    }));
-    auditEvent(req, {
-      endpoint: "/v1/domain/renew",
-      domain,
-      decision: renewal.submitted ? (registrarRuntime.dryRun ? "dry_run" : "executed") : "blocked",
-      provider_ref: renewal.provider_ref
-    });
-    return res.json({
-      domain: status.domain,
-      accepted: renewal.submitted,
-      message: renewal.submitted ? "submitted_to_mock_registrar" : "stubbed: pending integration",
-      reason_codes: renewal.errors,
-      credits_applied_estimate: useCredits ? status.credits_applied_estimate : 0,
-      renewal_due_date: status.renewal_due_date,
-      grace_expires_at: status.grace_expires_at,
-      auth_required: false,
-      auth_mode: "stub",
-      policy_version: DOMAIN_CONTINUITY_POLICY_VERSION,
-      notice_signature: "mvp-local-policy"
-    });
   });
 
   app.get("/v1/domain/continuity", async (req, res) => {
-    const domain = typeof req.query.domain === "string" ? req.query.domain : "";
-    if (!domain) return res.status(400).json({ error: "missing_domain" });
-    if (enforceRateLimit(req, "domain_continuity", domain)) {
-      auditEvent(req, { endpoint: "/v1/domain/continuity", domain, decision: "rate_limited" });
-      return res.status(429).json({ error: "rate_limited" });
+    try {
+      const domain = typeof req.query.domain === "string" ? req.query.domain : "";
+      if (!domain) return res.status(400).json({ error: "missing_domain" });
+      if (enforceRateLimit(req, "domain_continuity", domain)) {
+        auditEvent(req, { endpoint: "/v1/domain/continuity", domain, decision: "rate_limited" });
+        return res.status(429).json({ error: "rate_limited" });
+      }
+      const existing = domainStatusStore.get(domain);
+      const registrarDomain = await registrarAdapter.getDomain(domain);
+      const status = await continuityStatusFromSources(domain, {
+        nsStatus: existing?.inputs?.ns_status ?? registrarDomain.ns.some((entry) => entry.endsWith("tolldns.io")),
+        verifiedControl: existing?.inputs?.verified_control ?? false,
+        trafficSignal: existing?.inputs?.traffic_signal ?? registrarDomain.traffic_signal ?? "none",
+        renewalDueDate: existing?.inputs?.renewal_due_date || registrarDomain.renewal_due_date || undefined,
+        lastSeenAt: existing?.inputs?.last_seen_at || undefined,
+        abuseFlag: existing?.inputs?.abuse_flag ?? false,
+        claimRequested: existing?.claim_requested ?? false,
+        creditsBalance: registrarDomain.credits_balance
+      });
+      auditEvent(req, { endpoint: "/v1/domain/continuity", domain, decision: "executed" });
+      return res.json({
+        ...status,
+        registrar_status: registrarDomain.status
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: String(err?.message || err) });
     }
-    const existing = domainStatusStore.get(domain);
-    const registrarDomain = await registrarAdapter.getDomain(domain);
-    const status = await continuityStatusFromSources(domain, {
-      nsStatus: existing?.inputs?.ns_status ?? registrarDomain.ns.some((entry) => entry.endsWith("tolldns.io")),
-      verifiedControl: existing?.inputs?.verified_control ?? false,
-      trafficSignal: existing?.inputs?.traffic_signal ?? registrarDomain.traffic_signal ?? "none",
-      renewalDueDate: existing?.inputs?.renewal_due_date || registrarDomain.renewal_due_date || undefined,
-      lastSeenAt: existing?.inputs?.last_seen_at || undefined,
-      abuseFlag: existing?.inputs?.abuse_flag ?? false,
-      claimRequested: existing?.claim_requested ?? false,
-      creditsBalance: registrarDomain.credits_balance
-    });
-    auditEvent(req, { endpoint: "/v1/domain/continuity", domain, decision: "executed" });
-    return res.json({
-      ...status,
-      registrar_status: registrarDomain.status
-    });
   });
 
   app.post("/v1/domain/continuity/claim", express.json(), async (req, res) => {
-    const domain = typeof req.body?.domain === "string" ? req.body.domain : "";
-    if (!domain) return res.status(400).json({ error: "missing_domain" });
-    if (enforceRateLimit(req, "domain_continuity_claim", domain)) {
-      auditEvent(req, { endpoint: "/v1/domain/continuity/claim", domain, decision: "rate_limited" });
-      return res.status(429).json({ error: "rate_limited" });
+    try {
+      const domain = typeof req.body?.domain === "string" ? req.body.domain : "";
+      if (!domain) return res.status(400).json({ error: "missing_domain" });
+      if (enforceRateLimit(req, "domain_continuity_claim", domain)) {
+        auditEvent(req, { endpoint: "/v1/domain/continuity/claim", domain, decision: "rate_limited" });
+        return res.status(429).json({ error: "rate_limited" });
+      }
+      const existing = domainStatusStore.get(domain);
+      const registrarDomain = await registrarAdapter.getDomain(domain);
+      const status = await continuityStatusFromSources(domain, {
+        nsStatus: existing?.inputs?.ns_status ?? registrarDomain.ns.some((entry) => entry.endsWith("tolldns.io")),
+        verifiedControl: existing?.inputs?.verified_control ?? false,
+        trafficSignal: existing?.inputs?.traffic_signal ?? registrarDomain.traffic_signal ?? "none",
+        renewalDueDate: existing?.inputs?.renewal_due_date || registrarDomain.renewal_due_date || undefined,
+        lastSeenAt: existing?.inputs?.last_seen_at || undefined,
+        abuseFlag: existing?.inputs?.abuse_flag ?? false,
+        claimRequested: true,
+        creditsBalance: registrarDomain.credits_balance
+      });
+      domainStatusStore.upsert(domain, (current) => ({
+        domain: normalizeDomainInput(domain),
+        ...current,
+        claim_requested: true,
+        claim_requested_at: new Date().toISOString(),
+        status,
+        last_updated_at: new Date().toISOString()
+      }));
+      auditEvent(req, {
+        endpoint: "/v1/domain/continuity/claim",
+        domain,
+        decision: status.eligible ? "executed" : "blocked"
+      });
+      return res.json({
+        domain: status.domain,
+        accepted: status.eligible,
+        eligible: status.eligible,
+        phase: status.phase,
+        reason_codes: status.reason_codes,
+        next_steps: status.next_steps,
+        auth_required: false,
+        auth_mode: "stub",
+        policy_version: DOMAIN_CONTINUITY_POLICY_VERSION,
+        notice_signature: "mvp-local-policy"
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: String(err?.message || err) });
     }
-    const existing = domainStatusStore.get(domain);
-    const registrarDomain = await registrarAdapter.getDomain(domain);
-    const status = await continuityStatusFromSources(domain, {
-      nsStatus: existing?.inputs?.ns_status ?? registrarDomain.ns.some((entry) => entry.endsWith("tolldns.io")),
-      verifiedControl: existing?.inputs?.verified_control ?? false,
-      trafficSignal: existing?.inputs?.traffic_signal ?? registrarDomain.traffic_signal ?? "none",
-      renewalDueDate: existing?.inputs?.renewal_due_date || registrarDomain.renewal_due_date || undefined,
-      lastSeenAt: existing?.inputs?.last_seen_at || undefined,
-      abuseFlag: existing?.inputs?.abuse_flag ?? false,
-      claimRequested: true,
-      creditsBalance: registrarDomain.credits_balance
-    });
-    domainStatusStore.upsert(domain, (current) => ({
-      domain: normalizeDomainInput(domain),
-      ...current,
-      claim_requested: true,
-      claim_requested_at: new Date().toISOString(),
-      status,
-      last_updated_at: new Date().toISOString()
-    }));
-    auditEvent(req, {
-      endpoint: "/v1/domain/continuity/claim",
-      domain,
-      decision: status.eligible ? "executed" : "blocked"
-    });
-    return res.json({
-      domain: status.domain,
-      accepted: status.eligible,
-      eligible: status.eligible,
-      phase: status.phase,
-      reason_codes: status.reason_codes,
-      next_steps: status.next_steps,
-      auth_required: false,
-      auth_mode: "stub",
-      policy_version: DOMAIN_CONTINUITY_POLICY_VERSION,
-      notice_signature: "mvp-local-policy"
-    });
   });
 
   app.get("/v1/domain/notice", async (req, res) => {
-    const domain = typeof req.query.domain === "string" ? req.query.domain : "";
-    if (!domain) return res.status(400).json({ error: "missing_domain" });
-    const existing = domainStatusStore.get(domain);
-    const registrarDomain = await registrarAdapter.getDomain(domain);
-    const status = await continuityStatusFromSources(domain, {
-      nsStatus: existing?.inputs?.ns_status ?? registrarDomain.ns.some((entry) => entry.endsWith("tolldns.io")),
-      verifiedControl: existing?.inputs?.verified_control ?? false,
-      trafficSignal: existing?.inputs?.traffic_signal ?? registrarDomain.traffic_signal ?? "none",
-      renewalDueDate: existing?.inputs?.renewal_due_date || registrarDomain.renewal_due_date || undefined,
-      lastSeenAt: existing?.inputs?.last_seen_at || undefined,
-      abuseFlag: existing?.inputs?.abuse_flag ?? false,
-      claimRequested: existing?.claim_requested ?? false,
-      creditsBalance: registrarDomain.credits_balance
-    });
-    const now = new Date();
-    const { token, pubkey } = await createNoticeToken({
-      domain: status.domain,
-      phase: status.phase,
-      issued_at: now.toISOString(),
-      expires_at: new Date(now.getTime() + 1000 * 60 * 15).toISOString(),
-      reason_codes: status.reason_codes,
-      policy_version: DOMAIN_CONTINUITY_POLICY_VERSION,
-      nonce: crypto.randomBytes(8).toString("hex")
-    });
-    return res.json({ domain: status.domain, phase: status.phase, token, pubkey });
+    try {
+      const domain = typeof req.query.domain === "string" ? req.query.domain : "";
+      if (!domain) return res.status(400).json({ error: "missing_domain" });
+      const existing = domainStatusStore.get(domain);
+      const registrarDomain = await registrarAdapter.getDomain(domain);
+      const status = await continuityStatusFromSources(domain, {
+        nsStatus: existing?.inputs?.ns_status ?? registrarDomain.ns.some((entry) => entry.endsWith("tolldns.io")),
+        verifiedControl: existing?.inputs?.verified_control ?? false,
+        trafficSignal: existing?.inputs?.traffic_signal ?? registrarDomain.traffic_signal ?? "none",
+        renewalDueDate: existing?.inputs?.renewal_due_date || registrarDomain.renewal_due_date || undefined,
+        lastSeenAt: existing?.inputs?.last_seen_at || undefined,
+        abuseFlag: existing?.inputs?.abuse_flag ?? false,
+        claimRequested: existing?.claim_requested ?? false,
+        creditsBalance: registrarDomain.credits_balance
+      });
+      const now = new Date();
+      const { token, pubkey } = await createNoticeToken({
+        domain: status.domain,
+        phase: status.phase,
+        issued_at: now.toISOString(),
+        expires_at: new Date(now.getTime() + 1000 * 60 * 15).toISOString(),
+        reason_codes: status.reason_codes,
+        policy_version: DOMAIN_CONTINUITY_POLICY_VERSION,
+        nonce: crypto.randomBytes(8).toString("hex")
+      });
+      return res.json({ domain: status.domain, phase: status.phase, token, pubkey });
+    } catch (err: any) {
+      return res.status(500).json({ error: String(err?.message || err) });
+    }
   });
 
   app.post("/v1/domain/notice/verify", express.json(), async (req, res) => {
-    const token = typeof req.body?.token === "string" ? req.body.token : "";
-    if (!token) return res.status(400).json({ error: "missing_token" });
-    const result = await verifyNoticeToken(token);
-    return res.json(result);
+    try {
+      const token = typeof req.body?.token === "string" ? req.body.token : "";
+      if (!token) return res.status(400).json({ error: "missing_token" });
+      const result = await verifyNoticeToken(token);
+      return res.json(result);
+    } catch (err: any) {
+      return res.status(500).json({ error: String(err?.message || err) });
+    }
   });
 
   app.get("/v1/domain/banner", async (req, res) => {
-    const domain = typeof req.query.domain === "string" ? req.query.domain : "";
-    if (!domain) return res.status(400).json({ error: "missing_domain" });
+    try {
+      const domain = typeof req.query.domain === "string" ? req.query.domain : "";
+      if (!domain) return res.status(400).json({ error: "missing_domain" });
 
-    const existing = domainStatusStore.get(domain);
-    const registrarDomain = await registrarAdapter.getDomain(domain);
-    const status = await continuityStatusFromSources(domain, {
-      nsStatus: existing?.inputs?.ns_status ?? registrarDomain.ns.some((entry) => entry.endsWith("tolldns.io")),
-      verifiedControl: existing?.inputs?.verified_control ?? false,
-      trafficSignal: existing?.inputs?.traffic_signal ?? registrarDomain.traffic_signal ?? "none",
-      renewalDueDate: existing?.inputs?.renewal_due_date || registrarDomain.renewal_due_date || undefined,
-      lastSeenAt: existing?.inputs?.last_seen_at || undefined,
-      abuseFlag: existing?.inputs?.abuse_flag ?? false,
-      claimRequested: existing?.claim_requested ?? false,
-      creditsBalance: registrarDomain.credits_balance
-    });
+      const existing = domainStatusStore.get(domain);
+      const registrarDomain = await registrarAdapter.getDomain(domain);
+      const status = await continuityStatusFromSources(domain, {
+        nsStatus: existing?.inputs?.ns_status ?? registrarDomain.ns.some((entry) => entry.endsWith("tolldns.io")),
+        verifiedControl: existing?.inputs?.verified_control ?? false,
+        trafficSignal: existing?.inputs?.traffic_signal ?? registrarDomain.traffic_signal ?? "none",
+        renewalDueDate: existing?.inputs?.renewal_due_date || registrarDomain.renewal_due_date || undefined,
+        lastSeenAt: existing?.inputs?.last_seen_at || undefined,
+        abuseFlag: existing?.inputs?.abuse_flag ?? false,
+        claimRequested: existing?.claim_requested ?? false,
+        creditsBalance: registrarDomain.credits_balance
+      });
 
-    const now = new Date();
-    const { token } = await createNoticeToken({
-      domain: status.domain,
-      phase: status.phase,
-      issued_at: now.toISOString(),
-      expires_at: new Date(now.getTime() + 1000 * 60 * 15).toISOString(),
-      reason_codes: status.reason_codes,
-      policy_version: DOMAIN_CONTINUITY_POLICY_VERSION,
-      nonce: crypto.randomBytes(8).toString("hex")
-    });
+      const now = new Date();
+      const { token } = await createNoticeToken({
+        domain: status.domain,
+        phase: status.phase,
+        issued_at: now.toISOString(),
+        expires_at: new Date(now.getTime() + 1000 * 60 * 15).toISOString(),
+        reason_codes: status.reason_codes,
+        policy_version: DOMAIN_CONTINUITY_POLICY_VERSION,
+        nonce: crypto.randomBytes(8).toString("hex")
+      });
 
-    const baseUrl = `${req.protocol}://${req.get("host") || "127.0.0.1:8054"}`;
-    const verifyUrl = `${baseUrl}/v1/domain/notice/verify`;
-    const dashboardUrl = `${baseUrl}/domain-continuity/index.html?domain=${encodeURIComponent(status.domain)}`;
-    const renewUrl = dashboardUrl;
-    const forceMode = typeof req.query.mode === "string" ? req.query.mode.toLowerCase() : "";
-    const useInterstitial =
-      forceMode === "interstitial" || (forceMode !== "banner" && (status.phase === "C_SAFE_PARKED" || status.phase === "D_REGISTRY_FINALIZATION"));
-    const fallbackTemplate =
-      "<!doctype html><html><body><h1>{{domain}}</h1><p>{{phase}}</p><a href=\"{{renew_url}}\">Renew now</a><pre>{{token}}</pre><code>{{verify_url}}</code></body></html>";
-    const template = useInterstitial
-      ? readTemplate(INTERSTITIAL_TEMPLATE_PATH, fallbackTemplate)
-      : readTemplate(BANNER_TEMPLATE_PATH, fallbackTemplate);
-    const html = renderHtmlTemplate(template, {
-      domain: status.domain,
-      phase: status.phase,
-      renew_url: renewUrl,
-      dashboard_url: dashboardUrl,
-      token,
-      verify_url: verifyUrl
-    });
-    res.setHeader("content-type", "text/html; charset=utf-8");
-    return res.status(200).send(html);
+      const baseUrl = `${req.protocol}://${req.get("host") || "127.0.0.1:8054"}`;
+      const verifyUrl = `${baseUrl}/v1/domain/notice/verify`;
+      const dashboardUrl = `${baseUrl}/domain-continuity/index.html?domain=${encodeURIComponent(status.domain)}`;
+      const renewUrl = dashboardUrl;
+      const forceMode = typeof req.query.mode === "string" ? req.query.mode.toLowerCase() : "";
+      const useInterstitial =
+        forceMode === "interstitial" || (forceMode !== "banner" && (status.phase === "C_SAFE_PARKED" || status.phase === "D_REGISTRY_FINALIZATION"));
+      const fallbackTemplate =
+        "<!doctype html><html><body><h1>{{domain}}</h1><p>{{phase}}</p><a href=\"{{renew_url}}\">Renew now</a><pre>{{token}}</pre><code>{{verify_url}}</code></body></html>";
+      const template = useInterstitial
+        ? readTemplate(INTERSTITIAL_TEMPLATE_PATH, fallbackTemplate)
+        : readTemplate(BANNER_TEMPLATE_PATH, fallbackTemplate);
+      const html = renderHtmlTemplate(template, {
+        domain: status.domain,
+        phase: status.phase,
+        renew_url: renewUrl,
+        dashboard_url: dashboardUrl,
+        token,
+        verify_url: verifyUrl
+      });
+      res.setHeader("content-type", "text/html; charset=utf-8");
+      return res.status(200).send(html);
+    } catch (err: any) {
+      return res.status(500).json({ error: String(err?.message || err) });
+    }
   });
 
   app.get("/v1/attack-mode", (_req, res) => {
