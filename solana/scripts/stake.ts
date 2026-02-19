@@ -110,7 +110,7 @@ async function main() {
     argv["program-id"] ||
     process.env.DDNS_STAKE_PROGRAM_ID ||
     readProgramIdFromAnchorToml(rpcUrl, "ddns_stake") ||
-    "6gT4zHNpU4PtXL4LRv1sW8MwkFu254Z7gQM7wKqnmZYF";
+    "FTeUikzSsLcr2U9WMhs7y5n4cLyjMwg59FB7wWmWYo86";
   const programId = new PublicKey(programIdStr);
   const idlWithAddress = { ...(idl as any), address: programId.toBase58() };
   const program = new anchor.Program(idlWithAddress as any, provider);

@@ -634,3 +634,61 @@ Tests  39 passed (39)
 > tsc -p tsconfig.json
 ```
 - Result: `PASS`
+### 2026-02-19T13:25:00Z — Solana program ID sync (Anchor.toml + declare_id) and devnet deploy verification
+- Base commit SHA: `2f9c8c1`
+- Worktree: `/tmp/ddns-pr-solana-id-sync`
+- Commands run:
+```bash
+# ID canonicalization from keypairs
+for p in solana/target/deploy/*-keypair.json; do n=$(basename "$p" -keypair.json); solana-keygen pubkey "$p"; done
+
+# ID mismatch gate
+bash scripts/check_program_id_sync.sh
+
+# Devnet snapshot
+solana config set -u https://api.devnet.solana.com
+solana address
+solana balance
+python3 <anchor_program_show_loop> > /tmp/devnet_program_show_20260219.txt
+
+# Funding retries + redeploy attempt
+for i in 1 2 3; do solana airdrop 1 -u https://api.devnet.solana.com; done
+cd solana && anchor deploy --provider.cluster devnet --program-name ddns_domain_rewards
+```
+- Output snippet:
+```text
+[id-check] PASS
+
+solana address
+B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5
+solana balance
+0.79716988 SOL
+
+[ddns_anchor] EJVVNdwBdZiEpA4QjVaeV79WPsoUpa4zLA4mqpxWxXi5
+status: DEPLOYED
+authority: B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5
+programdata: B8JBWF6LrmsVp6yFsvML4EEcuMoRNwHxrni5nGw37PA4
+
+[ddns_domain_rewards] CKuPPeJAM8GdfvVMvERxa7rXJcNYwEy2P7wevQ4tjja2
+status: NOT_FOUND
+Error: Unable to find the account CKuPPeJAM8GdfvVMvERxa7rXJcNYwEy2P7wevQ4tjja2
+
+Requesting airdrop of 1 SOL
+Error: airdrop request failed. This can happen when the rate limit is reached.
+
+anchor deploy --program-name ddns_domain_rewards
+Error: Account B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5 has insufficient funds for spend (2.01860184 SOL) + fee (0.00153 SOL)
+```
+- Deployed at canonical IDs on devnet: `ddns_anchor`, `ddns_registry`, `ddns_quorum`, `ddns_stake`, `ddns_watchdog_policy`, `ddns_stake_gov`, `ddns_escrow`, `ddns_ns_incentives`
+- Pending deploy (canonical IDs synced in code, not yet executable on devnet due funding): `ddns_domain_rewards`, `ddns_rewards`, `ddns_operators`, `ddns_miner_score`, `ddns_names`, `ddns_cache_head`, `ddns_rep`, `ddns_witness_rewards`
+- Result: `PARTIAL_PASS` (ID sync + CI gate complete; full devnet deploy blocked by faucet/rpc funding limit)
+- Additional validation:
+```bash
+npm test > /tmp/solana_id_sync_npmtest.log 2>&1; echo EXIT:$?; tail -n 20 /tmp/solana_id_sync_npmtest.log
+```
+```text
+EXIT:0
+==> gate: program id sync
+[id-check] PASS
+==> run_all: complete
+```

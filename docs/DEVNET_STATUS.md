@@ -1,39 +1,44 @@
 # Devnet Status Audit
 
-- Generated at (UTC): 2026-02-19T03:01:54.590Z
+- Generated at (UTC): 2026-02-19T13:20:00Z
 - Deploy wallet: `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5`
 - RPC: `https://api.devnet.solana.com`
+- Canonical IDs: `solana/target/deploy/*-keypair.json` pubkeys (synced into `solana/Anchor.toml` and all `declare_id!`).
 
 ## Programs from Anchor.toml [programs.devnet]
 
-| Program | Program ID | Executable | Owner | Upgrade Authority | Data Length | Lamports | SOL |
-|---|---|---:|---|---|---:|---:|---:|
-| ddns_anchor | `9hwvtFzawMZ6R9eWJZ8YjC7rLCGgNK7PZBNeKMRCPBes` | yes | `BPFLoaderUpgradeab1e11111111111111111111111` | `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5` | 36 | 1141440 | 0.001141440 |
-| ddns_registry | `5zg8CsxpRKyurnTg539wr2nVtS6zritQDTGy4uAUerdx` | yes | `BPFLoaderUpgradeab1e11111111111111111111111` | `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5` | 36 | 1141440 | 0.001141440 |
-| ddns_quorum | `9gyHsemmJfujZEqH1o4VhefxvbUJFQkPko8ASAteX5YB` | yes | `BPFLoaderUpgradeab1e11111111111111111111111` | `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5` | 36 | 1141440 | 0.001141440 |
-| ddns_stake | `6gT4zHNpU4PtXL4LRv1sW8MwkFu254Z7gQM7wKqnmZYF` | yes | `BPFLoaderUpgradeab1e11111111111111111111111` | `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5` | 36 | 1141440 | 0.001141440 |
-| ddns_watchdog_policy | `6iveVkjqRiVpbSM3GmktMhGvqN7WConK5NrM6tvRZnnc` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
-| ddns_stake_gov | `86XQF9V51Z8L8MLUP7yMU6ZWPzfaK1nhFsr3Hd8mYFgt` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
-| ddns_escrow | `4jtDN5gqUqpmu1nBfLwPBAz8jBYjP6Nba4yZ8Am75M2J` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
-| ddns_domain_rewards | `7iFM5ZYPWpF2rK6dQkgeb4RLc2zTDnEgrTNVMp8n6s3m` | yes | `BPFLoaderUpgradeab1e11111111111111111111111` | `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5` | 36 | 1141440 | 0.001141440 |
-| ddns_ns_incentives | `8mC8Kvky9Jir4Lxe5R5L6ppoexaYtDJKe8JP8xA9JUuM` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
-| ddns_rewards | `8GQJrUpNhCFodqKdhEvWub6pjTtgoXBtBZUqxeEDujAY` | yes | `BPFLoaderUpgradeab1e11111111111111111111111` | `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5` | 36 | 1141440 | 0.001141440 |
-| ddns_operators | `3Q5VCoAT4TZ9xMrpbt4jbN9LhHfihxGH3TiD6PmSqHhp` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
-| ddns_miner_score | `37yrHgDgALGe4fUwWhJigQfD95jPFd9g2fDuYHkPAYaS` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
-| ddns_names | `BJgHrrTukutZPWxMDNdd6SXe2A7UzX56Qru6uKfVeHjK` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
-| ddns_cache_head | `J3LCbeg9ocpGcGWdAAFjM8N4G7FTU9na1Lhe5VHBivZt` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
-| ddns_rep | `FAPdRsatJoucFL6h1XQAQnQYN9KRxp7m2vzLLwnNmuLb` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
-| ddns_witness_rewards | `AVsmrpWUMLsdaHr5Y8p2N96fBMPTHVV7WLz8iiu4nBge` | yes | `BPFLoaderUpgradeab1e11111111111111111111111` | `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5` | 36 | 1141440 | 0.001141440 |
+| Program | Program ID | Status | Upgrade Authority | ProgramData |
+|---|---|---|---|---|
+| ddns_anchor | `EJVVNdwBdZiEpA4QjVaeV79WPsoUpa4zLA4mqpxWxXi5` | DEPLOYED | `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5` | `B8JBWF6LrmsVp6yFsvML4EEcuMoRNwHxrni5nGw37PA4` |
+| ddns_registry | `5F8ERKfRyErAJginsuRD4bN1oVZYFpJS5RVCFi9shRS3` | DEPLOYED | `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5` | `4qyzPe9GkLhq5HnDkDYmzKdhKhBmYEzKvv57tJ6VZSjR` |
+| ddns_quorum | `2PVfW3pT5q8gLSXi4VzAiB3JqJzowgvZW9akyXXANAE6` | DEPLOYED | `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5` | `7zpQFZV6M72vAfvgi41xbjmpvmoqG2Yg6GTLfjF8YMj8` |
+| ddns_stake | `FTeUikzSsLcr2U9WMhs7y5n4cLyjMwg59FB7wWmWYo86` | DEPLOYED | `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5` | `4kUVnSUAh4kMDLw7AgvCr43ptag1WD6B4Dxa2UEEGJbH` |
+| ddns_watchdog_policy | `Ct4gQ98PofJxca2HSQrfzd1Cohay4praM9dFF2L9jr1g` | DEPLOYED | `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5` | `9Gw4YeKFTL1RHM25njPRM2rVY8XjwpSs6VERZye2SUm9` |
+| ddns_stake_gov | `EeU6h3gUUVKJeBsGG77onyH9Sjbq87Uz976RYHt2pCPf` | DEPLOYED | `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5` | `Fcn1t45zKiWBSJ8nvU4spAoi34Q5Hytm9iFU77Mes2MC` |
+| ddns_escrow | `2it8BbaePYnGaKcBrT5fAk7uj2YWaGdKtqSPriervwtA` | DEPLOYED | `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5` | `FQCT9hH8dGtibbdYSuTJ4rXvHKLPBmZPoWBzTBEoz9Fd` |
+| ddns_domain_rewards | `CKuPPeJAM8GdfvVMvERxa7rXJcNYwEy2P7wevQ4tjja2` | NOT_FOUND | - | - |
+| ddns_ns_incentives | `J3rL2iuBB3LzvymJ92yRQbRV6biLFefBKh5UvHLBwEJ2` | DEPLOYED | `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5` | `4JkaTeMqwJnUXZs4gPBNcDHKLMGokrGfNGZTtCjofxgc` |
+| ddns_rewards | `D2P9nj4aVS9GiWu4UoLeBtJxKwVfu7FXqnj76f1sKwBd` | NOT_FOUND | - | - |
+| ddns_operators | `6QpkisF6re7KM5XwiYv5mqRmsfPBAwFEK6tkRmMeSRL8` | NOT_FOUND | - | - |
+| ddns_miner_score | `GYexwqwG1WArm3uSRNpTxZPVwvAPqrJp7BVzECJmWJGH` | NOT_FOUND | - | - |
+| ddns_names | `BYQ68JftwZD2JEMXLAiZYYGMr6AD9cD9XznntA4v6Mjj` | NOT_FOUND | - | - |
+| ddns_cache_head | `HjCiKFJKnSvuUd8gN8NjiFPdiwRZSqDit7LMJzFt3Sck` | NOT_FOUND | - | - |
+| ddns_rep | `BS62AYwh5KuhTWoVHiDbpAhifK4SDC1FJtKaYw9bSKaE` | NOT_FOUND | - | - |
+| ddns_witness_rewards | `6dNEBRscCHZB7yHo1iPBktccUSN7P32eSvY1FQkPh7hd` | NOT_FOUND | - | - |
 
-## Funding / Reserve Summary
+## Funding / Deploy Blocker
 
-- Total SOL locked in program accounts: **0.007990080 SOL** (7990080 lamports)
-- Deploy wallet balance: **11.945643640 SOL** (11945643640 lamports)
-- Biggest recent deploy-cost estimate (MVP proxy): **0.001141440 SOL** (1141440 lamports)
-- Recommended reserve rule: `max(5 SOL, 2x biggest_recent_deploy_cost + 1 SOL tx buffer)`
-- Recommended reserve: **5.000000000 SOL** (5000000000 lamports)
-- Reserve status: **OK**
+- Wallet balance at verification time: **0.79716988 SOL**
+- Devnet faucet retries (`solana airdrop 1`) failed with rate-limit errors.
+- Remaining programs require additional SOL to deploy from canonical keypairs.
 
-## Upgrade Buffer Note
+## Next Step
 
-- If a program has an upgrade authority, future upgrades require SOL to create/write a new buffer account before finalize. Keep the deploy wallet funded.
+Top up deploy wallet `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5` to **>= 8 SOL**, then run:
+
+```bash
+cd solana
+for p in ddns_domain_rewards ddns_rewards ddns_operators ddns_miner_score ddns_names ddns_cache_head ddns_rep ddns_witness_rewards; do
+  anchor deploy --provider.cluster devnet --program-name "$p"
+done
+```
