@@ -37,7 +37,7 @@ import {
   type DomainTrafficSignal
 } from "./lib/domain_continuity_policy.js";
 import { createDomainStatusStore } from "./lib/domain_status_store.js";
-import { createMockRegistrar } from "./lib/registrar_mock.js";
+import { createRegistrarProvider, parseRegistrarProvider } from "./lib/registrar_provider.js";
 
 const PORT = Number(process.env.PORT || "8054");
 const HOST = process.env.HOST || "0.0.0.0";
@@ -96,6 +96,15 @@ const ATTACK_WINDOW_SECS = Number(process.env.ATTACK_WINDOW_SECS || "120");
 const DOMAIN_CONTINUITY_POLICY_VERSION = process.env.DOMAIN_CONTINUITY_POLICY_VERSION || "mvp-2026-02";
 const DOMAIN_STATUS_STORE_PATH = process.env.DOMAIN_STATUS_STORE_PATH || "gateway/.cache/domain_status.json";
 const MOCK_REGISTRAR_STORE_PATH = process.env.MOCK_REGISTRAR_STORE_PATH || "gateway/.cache/mock_registrar.json";
+const REGISTRAR_ENABLED = process.env.REGISTRAR_ENABLED === "1";
+const REGISTRAR_PROVIDER = parseRegistrarProvider(process.env.REGISTRAR_PROVIDER || "mock");
+const PORKBUN_API_KEY = process.env.PORKBUN_API_KEY || "";
+const PORKBUN_SECRET_API_KEY = process.env.PORKBUN_SECRET_API_KEY || "";
+const PORKBUN_ENDPOINT = process.env.PORKBUN_ENDPOINT || "https://api.porkbun.com/api/json/v3";
+const REGISTRAR_DRY_RUN =
+  process.env.REGISTRAR_DRY_RUN !== undefined
+    ? process.env.REGISTRAR_DRY_RUN === "1"
+    : REGISTRAR_ENABLED && !PORKBUN_API_KEY;
 const BANNER_TEMPLATE_PATH =
   process.env.DOMAIN_BANNER_TEMPLATE_PATH || path.resolve(process.cwd(), "gateway/public/domain-continuity/banner.html");
 const INTERSTITIAL_TEMPLATE_PATH =
@@ -316,7 +325,16 @@ const cacheLogger = createCacheLogger({
   parentExtractRule: CACHE_PARENT_EXTRACT_RULE
 });
 const domainStatusStore = createDomainStatusStore(DOMAIN_STATUS_STORE_PATH);
-const registrarAdapter = createMockRegistrar(MOCK_REGISTRAR_STORE_PATH);
+const registrarRuntime = createRegistrarProvider({
+  enabled: REGISTRAR_ENABLED,
+  provider: REGISTRAR_PROVIDER,
+  dryRun: REGISTRAR_DRY_RUN,
+  storePath: MOCK_REGISTRAR_STORE_PATH,
+  porkbunApiKey: PORKBUN_API_KEY,
+  porkbunSecretApiKey: PORKBUN_SECRET_API_KEY,
+  porkbunEndpoint: PORKBUN_ENDPOINT
+});
+const registrarAdapter = registrarRuntime.adapter;
 
 const cache = new Map<string, { expiresAt: number; payload: ResolveResponse }>();
 const mintCaches = new Map<string, Map<string, { rrtype: string; value: string; ttl: number; expiresAt: number; wallet_pubkey: string }>>();
@@ -518,22 +536,67 @@ export function createApp() {
     const domain = typeof req.query.domain === "string" ? req.query.domain : "";
     if (!domain) return res.status(400).json({ error: "missing_domain" });
     const record = await registrarAdapter.getDomain(domain);
-    return res.json(record);
+    return res.json({
+      ...record,
+      registrar_enabled: registrarRuntime.enabled,
+      provider: registrarRuntime.provider,
+      dry_run: registrarRuntime.dryRun
+    });
   });
 
   app.get("/v1/registrar/quote", async (req, res) => {
     const domain = typeof req.query.domain === "string" ? req.query.domain : "";
     if (!domain) return res.status(400).json({ error: "missing_domain" });
     const quote = await registrarAdapter.getRenewalQuote(domain);
-    return res.json({ domain: normalizeDomainInput(domain), ...quote });
+    return res.json({
+      domain: normalizeDomainInput(domain),
+      ...quote,
+      registrar_enabled: registrarRuntime.enabled,
+      provider: registrarRuntime.provider,
+      dry_run: registrarRuntime.dryRun
+    });
   });
 
   app.post("/v1/registrar/renew", express.json(), async (req, res) => {
     const domain = typeof req.body?.domain === "string" ? req.body.domain : "";
     if (!domain) return res.status(400).json({ error: "missing_domain" });
     const years = Number(req.body?.years || 1);
-    const result = await registrarAdapter.renewDomain(domain, years, { use_credits: true });
-    return res.json({ domain: normalizeDomainInput(domain), years, ...result });
+    const quote = await registrarAdapter.getRenewalQuote(domain);
+    const domainInfo = await registrarAdapter.getDomain(domain);
+    const credits = Number(domainInfo.credits_balance || 0);
+    const requiredCredits = Math.ceil(Number(quote.price_usd || 0) * 10);
+    const coveredCredits = Math.min(requiredCredits, credits);
+    if (requiredCredits > coveredCredits) {
+      return res.json({
+        domain: normalizeDomainInput(domain),
+        years,
+        status: "insufficient_credits",
+        required_usd: Number(quote.price_usd || 0),
+        covered_usd: Number((coveredCredits / 10).toFixed(2)),
+        remaining_usd: Number(((requiredCredits - coveredCredits) / 10).toFixed(2)),
+        instruction: "Add continuity credits or fallback to registrar payment flow",
+        registrar_enabled: registrarRuntime.enabled,
+        provider: registrarRuntime.provider,
+        dry_run: registrarRuntime.dryRun
+      });
+    }
+    const result = await registrarAdapter.renewDomain(domain, years, {
+      use_credits: true,
+      credits_amount: coveredCredits,
+      payment_method: "credits"
+    });
+    return res.json({
+      domain: normalizeDomainInput(domain),
+      years,
+      ...result,
+      status: result.submitted ? "submitted" : "failed",
+      required_usd: Number(quote.price_usd || 0),
+      covered_usd: Number((coveredCredits / 10).toFixed(2)),
+      remaining_usd: 0,
+      registrar_enabled: registrarRuntime.enabled,
+      provider: registrarRuntime.provider,
+      dry_run: registrarRuntime.dryRun
+    });
   });
 
   app.post("/v1/registrar/ns", express.json(), async (req, res) => {
@@ -541,7 +604,14 @@ export function createApp() {
     const ns = Array.isArray(req.body?.ns) ? req.body.ns : [];
     if (!domain) return res.status(400).json({ error: "missing_domain" });
     const result = await registrarAdapter.setNameServers(domain, ns);
-    return res.json({ domain: normalizeDomainInput(domain), ns, ...result });
+    return res.json({
+      domain: normalizeDomainInput(domain),
+      ns,
+      ...result,
+      registrar_enabled: registrarRuntime.enabled,
+      provider: registrarRuntime.provider,
+      dry_run: registrarRuntime.dryRun
+    });
   });
 
   app.get("/v1/domain/status", async (req, res) => {
