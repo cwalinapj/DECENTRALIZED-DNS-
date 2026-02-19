@@ -21,6 +21,7 @@ ddns_miner_score = "37yrHgDgALGe4fUwWhJigQfD95jPFd9g2fDuYHkPAYaS"
 ddns_names = "BJgHrrTukutZPWxMDNdd6SXe2A7UzX56Qru6uKfVeHjK"
 ddns_cache_head = "J3LCbeg9ocpGcGWdAAFjM8N4G7FTU9na1Lhe5VHBivZt"
 ddns_rep = "FAPdRsatJoucFL6h1XQAQnQYN9KRxp7m2vzLLwnNmuLb"
+ddns_witness_rewards = "AVsmrpWUMLsdaHr5Y8p2N96fBMPTHVV7WLz8iiu4nBge"
 
 [programs.localnet]
 ddns_anchor = "9hwvtFzawMZ6R9eWJZ8YjC7rLCGgNK7PZBNeKMRCPBes"
@@ -38,6 +39,7 @@ ddns_miner_score = "37yrHgDgALGe4fUwWhJigQfD95jPFd9g2fDuYHkPAYaS"
 ddns_names = "BJgHrrTukutZPWxMDNdd6SXe2A7UzX56Qru6uKfVeHjK"
 ddns_cache_head = "J3LCbeg9ocpGcGWdAAFjM8N4G7FTU9na1Lhe5VHBivZt"
 ddns_rep = "FAPdRsatJoucFL6h1XQAQnQYN9KRxp7m2vzLLwnNmuLb"
+ddns_witness_rewards = "AVsmrpWUMLsdaHr5Y8p2N96fBMPTHVV7WLz8iiu4nBge"
 
 [registry]
 url = "https://api.apr.dev"

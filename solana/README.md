@@ -256,6 +256,29 @@ Scripts:
 ## Build status
 Default build passes (no Metaplex CPI in-program).
 
+## Witness Rewards (MVP DoD)
+
+Program:
+- `ddns_witness_rewards` (`AVsmrpWUMLsdaHr5Y8p2N96fBMPTHVV7WLz8iiu4nBge`)
+
+Compile checks:
+
+```bash
+cd solana
+cargo check -p ddns_witness_rewards
+anchor build --program-name ddns_witness_rewards
+cargo test -p ddns_witness_rewards
+```
+
+Minimal status CLI:
+
+```bash
+npm -C solana run witness-rewards -- status \
+  --rpc https://api.devnet.solana.com \
+  --program-id AVsmrpWUMLsdaHr5Y8p2N96fBMPTHVV7WLz8iiu4nBge \
+  --miner <MINER_PUBKEY>
+```
+
 ## Escrow + Toll Vouchers (MVP)
 
 This is the on-chain split payout path for **toll events** (route acquisition), not per-query payments.

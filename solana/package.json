@@ -37,7 +37,8 @@
     "voucher:redeem-toll": "tsx scripts/voucher_redeem_toll.ts",
     "miner-score": "tsx scripts/miner_score.ts",
     "cache-head": "tsx scripts/cache_head.ts",
-    "names": "tsx scripts/names.ts"
+    "names": "tsx scripts/names.ts",
+    "witness-rewards": "tsx scripts/witness_rewards.ts"
   },
   "devDependencies": {
     "@coral-xyz/anchor": "^0.32.1",
