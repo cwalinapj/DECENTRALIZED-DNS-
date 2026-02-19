@@ -9,12 +9,78 @@ Repo: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 
 - What exists today (MVP): `docs/MVP.md`
 - Adoption wedge (why this gets used): `docs/ADOPTION.md`
+- Mass adoption roadmap (Web2-first): `docs/MASS_ADOPTION_ROADMAP.md`
 - How it works (protocol): `docs/PROTOCOL_CACHE_WITNESS.md`
 - Where it’s going (end state): `docs/END_STATE.md`
 - Adapter layer (PKDNS/IPFS/ENS/SNS): `docs/ADAPTERS.md`
 - Watchdogs + policy attestation formats: `docs/PROTOCOL_WATCHDOG_ATTESTATION.md`
 - Security: `docs/THREAT_MODEL.md` and `docs/ATTACK_MODE.md`
 - Merge guardrails + queue: `docs/MERGE_QUEUE.md` and `docs/MERGE_LOG.md`
+
+### Mass Adoption Roadmap (Web2-First, Web3-Backed)
+
+- Phase 0 (MVP): fast recursive ICANN DNS + `.dns` PKDNS + privacy-safe observation aggregation.
+- Phase 1 wedge: registrar + DNS protection + free hosting + AI/manual site builder UX.
+- Phase 2 identity: human-readable `.dns` identities with safe defaults (non-transferable by default).
+- Phase 3 scarcity: premium short-name auctions (`3-4` first, `1-2` treasury-reserved in MVP).
+- Planned ops layer: workers for backups/audits with proof-backed attestations.
+
+Details: `docs/MASS_ADOPTION_ROADMAP.md` and `docs/DEVELOPER_API.md`.
+
+## Mass Adoption Roadmap: Web2-first, Web3-backed
+
+### Phase 0 (MVP): usable today
+- Recursive DNS for ICANN names with multi-upstream quorum cache and conservative TTL behavior.
+- `.dns` remains opt-in via PKDNS routes; ICANN recursion is not forced into `.dns` consensus.
+- Privacy-safe observations improve reliability without user identifiers.
+
+### Phase 1: registrar wedge + bundled products
+- Registrar wedge: discounts/credits when domains keep DDNS nameservers set (policy-controlled).
+- Free static hosting up to 5 pages.
+- AI builder + manual editor.
+- Export/import content paths to avoid lock-in.
+
+### Phase 2: `.dns` identity layer (Bonfida-style UX)
+- Free default subdomain identity.
+- Premium primary `.dns` ownership path (forever-style ownership model).
+- Subdomains non-transferable by default to reduce flipping/squatting.
+- Premium owners can optionally enable sellable delegated subdomains.
+
+### Phase 3: premium auctions
+- Treasury controls `1-2` char labels in MVP.
+- Auction `3-4` char premium labels first.
+- Expand to `1-2` auctions only after abuse controls mature.
+
+### Why TOLL will be valuable
+- Demand sinks:
+  - premium primaries (auction paths),
+  - mining eligibility bond requirements,
+  - operator marketplace settlement,
+  - optional registrar discount subsidies.
+- Earning loops:
+  - useful contributions (cache/observations/operator service) feed reward paths.
+- REP gating:
+  - reputation and anti-sybil constraints gate higher earning/privilege tiers.
+
+### Why developers use this instead of raw DNS
+- Consistent JSON resolver response shape.
+- Cache confidence + upstream audit metadata.
+- Adapter proofs where applicable (`.dns`, IPFS, ENS, SNS).
+- Privacy-safe observations strengthen network reliability over time.
+- Policy-based monetization upside when projects keep DDNS nameservers.
+
+### Future: workers replace webadmin babysitting (Phase 3+ / End-state)
+- Backup sites to IPFS + on-chain proof anchors.
+- Daily AI-assisted function/security audits with hashed attestations.
+- Distributed synthetic probes from premium operators.
+
+### FAQ: Why would I switch nameservers?
+Cheaper renewals/credits, free hosting, better reliability defaults, and optional Web3 proof-backed features.
+
+See:
+- MVP adoption wedges: `docs/MVP.md#adoption-wedges-mvp`
+- End-state operator economy: `docs/END_STATE.md#registrar--cdnhosting--operator-economy`
+- Full roadmap: `docs/MASS_ADOPTION_ROADMAP.md`
 
 ### Adoption Wedge: Domain Owners Get Paid
 
