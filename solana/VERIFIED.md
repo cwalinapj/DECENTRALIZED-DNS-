@@ -119,3 +119,44 @@ Gate behavior proven in tests:
 - `alice.user.dns` transfer fails (non-transferable)
 - `bob.alice.dns` transfer fails without parent co-sign and succeeds with parent co-sign
 - sellable reward claim fails without premium account proof and succeeds after buying premium
+
+## Devnet deploy + funding audit (MVP gate)
+
+Date (UTC): 2026-02-19
+Branch: `codex/main-ops`
+
+Commands run:
+
+```bash
+npm -C solana i --include=dev
+npm -C solana run devnet:verify
+npm -C solana run devnet:audit
+```
+
+Output snippets:
+
+```text
+> ddns-anchor@0.1.0 devnet:verify
+> tsx scripts/devnet_verify_deployed.ts --rpc https://api.devnet.solana.com
+
+✅ all required programs are deployed (6)
+```
+
+```text
+> ddns-anchor@0.1.0 devnet:audit
+> tsx scripts/devnet_audit.ts --rpc https://api.devnet.solana.com
+
+Wrote /Users/root1/scripts/ddns-main-ops/docs/DEVNET_STATUS.md
+Programs audited: 15
+Total program SOL: 0.006848640
+Deploy wallet SOL: 11.945643640
+Recommended reserve SOL: 5.000000000 (OK)
+```
+
+Notes:
+
+- `docs/DEVNET_STATUS.md` is generated from `solana/Anchor.toml` `[programs.devnet]`.
+- `devnet:verify` checks the MVP-required set by default:
+  `ddns_anchor, ddns_registry, ddns_quorum, ddns_stake, ddns_domain_rewards, ddns_rewards`.
+- Override required set with:
+  `DDNS_REQUIRED_MVP_PROGRAMS=prog1,prog2,... npm -C solana run devnet:verify`.

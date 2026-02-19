@@ -116,3 +116,25 @@
   - `README.md`
   - `package.json` (root scripts)
   - `services/miner-witness/VERIFIED.md`
+
+## 2026-02-19T00:44Z — Devnet deploy + funding audit scripts
+
+- Branch: `codex/main-ops`
+- Scope: add `solana/scripts/devnet_verify_deployed.ts`, `solana/scripts/devnet_audit.ts`, package scripts, `docs/MVP_DOD.md`, update `solana/VERIFIED.md`.
+
+Commands run:
+
+```bash
+npm -C solana i --include=dev
+npm -C solana run devnet:verify
+npm -C solana run devnet:audit
+```
+
+Results:
+
+- `devnet:verify`: `✅ all required programs are deployed (6)`
+- `devnet:audit`: generated `docs/DEVNET_STATUS.md`
+  - programs audited: 15
+  - total program SOL: 0.006848640
+  - deploy wallet SOL: 11.945643640
+  - recommended reserve SOL: 5.000000000 (OK)
