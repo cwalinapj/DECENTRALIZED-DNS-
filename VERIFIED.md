@@ -692,3 +692,33 @@ EXIT:0
 [id-check] PASS
 ==> run_all: complete
 ```
+
+### 2026-02-19T22:58:00Z — Fresh origin/main MVP wave re-proof (clean worktree)
+- Base commit SHA: `a307645` (proof worktree base)
+- Worktree: `/tmp/ddns-mvp-proof`
+- Commands run:
+```bash
+npm ci && npm test
+npm run mvp:demo:devnet
+bash scripts/devnet_inventory.sh
+```
+- Output snippet:
+```text
+npm test: EXIT 0
+==> run_all: complete
+
+npm run mvp:demo:devnet: EXIT 0
+✅ demo complete
+assign_route: 400 { ok: false, error: 'name_not_claimed' }
+resolve .dns via tollbooth: {"ok":false,"error":"not_found"}
+blocker: tollbooth flow returned non-200
+
+bash scripts/devnet_inventory.sh: EXIT 1
+required_failures: ddns_cache_head, ddns_escrow, ddns_miner_score
+wallet_balance: 0.79716988 SOL
+recommended_wallet_topup_sol: 6.675978120
+```
+- Result: `PARTIAL_PASS`
+  - Root test suite passed.
+  - Demo command exists and ends with `✅ demo complete`, but `.dns` happy-path routing is still blocked (`name_not_claimed`).
+  - Inventory script correctly fails due missing required program deployments.
