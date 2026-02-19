@@ -10,6 +10,7 @@ Repo: <https://github.com/cwalinapj/DECENTRALIZED-DNS->
 
 ## Start Here (MVP)
 
+- Canonical quick entry: `docs/START_HERE.md`
 - What exists today (MVP): `docs/MVP.md`
 - Definition of Done checklist: `docs/MVP_DOD.md`
 - Mass adoption roadmap: `docs/MASS_ADOPTION_ROADMAP.md`
