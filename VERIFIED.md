@@ -104,3 +104,56 @@ npm run miner:cf:deploy -- --help
 - `docs/MINER_QUICKSTART_CF.md`
 - `docs/miner-onboard/index.html`
 - `package.json` (root scripts: `miner:cf:dev`, `miner:cf:deploy`)
+
+## README + Docs Reality Sync
+
+Date (UTC): 2026-02-19
+Branch: `codex/readme-reality-sync`
+Base: `origin/main`
+
+### Scope
+- Restructured root README for accurate MVP-first onboarding.
+- Added canonical local test doc: `docs/LOCAL_TEST.md`.
+- Set docs index canonical: `docs/INDEX.md` (with `docs/README.md` pointer).
+- Set status canonical: `docs/STATUS.md` (with root `STATUS.md` pointer).
+- Added root one-command demo script: `mvp:demo:devnet`.
+- Added reference audit table: `docs/ops/README_REALITY_AUDIT.md`.
+
+### Commands run
+
+```bash
+npm ci && npm test
+```
+Result: PASS
+Snippet:
+```text
+ROOT_EXIT:0
+==> run_all: complete
+```
+
+```bash
+npm -C gateway ci
+npm -C gateway run build
+PORT=8054 npm -C gateway run start
+curl 'http://localhost:8054/v1/resolve?name=netflix.com&type=A'
+```
+Result: PASS
+Snippet:
+```text
+CI_RC:0 BUILD_RC:0 CURL_RC:0
+{"name":"netflix.com","type":"A","answers":[...],"source":"recursive","confidence":"low",...}
+```
+
+```bash
+npm run mvp:demo:devnet
+```
+Result: PASS
+Snippet:
+```text
+DEMO_RC:0
+✅ all required programs are deployed (6)
+Wrote /private/tmp/ddns-readme-sync/docs/DEVNET_STATUS.md
+```
+
+### Referenced-path check (README)
+All file-path references in `README.md` resolve to existing files in this branch.
