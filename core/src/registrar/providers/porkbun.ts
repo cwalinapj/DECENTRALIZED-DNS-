@@ -56,16 +56,26 @@ function dryRunDomain(domain: string): RegistrarDomainRecord {
 }
 
 async function postJson<T>(url: string, body: Record<string, unknown>): Promise<T> {
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "content-type": "application/json", accept: "application/json" },
-    body: JSON.stringify(body)
-  });
-  const json = (await res.json()) as T;
-  if (!res.ok) {
-    throw new Error(`provider_http_${res.status}`);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/json" },
+      body: JSON.stringify(body),
+      signal: controller.signal
+    });
+    const json = (await res.json()) as T;
+    if (!res.ok) {
+      throw new Error(`provider_http_${res.status}`);
+    }
+    return json;
+  } catch (err: any) {
+    if (err?.name === "AbortError") throw new Error("provider_timeout");
+    throw err;
+  } finally {
+    clearTimeout(timeout);
   }
-  return json;
 }
 
 function creds(opts: PorkbunOpts): PorkbunCreds {
@@ -85,6 +95,12 @@ export function createPorkbunRegistrarAdapter(opts: PorkbunOpts = {}): Registrar
       const statusRaw = String(result?.status || "").toLowerCase();
       const expiration = result?.domain?.expirationDate || result?.domain?.expireDate || renewalDueEstimate(90);
       const due = new Date(expiration).toISOString();
+      const estimatedTraffic = Number(
+        result?.domain?.estimatedTraffic || 
+        result?.estimatedTraffic || 
+        result?.domain?.estimated_traffic ||
+        0
+      );
       return {
         domain,
         status:
@@ -94,7 +110,7 @@ export function createPorkbunRegistrarAdapter(opts: PorkbunOpts = {}): Registrar
         renewal_due_date: due,
         grace_expires_at: renewalDueEstimate(30),
         ns: Array.isArray(result?.domain?.ns) ? result.domain.ns : [],
-        traffic_signal: toTrafficSignal(Number(result?.domain?.estimatedTraffic || 0)),
+        traffic_signal: toTrafficSignal(estimatedTraffic),
         credits_balance: 0
       };
     },

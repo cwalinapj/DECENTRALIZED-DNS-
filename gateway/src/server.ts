@@ -662,10 +662,12 @@ export function createApp() {
       if (!Number.isInteger(years) || years < 1) {
         return res.status(400).json({ error: "invalid_years_parameter" });
       }
-      const quote = await registrarAdapter.getRenewalQuote(domain);
-      const domainInfo = await registrarAdapter.getDomain(domain);
+      const [quote, domainInfo] = await Promise.all([
+        registrarAdapter.getRenewalQuote(domain),
+        registrarAdapter.getDomain(domain)
+      ]);
       const credits = Number(domainInfo.credits_balance || 0);
-      const requiredCredits = Math.ceil(Number(quote.price_usd || 0) * 10);
+      const requiredCredits = Math.ceil(Number(quote.price_usd || 0) * 10 * years);
       const coveredCredits = Math.min(requiredCredits, credits);
       if (requiredCredits > coveredCredits) {
         auditEvent(req, { endpoint: "/v1/registrar/renew", domain, decision: "blocked" });
@@ -822,9 +824,9 @@ export function createApp() {
       if (!Number.isInteger(years) || years < 1) {
         return res.status(400).json({ error: "invalid_years_parameter" });
       }
-      const renewal = await registrarAdapter.renewDomain(domain, years, { use_credits: useCredits });
       const existing = await domainStatusStore.get(domain);
       const registrarDomain = await registrarAdapter.getDomain(domain);
+      const renewal = await registrarAdapter.renewDomain(domain, years, { use_credits: useCredits });
       const status = await continuityStatusFromSources(domain, {
         nsStatus: existing?.inputs?.ns_status ?? registrarDomain.ns.some((entry) => entry.endsWith("tolldns.io")),
         verifiedControl: existing?.inputs?.verified_control ?? false,
