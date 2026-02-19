@@ -1,18 +1,14 @@
-export type TrafficSignal = "none" | "low" | "real";
-export type SeoValueSignal = "low" | "medium" | "high";
-export type ContinuityPhase =
-  | "A_SOFT_WARNING"
-  | "B_HARD_WARNING"
-  | "HOLD_BANNER"
-  | "C_SAFE_PARKED"
-  | "D_REGISTRY_FINALIZATION";
+import type { DomainContinuityPhase } from "./notice_token.js";
+
+export type DomainTrafficSignal = "none" | "low" | "real";
+export type DomainSeoValueSignal = "low" | "medium" | "high";
 
 export type DomainContinuityPolicyInput = {
   domain: string;
   ns_status: boolean;
   verified_control: boolean;
-  traffic_signal: TrafficSignal;
-  seo_value_signal?: SeoValueSignal;
+  traffic_signal: DomainTrafficSignal;
+  seo_value_signal?: DomainSeoValueSignal;
   credit_balance: number;
   renewal_cost_estimate: number;
   renewal_due_date?: string | null;
@@ -22,7 +18,7 @@ export type DomainContinuityPolicyInput = {
 
 export type DomainContinuityPolicyOutput = {
   eligible: boolean;
-  phase: ContinuityPhase;
+  phase: DomainContinuityPhase;
   hold_banner_active: boolean;
   reason_codes: string[];
   next_steps: string[];
@@ -43,7 +39,7 @@ function daysUntil(dateMaybe: string | null | undefined, nowMs: number): number 
   return Math.floor((ts - nowMs) / DAY_MS);
 }
 
-function basePhaseFor(daysUntilDue: number | null): ContinuityPhase {
+function basePhaseFor(daysUntilDue: number | null): DomainContinuityPhase {
   if (daysUntilDue === null) return "A_SOFT_WARNING";
   if (daysUntilDue >= 7) return "A_SOFT_WARNING";
   if (daysUntilDue >= 0) return "B_HARD_WARNING";
@@ -51,7 +47,7 @@ function basePhaseFor(daysUntilDue: number | null): ContinuityPhase {
   return "D_REGISTRY_FINALIZATION";
 }
 
-function creditsEstimateFor(traffic: TrafficSignal, nsStatus: boolean, verified: boolean): number {
+function creditsEstimateFor(traffic: DomainTrafficSignal, nsStatus: boolean, verified: boolean): number {
   if (!nsStatus && !verified) return 0;
   if (traffic === "real") return 40;
   if (traffic === "low") return 15;

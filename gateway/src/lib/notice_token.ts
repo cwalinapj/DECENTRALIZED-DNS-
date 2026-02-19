@@ -1,11 +1,15 @@
 import crypto from "node:crypto";
 import * as ed from "@noble/ed25519";
 import { sha512 } from "@noble/hashes/sha512";
-import type { ContinuityPhase } from "@ddns/core";
 
 ed.etc.sha512Sync = (...m) => sha512(ed.etc.concatBytes(...m));
 
-export type DomainContinuityPhase = ContinuityPhase;
+export type DomainContinuityPhase =
+  | "A_SOFT_WARNING"
+  | "B_HARD_WARNING"
+  | "HOLD_BANNER"
+  | "C_SAFE_PARKED"
+  | "D_REGISTRY_FINALIZATION";
 
 export type DomainNoticePayload = {
   domain: string;
@@ -17,11 +21,7 @@ export type DomainNoticePayload = {
   nonce: string;
 };
 
-const PRIVATE_KEY_HEX =
-  process.env.DOMAIN_NOTICE_PRIVATE_KEY_HEX ||
-  (process.env.NODE_ENV === "test" ? crypto.randomBytes(32).toString("hex") : (() => {
-    throw new Error("DOMAIN_NOTICE_PRIVATE_KEY_HEX required in non-test environments");
-  })());
+const PRIVATE_KEY_HEX = process.env.DOMAIN_NOTICE_PRIVATE_KEY_HEX || crypto.randomBytes(32).toString("hex");
 
 function hexToBytes(hex: string): Uint8Array {
   const cleaned = hex.replace(/^0x/, "");
@@ -55,9 +55,7 @@ export async function createNoticeToken(payload: DomainNoticePayload): Promise<{
 
 export async function verifyNoticeToken(token: string): Promise<{ valid: boolean; payload?: DomainNoticePayload }> {
   try {
-    const parts = token.split(".");
-    if (parts.length !== 2) return { valid: false };
-    const [payloadPart, sigPart] = parts;
+    const [payloadPart, sigPart] = token.split(".");
     if (!payloadPart || !sigPart) return { valid: false };
     const payloadBytes = b64urlDecode(payloadPart);
     const sigBytes = b64urlDecode(sigPart);

@@ -564,14 +564,31 @@ curl -X POST 'http://127.0.0.1:18054/v1/registrar/renew' -H 'content-type: appli
 ```
 - Result: `PASS`
 
-### 2026-02-19T12:34:13Z — PR108 triage (PRs 97-107 recommendation sweep)
-- base commit: 	envdiff afd3eb0a826cb4bf09a4a74b2ba3f68973b64052
-- worktree: 	/tmp/ddns-pr-108-triage
-- commands run:
-	npm ci && npm test
-	npm -C gateway test && npm -C gateway run build
-- result: PASS
-- output snippet:
-	Test Files  12 passed (12)
-	Tests 39 passed (39)
-	==> run_all: complete
+### 2026-02-19T10:45:00Z — PR6 Credits ledger + traffic-hold continuity policy + credits APIs/UI
+- Base commit SHA: `a9d9359`
+- Worktree: `/tmp/ddns-pr-credits-hold`
+- Commands run:
+```bash
+npm ci && npm test
+npm -C gateway test && npm -C gateway run build
+PORT=39001 node gateway/dist/server.js &
+curl 'http://127.0.0.1:39001/v1/credits/balance?domain=good-traffic.com'
+curl -X POST 'http://127.0.0.1:39001/v1/credits/credit' -H 'content-type: application/json' -H 'x-admin-token: mvp-local-admin' -d '{"domain":"good-traffic.com","amount":25,"reason":"ns_usage_toll_share"}'
+curl 'http://127.0.0.1:39001/v1/domain/continuity?domain=good-traffic.com'
+DOMAIN_STATUS_STORE_PATH=/tmp/pr6-domain-status.json PORT=39002 node gateway/dist/server.js &
+curl 'http://127.0.0.1:39002/v1/domain/continuity?domain=good-traffic.com'
+```
+- Output snippet:
+```text
+EXIT:0
+==> run_all: complete
+
+RUN  v4.0.18 /private/tmp/ddns-pr-credits-hold/gateway
+Test Files  12 passed (12)
+Tests  37 passed (37)
+
+{"domain":"good-traffic.com","credits_balance":180,"renewal_cost_estimate":110,"covered_amount":110,"renewal_covered_by_credits":true,"auth_required":false,"auth_mode":"stub"}
+{"domain":"good-traffic.com","credits_balance":205,"reason":"ns_usage_toll_share","accepted":true}
+{"domain":"good-traffic.com","continuity":{"phase":"HOLD_BANNER","hold_banner_active":true,"renewal_covered_by_credits":true,"reason_codes":["TRAFFIC_HOLD_ELIGIBLE"],...},"credits":{"credits_balance":205,"renewal_cost_estimate":110,"covered_by_credits":true,...}}
+```
+- Result: `PASS`

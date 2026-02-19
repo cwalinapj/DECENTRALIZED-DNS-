@@ -8,6 +8,8 @@ describe("domain continuity policy", () => {
       ns_status: true,
       verified_control: true,
       traffic_signal: "real",
+      credit_balance: 120,
+      renewal_cost_estimate: 110,
       renewal_due_date: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
       abuse_flag: false
     });
@@ -22,12 +24,14 @@ describe("domain continuity policy", () => {
       ns_status: false,
       verified_control: false,
       traffic_signal: "none",
+      credit_balance: 0,
+      renewal_cost_estimate: 110,
       renewal_due_date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
       abuse_flag: true
     });
     expect(out.eligible).toBe(false);
     expect(out.phase).toBe("C_SAFE_PARKED");
     expect(out.reason_codes).toContain("ABUSE_FLAGGED");
-    expect(out.reason_codes).toContain("CONTROL_NOT_VERIFIED");
+    expect(out.reason_codes).toContain("NO_CONTROL_PATH");
   });
 });

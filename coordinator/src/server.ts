@@ -2,7 +2,6 @@ import { createServer } from "node:http";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { URL } from "node:url";
 import fs from "node:fs";
-import fsp from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
 import bs58 from "bs58";
@@ -149,20 +148,12 @@ function persistJson(relPath: string, payload: unknown) {
   fs.writeFileSync(file, JSON.stringify(payload, null, 2));
 }
 
-async function persistJsonAsync(relPath: string, payload: unknown) {
-  const file = path.join(dataDir, relPath);
-  await fsp.mkdir(path.dirname(file), { recursive: true });
-  const tmpPath = `${file}.tmp.${Date.now()}.${Math.random().toString(36).slice(2)}`;
-  await fsp.writeFile(tmpPath, JSON.stringify(payload, null, 2));
-  await fsp.rename(tmpPath, file);
-}
-
 function loadJson(relPath: string, fallback: unknown) {
   const file = path.join(dataDir, relPath);
   if (!fs.existsSync(file)) return fallback;
   try {
     return JSON.parse(fs.readFileSync(file, "utf8"));
-  } catch (err) {
+  } catch {
     return fallback;
   }
 }
@@ -198,37 +189,26 @@ function loadState() {
   });
 }
 
-let pendingSave: Promise<void> | null = null;
-
-async function saveState() {
-  if (pendingSave) {
-    await pendingSave;
-  }
-  
-  pendingSave = (async () => {
-    const ledger: Record<string, number> = {};
-    state.credits.forEach((value, key) => (ledger[key] = value));
-    await persistJsonAsync("credits/ledger.json", ledger);
-    persistJson("credits/passports.json", Array.from(state.passports));
-    const bindings: Record<string, string> = {};
-    authBindings.forEach((entry, key) => (bindings[key] = entry.evmAddress));
-    persistJson("auth/bindings.json", bindings);
-    persistJson("credits/receipts.json", Array.from(state.receipts.values()));
-    persistJson("credits/windows.json", Array.from(creditWindows.entries()));
-    persistJson("comments/holds.json", Array.from(comments.holds.values()));
-    const pools: Record<string, number> = {};
-    sitePools.forEach((value, key) => (pools[key] = value));
-    persistJson("comments/pools.json", pools);
-    persistJson("comments/treasury.json", { balance: treasuryBalance });
-    persistJson("comments/allocations.json", treasuryAllocations);
-    persistJson("governance/queue.json", governanceQueue);
-    const receipts: Record<string, any[]> = {};
-    siteReceipts.forEach((entries, siteId) => (receipts[siteId] = entries));
-    persistJson("comments/receipts.json", receipts);
-  })();
-  
-  await pendingSave;
-  pendingSave = null;
+function saveState() {
+  const ledger: Record<string, number> = {};
+  state.credits.forEach((value, key) => (ledger[key] = value));
+  persistJson("credits/ledger.json", ledger);
+  persistJson("credits/passports.json", Array.from(state.passports));
+  const bindings: Record<string, string> = {};
+  authBindings.forEach((entry, key) => (bindings[key] = entry.evmAddress));
+  persistJson("auth/bindings.json", bindings);
+  persistJson("credits/receipts.json", Array.from(state.receipts.values()));
+  persistJson("credits/windows.json", Array.from(creditWindows.entries()));
+  persistJson("comments/holds.json", Array.from(comments.holds.values()));
+  const pools: Record<string, number> = {};
+  sitePools.forEach((value, key) => (pools[key] = value));
+  persistJson("comments/pools.json", pools);
+  persistJson("comments/treasury.json", { balance: treasuryBalance });
+  persistJson("comments/allocations.json", treasuryAllocations);
+  persistJson("governance/queue.json", governanceQueue);
+  const receipts: Record<string, any[]> = {};
+  siteReceipts.forEach((entries, siteId) => (receipts[siteId] = entries));
+  persistJson("comments/receipts.json", receipts);
 }
 
 loadState();
@@ -338,7 +318,7 @@ export function createCreditsServer() {
     if (!amount || amount <= 0) return sendJson(res, 400, { error: "invalid_amount" });
     const result = spendCredits(state, wallet, amount);
     if (!result.ok) return sendJson(res, 400, { error: result.error });
-    await saveState();
+    saveState();
     return sendJson(res, 200, { wallet, balance: getBalance(state, wallet) });
   }
 
@@ -366,7 +346,7 @@ export function createCreditsServer() {
       state.receipts.delete(receiptId);
       return sendJson(res, 400, { error: "credit_cap_exceeded" });
     }
-    await saveState();
+    saveState();
     return sendJson(res, 200, { ok: true, balance: getBalance(state, nodeId) });
   }
 
@@ -407,7 +387,7 @@ export function createCreditsServer() {
       walletCooldownMs: commentsWalletCooldownMs
     });
     if (!result.ok) return sendJson(res, 400, { error: result.error });
-    await saveState();
+    saveState();
     return sendJson(res, 200, result);
   }
 
@@ -420,7 +400,7 @@ export function createCreditsServer() {
     }
     const result = submitHold(comments, body || {});
     if (!result.ok) return sendJson(res, 400, { error: result.error });
-    await saveState();
+    saveState();
     return sendJson(res, 200, result);
   }
 
@@ -478,7 +458,7 @@ export function createCreditsServer() {
       }
     });
     siteReceipts.set(hold.site_id, poolEntries.slice(0, 200));
-    await saveState();
+    saveState();
     return sendJson(res, 200, result);
   }
 
@@ -581,7 +561,7 @@ export function createCreditsServer() {
     const entries = siteReceipts.get(siteId) || [];
     entries.unshift({ ts: Date.now(), type: "node_receipt", payload: receipt });
     siteReceipts.set(siteId, entries.slice(0, 200));
-    await saveState();
+    saveState();
     return sendJson(res, 200, { ok: true, balance: sitePools.get(siteId) || 0 });
   }
 
@@ -630,7 +610,7 @@ export function createCreditsServer() {
       allocations[bucket.name] = Math.floor(treasuryBalance * bucket.fraction);
     }
     treasuryAllocations.push({ ts: Date.now(), allocations });
-    await saveState();
+    saveState();
     return sendJson(res, 200, { allocations });
   }
 
@@ -647,7 +627,7 @@ export function createCreditsServer() {
     const id = crypto.randomBytes(12).toString("hex");
     const executeAfter = Date.now() + governanceTimelockMs;
     governanceQueue.push({ id, action: body.action, payload: body.payload || {}, executeAfter });
-    await saveState();
+    saveState();
     return sendJson(res, 200, { id, executeAfter });
   }
 

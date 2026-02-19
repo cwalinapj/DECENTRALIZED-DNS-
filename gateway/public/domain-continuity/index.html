@@ -117,15 +117,18 @@
       <div class="banner">
         This is MVP: registry integration is not active; statuses are computed by policy + local observations.
       </div>
+      <div class="banner">
+        No crypto UX required: credits are earned automatically via NS use + toll share; crypto is backend settlement only.
+      </div>
 
       <div class="row">
-        <input id="domain" value="example.com" placeholder="example.com" aria-label="Domain name" />
-        <input id="apiBase" value="http://localhost:8054" placeholder="http://localhost:8054" aria-label="API base URL" />
+        <input id="domain" value="example.com" placeholder="example.com" />
+        <input id="apiBase" value="http://localhost:8054" placeholder="http://localhost:8054" />
         <button id="checkBtn">Check status</button>
       </div>
 
       <div class="actions">
-        <button class="secondary" id="copyCurl">Copy curl /v1/domain/status</button>
+        <button class="secondary" id="copyCurl">Copy curl /v1/domain/continuity</button>
         <button class="secondary" id="startVerify">Start verification (TXT)</button>
         <button class="secondary" id="claimContinuity">Claim continuity</button>
         <button class="secondary" id="renewApi">Call /v1/domain/renew</button>
@@ -141,7 +144,10 @@
         <div class="card"><div class="label">Reason Codes</div><div class="value" id="reasons">-</div></div>
         <div class="card"><div class="label">Renewal Due</div><div class="value" id="due">-</div></div>
         <div class="card"><div class="label">Grace Expires</div><div class="value" id="grace">-</div></div>
-        <div class="card"><div class="label">Credits (Balance / Estimate)</div><div class="value" id="credits">-</div></div>
+        <div class="card"><div class="label">Credits Balance</div><div class="value" id="credits">-</div></div>
+        <div class="card"><div class="label">Estimated Renewal Cost</div><div class="value" id="renewalCost">-</div></div>
+        <div class="card"><div class="label">Renewal Covered by Credits</div><div class="value" id="covered">-</div></div>
+        <div class="card"><div class="label">Hold Banner Active</div><div class="value" id="holdBanner">-</div></div>
         <div class="card"><div class="label">Next Steps</div><div class="value" id="steps">-</div></div>
       </div>
 
@@ -170,9 +176,7 @@
       function statusCurl() {
         const domain = $("domain").value.trim();
         const base = $("apiBase").value.trim();
-        const escapedBase = base.replace(/'/g, "'\\''");
-        const escapedDomain = domain.replace(/'/g, "'\\''");
-        return `curl '${escapedBase}/v1/domain/status?domain=${escapedDomain}'`;
+        return `curl '${base}/v1/domain/continuity?domain=${encodeURIComponent(domain)}'`;
       }
 
       function setText(id, value, cls = "") {
@@ -182,18 +186,13 @@
       }
 
       async function copyText(text) {
-        try {
-          await navigator.clipboard.writeText(text);
-        } catch (err) {
-          console.error("Clipboard write failed:", err);
-          alert("Failed to copy to clipboard. Please copy manually.");
-        }
+        await navigator.clipboard.writeText(text);
       }
 
       async function checkStatus() {
         const domain = $("domain").value.trim();
         const base = $("apiBase").value.trim();
-        const url = `${base}/v1/domain/status?domain=${encodeURIComponent(domain)}`;
+        const url = `${base}/v1/domain/continuity?domain=${encodeURIComponent(domain)}`;
 
         try {
           const res = await fetch(url, { headers: { accept: "application/json" } });
@@ -201,17 +200,22 @@
 
           $("raw").textContent = JSON.stringify(body, null, 2);
 
-          const eligible = body.eligible === true;
+          const continuity = body.continuity || body;
+          const credits = body.credits || {};
+          const eligible = continuity.eligible === true;
           setText("eligible", eligible ? "Eligible" : "Not eligible", eligible ? "ok" : "warn");
-          setText("phase", body.phase || "N/A");
-          setText("reasons", (body.reason_codes || []).join(", ") || "none");
-          setText("due", body.renewal_due_date || "unknown");
-          setText("grace", body.grace_expires_at || "unknown");
-          setText("credits", `${body.credits_balance ?? 0} / ${body.credits_applied_estimate ?? 0}`);
-          setText("steps", (body.next_steps || []).join(" | ") || "none");
+          setText("phase", continuity.phase || "N/A");
+          setText("reasons", (continuity.reason_codes || []).join(", ") || "none");
+          setText("due", continuity.renewal_due_date || "unknown");
+          setText("grace", continuity.grace_expires_at || "unknown");
+          setText("credits", `${credits.credits_balance ?? continuity.credits_balance ?? 0}`);
+          setText("renewalCost", `${credits.renewal_cost_estimate ?? continuity.estimated_renewal_cost ?? 0}`);
+          setText("covered", (credits.covered_by_credits ?? continuity.renewal_covered_by_credits) ? "yes" : "no");
+          setText("holdBanner", continuity.hold_banner_active ? "yes" : "no", continuity.hold_banner_active ? "ok" : "");
+          setText("steps", (continuity.next_steps || []).join(" | ") || "none");
 
-          const txtHint = body.txt_record_name && body.txt_record_value
-            ? `${body.txt_record_name} IN TXT \"${body.txt_record_value}\"`
+          const txtHint = continuity.txt_record_name && continuity.txt_record_value
+            ? `${continuity.txt_record_name} IN TXT \"${continuity.txt_record_value}\"`
             : "No TXT challenge in status response. Use /v1/domain/verify for challenge generation.";
           $("txtRecord").value = txtHint;
         } catch (err) {

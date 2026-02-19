@@ -47,7 +47,9 @@ labs/solana/target/
 **/node_modules/
 **/.DS_Store
 **/.env
+**/.env.*
+!**/.env.example
 **/*wallet*.json
 
-# Test cache files
+# Test cache artifacts
 **/.cache/
