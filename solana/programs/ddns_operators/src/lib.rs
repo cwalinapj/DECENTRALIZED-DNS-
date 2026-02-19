@@ -3,7 +3,7 @@ use anchor_lang::solana_program::program_pack::Pack;
 use anchor_spl::token::{self, Token, Transfer};
 use spl_token::state::Account as SplTokenAccount;
 
-declare_id!("3Q5VCoAT4TZ9xMrpbt4jbN9LhHfihxGH3TiD6PmSqHhp");
+declare_id!("6QpkisF6re7KM5XwiYv5mqRmsfPBAwFEK6tkRmMeSRL8");
 
 const MAX_METRICS_SUBMITTERS: usize = 64;
 const MAX_SLASH_AUTHORITIES: usize = 32;

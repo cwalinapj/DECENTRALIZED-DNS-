@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-declare_id!("J3LCbeg9ocpGcGWdAAFjM8N4G7FTU9na1Lhe5VHBivZt");
+declare_id!("HjCiKFJKnSvuUd8gN8NjiFPdiwRZSqDit7LMJzFt3Sck");
 
 const SEED_CACHE_HEAD: &[u8] = b"cache_head";
 

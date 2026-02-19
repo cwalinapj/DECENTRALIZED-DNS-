@@ -8,7 +8,7 @@ use anchor_lang::solana_program::{
 use anchor_spl::token::{self, Token, Transfer};
 use sha2::{Digest, Sha256};
 
-declare_id!("B4nYLvM9KVH2vsHFqBdSScMwnE8GABQetfVv3U7BUbhL");
+declare_id!("GYexwqwG1WArm3uSRNpTxZPVwvAPqrJp7BVzECJmWJGH");
 
 const BPS_DENOM: u128 = 10_000;
 const SCORE_DENOM: u128 = 10_000; // scores in 0..10000

@@ -22,7 +22,7 @@ const DEFAULT_RPC =
 const DEFAULT_WALLET =
   process.env.ANCHOR_WALLET || path.join(process.env.HOME || ".", ".config/solana/id.json");
 const DEFAULT_PROGRAM_ID =
-  process.env.DDNS_WITNESS_REWARDS_PROGRAM_ID || "AVsmrpWUMLsdaHr5Y8p2N96fBMPTHVV7WLz8iiu4nBge";
+  process.env.DDNS_WITNESS_REWARDS_PROGRAM_ID || "6dNEBRscCHZB7yHo1iPBktccUSN7P32eSvY1FQkPh7hd";
 
 function u64Le(value: bigint): Buffer {
   const b = Buffer.alloc(8);
