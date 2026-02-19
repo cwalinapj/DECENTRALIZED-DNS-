@@ -869,10 +869,15 @@ export function createApp() {
       credits_amount: creditsToApply,
       payment_method: useCredits ? "credits" : "stub"
     });
+    let creditsApplied = 0;
+    let creditsDebitError: string | null = null;
     if (renewal.submitted && creditsToApply > 0) {
       try {
         creditsLedger.debit(domain, creditsToApply, "renewal_subsidy");
-      } catch {}
+        creditsApplied = creditsToApply;
+      } catch (err) {
+        creditsDebitError = err instanceof Error ? err.message : "credits_debit_failed";
+      }
     }
     const existing = domainStatusStore.get(domain);
     const registrarDomain = await registrarAdapter.getDomain(domain);
@@ -900,12 +905,19 @@ export function createApp() {
       decision: renewal.submitted ? (registrarRuntime.dryRun ? "dry_run" : "executed") : "blocked",
       provider_ref: renewal.provider_ref
     });
+    if (creditsDebitError) {
+      auditEvent(req, {
+        endpoint: "/v1/domain/renew",
+        domain,
+        decision: "blocked"
+      });
+    }
     return res.json({
       domain: status.domain,
       accepted: renewal.submitted,
       message: renewal.submitted ? "submitted_to_mock_registrar" : "stubbed: pending integration",
-      reason_codes: renewal.errors,
-      credits_applied_estimate: renewal.submitted ? creditsToApply : 0,
+      reason_codes: creditsDebitError ? [...renewal.errors, "credits_debit_failed"] : renewal.errors,
+      credits_applied_estimate: renewal.submitted ? creditsApplied : 0,
       credits_balance: subsidyAfter.credits_balance,
       renewal_covered_by_credits: status.renewal_covered_by_credits,
       renewal_due_date: status.renewal_due_date,

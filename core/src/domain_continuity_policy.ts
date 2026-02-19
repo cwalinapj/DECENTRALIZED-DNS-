@@ -103,7 +103,13 @@ export function evaluateDomainContinuityPolicy(
   const creditsEstimate = creditsEstimateFor(input.traffic_signal, input.ns_status, input.verified_control);
   const renewalCoveredByCredits = Number(input.credit_balance || 0) >= Number(input.renewal_cost_estimate || 0);
 
-  if (renewalCoveredByCredits) {
+  if (phase === "HOLD_BANNER" && dueInDays !== null && dueInDays < 0) {
+    if (renewalCoveredByCredits) {
+      nextSteps.push("Renew now to exit traffic-based hold; credits can fully cover the renewal");
+    } else {
+      nextSteps.push("Renew now to exit traffic-based hold using available credits + fallback payment method");
+    }
+  } else if (renewalCoveredByCredits) {
     nextSteps.push("Renewal can be fully covered by credits");
   } else {
     nextSteps.push("Renew with available credits + fallback payment method");
