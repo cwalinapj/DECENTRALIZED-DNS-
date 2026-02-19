@@ -5,18 +5,18 @@ This is the canonical MVP entry page for this repo.
 ## What Is This Repo?
 
 - A decentralized DNS/gateway stack with:
-- recursive ICANN resolution (quorum + cache)
-- `.dns` pathing via PKDNS/on-chain programs
-- operator/miner services and policy guardrails
+  - recursive ICANN resolution (quorum + cache)
+  - `.dns` pathing via PKDNS/on-chain programs
+  - operator/miner services and policy guardrails
 
-## What Is Live On Devnet
+## What Is Live On Devnet?
 
-- Program IDs are source-of-truth in `solana/Anchor.toml` under `[programs.devnet]`.
+- Program IDs are the source of truth in `solana/Anchor.toml` under `[programs.devnet]`.
 - Verify deployments and authority ownership:
 
 ```bash
 npm -C solana run devnet:verify
-bash scripts/devnet_inventory.sh
+npm -C solana run devnet:audit
 ```
 
 - Default deploy authority wallet used in current runbooks:
@@ -27,7 +27,7 @@ bash scripts/devnet_inventory.sh
 ```bash
 npm -C gateway ci
 npm -C gateway run build
-npm -C gateway run dev
+npm -C gateway run start
 ```
 
 In another terminal:
@@ -55,7 +55,7 @@ Note: Wrangler cannot create Cloudflare accounts or bypass CAPTCHA/email verific
 ## Run Devnet Demo Script
 
 ```bash
-npm run mvp:demo:devnet
+npm -C solana run devnet:verify && npm -C solana run devnet:audit
 ```
 
 Expected final marker:
@@ -70,7 +70,7 @@ Expected final marker:
 - Solana-specific proof log: `solana/VERIFIED.md`
 - Devnet runbook: `DEVNET_RUNBOOK.md`
 - Current devnet status snapshot: `docs/DEVNET_STATUS.md`
-- Program funding/reserve reporter: `scripts/devnet_inventory.sh`
+- Devnet audit output source: `npm -C solana run devnet:audit`
 
 ## Minimal MVP Check Sequence
 
@@ -78,7 +78,7 @@ Expected final marker:
 npm ci
 npm test
 npm -C gateway test && npm -C gateway run build
-cd solana && anchor build
+(cd solana && anchor build)
 npm -C solana run devnet:verify
-bash scripts/devnet_inventory.sh
+npm -C solana run devnet:audit
 ```
