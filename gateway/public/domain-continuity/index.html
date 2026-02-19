@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TollDNS Domain Continuity Dashboard (MVP)</title>
+    <style>
+      :root {
+        --bg: #f7f9fc;
+        --card: #ffffff;
+        --ink: #10233d;
+        --muted: #4e637e;
+        --accent: #0b6cfb;
+        --ok: #0a7f4f;
+        --warn: #ab6b00;
+        --border: #d8e2f0;
+      }
+      body {
+        margin: 0;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(170deg, #eef5ff, var(--bg));
+        color: var(--ink);
+      }
+      .wrap {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 30px;
+      }
+      .sub {
+        margin: 0 0 16px;
+        color: var(--muted);
+      }
+      .banner {
+        background: #fff7d1;
+        border: 1px solid #f0d783;
+        padding: 10px 12px;
+        border-radius: 10px;
+        margin-bottom: 18px;
+        color: #6c4e00;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr auto;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+      input, button, textarea {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-size: 14px;
+      }
+      button {
+        background: var(--accent);
+        color: #fff;
+        border: 0;
+        cursor: pointer;
+      }
+      button.secondary {
+        background: #fff;
+        color: var(--ink);
+        border: 1px solid var(--border);
+      }
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 12px;
+        margin: 16px 0;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 12px;
+      }
+      .label {
+        color: var(--muted);
+        font-size: 12px;
+        margin-bottom: 4px;
+      }
+      .value {
+        font-size: 15px;
+        font-weight: 600;
+        word-break: break-word;
+      }
+      .ok { color: var(--ok); }
+      .warn { color: var(--warn); }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 8px 0 14px;
+      }
+      pre {
+        background: #0d1b2a;
+        color: #d4e7ff;
+        padding: 12px;
+        border-radius: 10px;
+        overflow: auto;
+        font-size: 12px;
+      }
+      textarea {
+        width: 100%;
+        min-height: 64px;
+        resize: vertical;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Domain Continuity Dashboard</h1>
+      <p class="sub">Check continuity eligibility, renewal timeline, and policy-phase status for an ICANN domain.</p>
+      <div class="banner">
+        This is MVP: registry integration is not active; statuses are computed by policy + local observations.
+      </div>
+
+      <div class="row">
+        <input id="domain" value="example.com" placeholder="example.com" />
+        <input id="apiBase" value="http://localhost:8054" placeholder="http://localhost:8054" />
+        <button id="checkBtn">Check status</button>
+      </div>
+
+      <div class="actions">
+        <button class="secondary" id="copyCurl">Copy curl /v1/domain/status</button>
+        <button class="secondary" id="copyTxt">Copy TXT value</button>
+        <button class="secondary" id="renewBtn" title="MVP placeholder">Renew now (placeholder)</button>
+      </div>
+
+      <div class="cards">
+        <div class="card"><div class="label">Eligibility</div><div class="value" id="eligible">-</div></div>
+        <div class="card"><div class="label">Phase</div><div class="value" id="phase">-</div></div>
+        <div class="card"><div class="label">Reason Codes</div><div class="value" id="reasons">-</div></div>
+        <div class="card"><div class="label">Renewal Due</div><div class="value" id="due">-</div></div>
+        <div class="card"><div class="label">Grace Expires</div><div class="value" id="grace">-</div></div>
+        <div class="card"><div class="label">Credits (Balance / Estimate)</div><div class="value" id="credits">-</div></div>
+        <div class="card"><div class="label">Next Steps</div><div class="value" id="steps">-</div></div>
+      </div>
+
+      <div class="card">
+        <div class="label">TXT record helper (from verification flow)</div>
+        <textarea id="txtRecord" readonly placeholder="Run verification flow to get TXT challenge."></textarea>
+      </div>
+
+      <h3>Raw response</h3>
+      <pre id="raw">No request yet.</pre>
+    </div>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+
+      function statusCurl() {
+        const domain = $("domain").value.trim();
+        const base = $("apiBase").value.trim();
+        return `curl '${base}/v1/domain/status?domain=${encodeURIComponent(domain)}'`;
+      }
+
+      function setText(id, value, cls = "") {
+        const node = $(id);
+        node.className = `value ${cls}`.trim();
+        node.textContent = value ?? "-";
+      }
+
+      async function copyText(text) {
+        await navigator.clipboard.writeText(text);
+      }
+
+      async function checkStatus() {
+        const domain = $("domain").value.trim();
+        const base = $("apiBase").value.trim();
+        const url = `${base}/v1/domain/status?domain=${encodeURIComponent(domain)}`;
+
+        try {
+          const res = await fetch(url, { headers: { accept: "application/json" } });
+          const body = await res.json().catch(() => ({}));
+
+          $("raw").textContent = JSON.stringify(body, null, 2);
+
+          const eligible = body.eligible === true;
+          setText("eligible", eligible ? "Eligible" : "Not eligible", eligible ? "ok" : "warn");
+          setText("phase", body.phase || "N/A");
+          setText("reasons", (body.reason_codes || []).join(", ") || "none");
+          setText("due", body.renewal_due_date || "unknown");
+          setText("grace", body.grace_expires_at || "unknown");
+          setText("credits", `${body.credits_balance ?? 0} / ${body.credits_applied_estimate ?? 0}`);
+          setText("steps", (body.next_steps || []).join(" | ") || "none");
+
+          const txtHint = body.txt_record_name && body.txt_record_value
+            ? `${body.txt_record_name} IN TXT \"${body.txt_record_value}\"`
+            : "No TXT challenge in status response. Use /v1/domain/verify for challenge generation.";
+          $("txtRecord").value = txtHint;
+        } catch (err) {
+          $("raw").textContent = `request_failed: ${String(err)}`;
+          setText("eligible", "error", "warn");
+          setText("phase", "error", "warn");
+        }
+      }
+
+      $("checkBtn").addEventListener("click", checkStatus);
+      $("copyCurl").addEventListener("click", async () => copyText(statusCurl()));
+      $("copyTxt").addEventListener("click", async () => copyText($("txtRecord").value || ""));
+      $("renewBtn").addEventListener("click", () => {
+        alert("MVP placeholder: /v1/domain/renew contract exists; registrar execution is not active in MVP.");
+      });
+    </script>
+  </body>
+</html>

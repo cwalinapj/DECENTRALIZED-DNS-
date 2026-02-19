@@ -25,6 +25,7 @@ This index is intentionally short and categorized.
 - `docs/DEVELOPER_API.md`
 - `docs/WHY_DEVS_USE_THIS.md`
 - `docs/DOMAIN_CONTINUITY.md`
+- `docs/DOMAIN_CONTINUITY_UI.md`
 - `docs/openapi.yaml`
 
 ## Adapters / Integrations
