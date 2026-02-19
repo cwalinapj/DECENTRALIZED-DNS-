@@ -43,7 +43,32 @@ wait_http() {
 
 extract_tx() {
   local blob="$1"
-  printf "%s\n" "$blob" | rg -o "tx: '[^']+'" | sed -E "s/tx: '([^']+)'/\1/" | head -n 1 || true
+  local pattern="tx: '[^']+'"
+  if command -v rg >/dev/null 2>&1; then
+    printf "%s\n" "$blob" | rg -o "$pattern" | sed -E "s/tx: '([^']+)'/\1/" | head -n 1 || true
+  else
+    printf "%s\n" "$blob" | grep -oE "$pattern" | sed -E "s/tx: '([^']+)'/\1/" | head -n 1 || true
+  fi
+}
+
+slice_block() {
+  local pattern="$1"
+  local blob="$2"
+  if command -v rg >/dev/null 2>&1; then
+    echo "$blob" | rg "$pattern" -A3 || true
+  else
+    echo "$blob" | grep -A3 -E "$pattern" || true
+  fi
+}
+
+contains_pattern() {
+  local pattern="$1"
+  local blob="$2"
+  if command -v rg >/dev/null 2>&1; then
+    echo "$blob" | rg -q "$pattern"
+  else
+    echo "$blob" | grep -qE "$pattern"
+  fi
 }
 
 echo "==> verify deployed MVP programs on devnet"
@@ -118,10 +143,10 @@ FLOW_CMD_RC=$?
 set -e
 echo "$FLOW_OUT" | tail -n 30
 
-CLAIM_TX="$(extract_tx "$(echo "$FLOW_OUT" | rg "claim_passport:" -A3 || true)")"
-ASSIGN_TX="$(extract_tx "$(echo "$FLOW_OUT" | rg "assign_route:" -A3 || true)")"
+CLAIM_TX="$(extract_tx "$(slice_block "claim_passport:" "$FLOW_OUT")")"
+ASSIGN_TX="$(extract_tx "$(slice_block "assign_route:" "$FLOW_OUT")")"
 FLOW_OK=1
-if [[ $FLOW_CMD_RC -ne 0 ]] || ! echo "$FLOW_OUT" | rg -q "assign_route:\s+200"; then
+if [[ $FLOW_CMD_RC -ne 0 ]] || ! contains_pattern "assign_route:[[:space:]]+200" "$FLOW_OUT"; then
   FLOW_OK=0
   echo "warning: tollbooth devnet flow did not return assign_route 200; continuing for audit visibility"
 fi
