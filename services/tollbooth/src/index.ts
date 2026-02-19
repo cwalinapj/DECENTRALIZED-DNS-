@@ -247,7 +247,12 @@ app.get("/v1/names", async (req, res) => {
   try {
     const wallet = String(req.query.wallet || "");
     if (!wallet) return httpError(res, 400, "missing_wallet");
-    const ownerWallet = new PublicKey(wallet);
+    let ownerWallet;
+    try {
+      ownerWallet = new PublicKey(wallet);
+    } catch {
+      return httpError(res, 400, "invalid_wallet_pubkey");
+    }
     await ensureProgramExists(ddns);
     const names = await listOwnedNames(ddns, ownerWallet);
     return res.json({ ok: true, wallet, names });

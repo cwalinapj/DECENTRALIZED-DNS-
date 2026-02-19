@@ -659,6 +659,9 @@ export function createApp() {
         return res.status(429).json({ error: "rate_limited" });
       }
       const years = Number(req.body?.years || 1);
+      if (!Number.isInteger(years) || years < 1) {
+        return res.status(400).json({ error: "invalid_years_parameter" });
+      }
       const quote = await registrarAdapter.getRenewalQuote(domain);
       const domainInfo = await registrarAdapter.getDomain(domain);
       const credits = Number(domainInfo.credits_balance || 0);
@@ -712,6 +715,9 @@ export function createApp() {
       const domain = typeof req.body?.domain === "string" ? req.body.domain : "";
       const ns = Array.isArray(req.body?.ns) ? req.body.ns : [];
       if (!domain) return res.status(400).json({ error: "missing_domain" });
+      if (!ns.every((n: any) => typeof n === "string")) {
+        return res.status(400).json({ error: "invalid_ns_parameter" });
+      }
       if (enforceRateLimit(req, "registrar_ns", domain)) {
         auditEvent(req, { endpoint: "/v1/registrar/ns", domain, decision: "rate_limited" });
         return res.status(429).json({ error: "rate_limited" });
@@ -813,6 +819,9 @@ export function createApp() {
       }
       const useCredits = req.body?.use_credits !== false;
       const years = Number(req.body?.years || 1);
+      if (!Number.isInteger(years) || years < 1) {
+        return res.status(400).json({ error: "invalid_years_parameter" });
+      }
       const renewal = await registrarAdapter.renewDomain(domain, years, { use_credits: useCredits });
       const existing = await domainStatusStore.get(domain);
       const registrarDomain = await registrarAdapter.getDomain(domain);
