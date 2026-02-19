@@ -354,3 +354,28 @@ logs_dir: /var/folders/h5/7f2x98695lz6819tc0k6fbv80000gn/T//ddns-devnet-demo
 ✅ demo complete
 ```
 - Result: PASS
+
+### 2026-02-19T08:18:40Z — Domain Continuity docs + OpenAPI + SDK stubs
+- Base commit SHA: `75882cd`
+- Worktree: `/tmp/ddns-pr-domain-continuity`
+- Commands run:
+```bash
+npm ci && npm test
+npm -C gateway test && npm -C gateway run build
+npm -C packages/sdk i && npm -C packages/sdk run build
+```
+- Output snippet:
+```text
+==> run_all: complete
+
+ RUN  v4.0.18 /private/tmp/ddns-pr-domain-continuity/gateway
+ Test Files  10 passed (10)
+ Tests  29 passed (29)
+
+> ddns-resolver@0.1.0 build
+> tsc -p tsconfig.json
+
+> @ddns/sdk@0.1.0 build
+> tsc -p tsconfig.json
+```
+- Result: `PASS` (all commands exited 0)

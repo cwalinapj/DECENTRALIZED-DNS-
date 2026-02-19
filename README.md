@@ -85,6 +85,15 @@ Important: Wrangler cannot create Cloudflare accounts or bypass CAPTCHA/email ve
 - privacy-safe observations that strengthen network reliability
 - developers can earn more by using our nameservers (toll share / discounts / credits / reduced registration and renewal costs; policy-governed)
 
+## Domain Continuity (Anti-Expiration Loss)
+
+- Traditional registrars can let valuable domains expire after inbox failures and then auction those names.
+- TollDNS provides continuity behavior: eligible domains remain reachable in a safe degraded mode with aggressive notifications while renewal is pending.
+- Renewal can be reduced or covered through credits earned from using TollDNS nameservers; no crypto is required for users.
+- This is expiration-loss protection, not a forever hold beyond registry rules.
+
+See `docs/DOMAIN_CONTINUITY.md`.
+
 ## Domain-owner earnings wedge (MVP accuracy)
 
 Domain-owner/operator earnings are a core go-to-market wedge. In MVP, parts are policy-defined and some settlement paths are still bootstrap/centralized. Treat payouts as MVP policy plus incremental implementation, not guaranteed fixed returns.
