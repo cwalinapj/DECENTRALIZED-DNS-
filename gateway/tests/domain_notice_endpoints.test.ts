@@ -2,14 +2,18 @@ import { describe, expect, it, vi } from "vitest";
 import request from "supertest";
 import fs from "node:fs";
 import path from "node:path";
+import os from "node:os";
 
-const TEST_STORE_PATH = path.join(process.cwd(), "gateway/.cache/domain_status.test.json");
-const TEST_REGISTRAR_STORE_PATH = path.join(process.cwd(), "gateway/.cache/mock_registrar.test.json");
+const TEST_STORE_PATH = path.join(os.tmpdir(), "ddns-domain_status.test.json");
+const TEST_REGISTRAR_STORE_PATH = path.join(os.tmpdir(), "ddns-mock_registrar.test.json");
+const TEST_CREDITS_STORE_PATH = path.join(os.tmpdir(), "ddns-credits_ledger.test.json");
 
 async function loadApp() {
   vi.resetModules();
   process.env.DOMAIN_STATUS_STORE_PATH = TEST_STORE_PATH;
   process.env.MOCK_REGISTRAR_STORE_PATH = TEST_REGISTRAR_STORE_PATH;
+  process.env.CREDITS_LEDGER_STORE_PATH = TEST_CREDITS_STORE_PATH;
+  process.env.DOMAIN_CREDITS_ADMIN_TOKEN = "test-admin-token";
   const mod = await import("../src/server.js");
   return mod.createApp();
 }
@@ -18,6 +22,7 @@ describe("domain continuity notice endpoints", () => {
   function resetStores() {
     try { fs.unlinkSync(TEST_STORE_PATH); } catch {}
     try { fs.unlinkSync(TEST_REGISTRAR_STORE_PATH); } catch {}
+    try { fs.unlinkSync(TEST_CREDITS_STORE_PATH); } catch {}
   }
 
   it("returns verification challenge and status metadata", async () => {
@@ -95,5 +100,50 @@ describe("domain continuity notice endpoints", () => {
       .send({ domain: "good-traffic.com", years: 1 });
     expect(renewRes.status).toBe(200);
     expect(renewRes.body.submitted).toBe(true);
+  });
+
+  it("supports credits ledger endpoints and continuity hold signal", async () => {
+    resetStores();
+
+    const now = Date.now();
+    const seededRegistrar = {
+      domains: {
+        "good-traffic.com": {
+          domain: "good-traffic.com",
+          status: "expired",
+          renewal_due_date: new Date(now - 2 * 24 * 60 * 60 * 1000).toISOString(),
+          grace_expires_at: new Date(now + 20 * 24 * 60 * 60 * 1000).toISOString(),
+          ns: ["ns1.tolldns.io", "ns2.tolldns.io"],
+          traffic_signal: "real",
+          credits_balance: 0
+        }
+      }
+    };
+    fs.mkdirSync(path.dirname(TEST_REGISTRAR_STORE_PATH), { recursive: true });
+    fs.writeFileSync(TEST_REGISTRAR_STORE_PATH, JSON.stringify(seededRegistrar, null, 2));
+
+    const app = await loadApp();
+
+    const balanceBefore = await request(app)
+      .get("/v1/credits/balance")
+      .query({ domain: "good-traffic.com" });
+    expect(balanceBefore.status).toBe(200);
+    expect(typeof balanceBefore.body.credits_balance).toBe("number");
+
+    const creditRes = await request(app)
+      .post("/v1/credits/credit")
+      .set("X-Admin-Token", "test-admin-token")
+      .send({ domain: "good-traffic.com", amount: 25, reason: "ns_usage_toll_share" });
+    expect(creditRes.status).toBe(200);
+    expect(creditRes.body.accepted).toBe(true);
+
+    const continuityRes = await request(app)
+      .get("/v1/domain/continuity")
+      .query({ domain: "good-traffic.com" });
+    expect(continuityRes.status).toBe(200);
+    expect(continuityRes.body.domain).toBe("good-traffic.com");
+    expect(continuityRes.body.continuity.phase).toBe("HOLD_BANNER");
+    expect(continuityRes.body.continuity.hold_banner_active).toBe(true);
+    expect(typeof continuityRes.body.credits.credits_balance).toBe("number");
   });
 });

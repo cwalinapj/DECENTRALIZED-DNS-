@@ -7,6 +7,7 @@ ed.etc.sha512Sync = (...m) => sha512(ed.etc.concatBytes(...m));
 export type DomainContinuityPhase =
   | "A_SOFT_WARNING"
   | "B_HARD_WARNING"
+  | "HOLD_BANNER"
   | "C_SAFE_PARKED"
   | "D_REGISTRY_FINALIZATION";
 

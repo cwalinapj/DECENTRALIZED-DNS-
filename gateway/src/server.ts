@@ -38,6 +38,7 @@ import {
 } from "./lib/domain_continuity_policy.js";
 import { createDomainStatusStore } from "./lib/domain_status_store.js";
 import { createMockRegistrar } from "./lib/registrar_mock.js";
+import { createCreditsLedger } from "./lib/credits_ledger.js";
 
 const PORT = Number(process.env.PORT || "8054");
 const HOST = process.env.HOST || "0.0.0.0";
@@ -96,6 +97,8 @@ const ATTACK_WINDOW_SECS = Number(process.env.ATTACK_WINDOW_SECS || "120");
 const DOMAIN_CONTINUITY_POLICY_VERSION = process.env.DOMAIN_CONTINUITY_POLICY_VERSION || "mvp-2026-02";
 const DOMAIN_STATUS_STORE_PATH = process.env.DOMAIN_STATUS_STORE_PATH || "gateway/.cache/domain_status.json";
 const MOCK_REGISTRAR_STORE_PATH = process.env.MOCK_REGISTRAR_STORE_PATH || "gateway/.cache/mock_registrar.json";
+const CREDITS_LEDGER_STORE_PATH = process.env.CREDITS_LEDGER_STORE_PATH || "gateway/.cache/credits_ledger.json";
+const DOMAIN_CREDITS_ADMIN_TOKEN = process.env.DOMAIN_CREDITS_ADMIN_TOKEN || "mvp-local-admin";
 const BANNER_TEMPLATE_PATH =
   process.env.DOMAIN_BANNER_TEMPLATE_PATH || path.resolve(process.cwd(), "gateway/public/domain-continuity/banner.html");
 const INTERSTITIAL_TEMPLATE_PATH =
@@ -178,6 +181,7 @@ function continuityStatus(
     abuseFlag?: boolean;
     claimRequested?: boolean;
     creditsBalance?: number;
+    renewalCostEstimate?: number;
   } = {}
 ) {
   const domain = normalizeDomainInput(domainRaw);
@@ -190,6 +194,8 @@ function continuityStatus(
     ns_status: options.nsStatus ?? true,
     verified_control: options.verifiedControl ?? false,
     traffic_signal: options.trafficSignal ?? inferTrafficSignal(options.lastSeenAt),
+    credit_balance: Number(options.creditsBalance ?? 0),
+    renewal_cost_estimate: Number(options.renewalCostEstimate ?? 110),
     renewal_due_date: renewalDueDate,
     last_seen_at: options.lastSeenAt,
     abuse_flag: options.abuseFlag ?? false
@@ -208,8 +214,11 @@ function continuityStatus(
     phase: policy.phase as DomainContinuityPhase,
     reason_codes: [...new Set(reasonCodes)],
     next_steps: [...new Set(nextSteps)],
-    credits_balance: options.creditsBalance ?? 120,
+    hold_banner_active: policy.hold_banner_active,
+    credits_balance: options.creditsBalance ?? 0,
     credits_applied_estimate: policy.credits_estimate,
+    estimated_renewal_cost: Number(options.renewalCostEstimate ?? 110),
+    renewal_covered_by_credits: policy.renewal_covered_by_credits,
     renewal_due_date: renewalDueDate,
     grace_expires_at: graceExpiresAt,
     policy_version: DOMAIN_CONTINUITY_POLICY_VERSION,
@@ -231,11 +240,14 @@ async function continuityStatusFromSources(
     abuseFlag?: boolean;
     claimRequested?: boolean;
     creditsBalance?: number;
+    renewalCostEstimate?: number;
   } = {}
 ) {
   const existingRecord = await registrarAdapter.getDomain(domainRaw);
+  const quote = await registrarAdapter.getRenewalQuote(domainRaw);
   const registrarNs = existingRecord.ns || [];
   const registrarNsStatus = registrarNs.some((entry) => entry.endsWith("tolldns.io"));
+  const ledgerSubsidy = creditsLedger.estimateRenewalSubsidy(domainRaw);
 
   return continuityStatus(domainRaw, {
     nsStatus: options.nsStatus ?? registrarNsStatus,
@@ -245,7 +257,9 @@ async function continuityStatusFromSources(
     lastSeenAt: options.lastSeenAt,
     abuseFlag: options.abuseFlag,
     claimRequested: options.claimRequested,
-    creditsBalance: options.creditsBalance ?? existingRecord.credits_balance
+    creditsBalance: options.creditsBalance ?? ledgerSubsidy.credits_balance,
+    renewalCostEstimate:
+      options.renewalCostEstimate ?? Math.max(ledgerSubsidy.renewal_cost_estimate, Math.ceil(Number(quote.price_usd || 0) * 10))
   });
 }
 
@@ -317,6 +331,12 @@ const cacheLogger = createCacheLogger({
 });
 const domainStatusStore = createDomainStatusStore(DOMAIN_STATUS_STORE_PATH);
 const registrarAdapter = createMockRegistrar(MOCK_REGISTRAR_STORE_PATH);
+const creditsLedger = createCreditsLedger(CREDITS_LEDGER_STORE_PATH);
+
+function isAdminStubAuthorized(req: express.Request): boolean {
+  const token = req.header("X-Admin-Token") || req.header("x-admin-token") || "";
+  return token === DOMAIN_CREDITS_ADMIN_TOKEN;
+}
 
 const cache = new Map<string, { expiresAt: number; payload: ResolveResponse }>();
 const mintCaches = new Map<string, Map<string, { rrtype: string; value: string; ttl: number; expiresAt: number; wallet_pubkey: string }>>();
@@ -544,6 +564,49 @@ export function createApp() {
     return res.json({ domain: normalizeDomainInput(domain), ns, ...result });
   });
 
+  app.get("/v1/credits/balance", async (req, res) => {
+    const domain = typeof req.query.domain === "string" ? req.query.domain : "";
+    if (!domain) return res.status(400).json({ error: "missing_domain" });
+    const subsidy = creditsLedger.estimateRenewalSubsidy(domain);
+    return res.json({
+      domain: normalizeDomainInput(domain),
+      credits_balance: subsidy.credits_balance,
+      renewal_cost_estimate: subsidy.renewal_cost_estimate,
+      covered_amount: subsidy.covered_amount,
+      renewal_covered_by_credits: subsidy.covered_by_credits,
+      auth_required: false,
+      auth_mode: "stub"
+    });
+  });
+
+  app.post("/v1/credits/credit", express.json(), async (req, res) => {
+    if (!isAdminStubAuthorized(req)) return res.status(403).json({ error: "admin_token_required" });
+    const domain = typeof req.body?.domain === "string" ? req.body.domain : "";
+    const amount = Number(req.body?.amount || 0);
+    const reason = typeof req.body?.reason === "string" ? req.body.reason : "manual_credit";
+    if (!domain) return res.status(400).json({ error: "missing_domain" });
+    try {
+      const balance = creditsLedger.credit(domain, amount, reason);
+      return res.json({ domain: normalizeDomainInput(domain), credits_balance: balance, reason, accepted: true });
+    } catch (err: any) {
+      return res.status(400).json({ error: String(err?.message || err) });
+    }
+  });
+
+  app.post("/v1/credits/debit", express.json(), async (req, res) => {
+    if (!isAdminStubAuthorized(req)) return res.status(403).json({ error: "admin_token_required" });
+    const domain = typeof req.body?.domain === "string" ? req.body.domain : "";
+    const amount = Number(req.body?.amount || 0);
+    const reason = typeof req.body?.reason === "string" ? req.body.reason : "manual_debit";
+    if (!domain) return res.status(400).json({ error: "missing_domain" });
+    try {
+      const balance = creditsLedger.debit(domain, amount, reason);
+      return res.json({ domain: normalizeDomainInput(domain), credits_balance: balance, reason, accepted: true });
+    } catch (err: any) {
+      return res.status(400).json({ error: String(err?.message || err) });
+    }
+  });
+
   app.get("/v1/domain/status", async (req, res) => {
     const domain = typeof req.query.domain === "string" ? req.query.domain : "";
     if (!domain) return res.status(400).json({ error: "missing_domain" });
@@ -558,7 +621,7 @@ export function createApp() {
       lastSeenAt: existing?.inputs?.last_seen_at || undefined,
       abuseFlag: existing?.inputs?.abuse_flag ?? false,
       claimRequested: existing?.claim_requested ?? false,
-      creditsBalance: registrarDomain.credits_balance
+      creditsBalance: creditsLedger.getBalance(domain)
     });
     const persisted = domainStatusStore.upsert(domain, (current) => ({
       domain: normalizeDomainInput(domain),
@@ -569,6 +632,8 @@ export function createApp() {
         ns_status: existing?.inputs?.ns_status ?? registrarDomain.ns.some((entry) => entry.endsWith("tolldns.io")),
         verified_control: existing?.inputs?.verified_control ?? false,
         traffic_signal: existing?.inputs?.traffic_signal ?? registrarDomain.traffic_signal ?? "none",
+        credit_balance: creditsLedger.getBalance(domain),
+        renewal_cost_estimate: status.estimated_renewal_cost,
         renewal_due_date: existing?.inputs?.renewal_due_date || registrarDomain.renewal_due_date || status.renewal_due_date,
         last_seen_at: new Date().toISOString(),
         abuse_flag: existing?.inputs?.abuse_flag ?? false
@@ -607,9 +672,21 @@ export function createApp() {
     if (!domain) return res.status(400).json({ error: "missing_domain" });
     const useCredits = req.body?.use_credits !== false;
     const years = Number(req.body?.years || 1);
-    const renewal = await registrarAdapter.renewDomain(domain, years, { use_credits: useCredits });
+    const subsidyBefore = creditsLedger.estimateRenewalSubsidy(domain);
+    const creditsToApply = useCredits ? subsidyBefore.covered_amount : 0;
+    const renewal = await registrarAdapter.renewDomain(domain, years, {
+      use_credits: useCredits,
+      credits_amount: creditsToApply,
+      payment_method: useCredits ? "credits" : "stub"
+    });
+    if (renewal.submitted && creditsToApply > 0) {
+      try {
+        creditsLedger.debit(domain, creditsToApply, "renewal_subsidy");
+      } catch {}
+    }
     const existing = domainStatusStore.get(domain);
     const registrarDomain = await registrarAdapter.getDomain(domain);
+    const subsidyAfter = creditsLedger.estimateRenewalSubsidy(domain);
     const status = await continuityStatusFromSources(domain, {
       nsStatus: existing?.inputs?.ns_status ?? registrarDomain.ns.some((entry) => entry.endsWith("tolldns.io")),
       verifiedControl: existing?.inputs?.verified_control ?? false,
@@ -618,7 +695,8 @@ export function createApp() {
       lastSeenAt: existing?.inputs?.last_seen_at || undefined,
       abuseFlag: existing?.inputs?.abuse_flag ?? false,
       claimRequested: existing?.claim_requested ?? false,
-      creditsBalance: registrarDomain.credits_balance
+      creditsBalance: subsidyAfter.credits_balance,
+      renewalCostEstimate: subsidyAfter.renewal_cost_estimate
     });
     domainStatusStore.upsert(domain, (current) => ({
       domain: normalizeDomainInput(domain),
@@ -631,7 +709,9 @@ export function createApp() {
       accepted: renewal.submitted,
       message: renewal.submitted ? "submitted_to_mock_registrar" : "stubbed: pending integration",
       reason_codes: renewal.errors,
-      credits_applied_estimate: useCredits ? status.credits_applied_estimate : 0,
+      credits_applied_estimate: renewal.submitted ? creditsToApply : 0,
+      credits_balance: subsidyAfter.credits_balance,
+      renewal_covered_by_credits: status.renewal_covered_by_credits,
       renewal_due_date: status.renewal_due_date,
       grace_expires_at: status.grace_expires_at,
       auth_required: false,
@@ -654,7 +734,7 @@ export function createApp() {
       lastSeenAt: existing?.inputs?.last_seen_at || undefined,
       abuseFlag: existing?.inputs?.abuse_flag ?? false,
       claimRequested: true,
-      creditsBalance: registrarDomain.credits_balance
+      creditsBalance: creditsLedger.getBalance(domain)
     });
     domainStatusStore.upsert(domain, (current) => ({
       domain: normalizeDomainInput(domain),
@@ -678,6 +758,40 @@ export function createApp() {
     });
   });
 
+  app.get("/v1/domain/continuity", async (req, res) => {
+    const domain = typeof req.query.domain === "string" ? req.query.domain : "";
+    if (!domain) return res.status(400).json({ error: "missing_domain" });
+    const existing = domainStatusStore.get(domain);
+    const registrarDomain = await registrarAdapter.getDomain(domain);
+    const registrarQuote = await registrarAdapter.getRenewalQuote(domain);
+    const subsidy = creditsLedger.estimateRenewalSubsidy(domain);
+    const status = await continuityStatusFromSources(domain, {
+      nsStatus: existing?.inputs?.ns_status ?? registrarDomain.ns.some((entry) => entry.endsWith("tolldns.io")),
+      verifiedControl: existing?.inputs?.verified_control ?? false,
+      trafficSignal: existing?.inputs?.traffic_signal ?? registrarDomain.traffic_signal ?? "none",
+      renewalDueDate: existing?.inputs?.renewal_due_date || registrarDomain.renewal_due_date || undefined,
+      lastSeenAt: existing?.inputs?.last_seen_at || undefined,
+      abuseFlag: existing?.inputs?.abuse_flag ?? false,
+      claimRequested: existing?.claim_requested ?? false,
+      creditsBalance: subsidy.credits_balance,
+      renewalCostEstimate: Math.max(subsidy.renewal_cost_estimate, Math.ceil(Number(registrarQuote.price_usd || 0) * 10))
+    });
+    return res.json({
+      domain: status.domain,
+      continuity: status,
+      registrar: {
+        status: registrarDomain.status,
+        renewal_due_date: registrarDomain.renewal_due_date || status.renewal_due_date,
+        grace_expires_at: registrarDomain.grace_expires_at || status.grace_expires_at,
+        ns: registrarDomain.ns
+      },
+      credits: subsidy,
+      auth_required: false,
+      auth_mode: "stub",
+      policy_version: DOMAIN_CONTINUITY_POLICY_VERSION
+    });
+  });
+
   app.get("/v1/domain/notice", async (req, res) => {
     const domain = typeof req.query.domain === "string" ? req.query.domain : "";
     if (!domain) return res.status(400).json({ error: "missing_domain" });
@@ -691,7 +805,7 @@ export function createApp() {
       lastSeenAt: existing?.inputs?.last_seen_at || undefined,
       abuseFlag: existing?.inputs?.abuse_flag ?? false,
       claimRequested: existing?.claim_requested ?? false,
-      creditsBalance: registrarDomain.credits_balance
+      creditsBalance: creditsLedger.getBalance(domain)
     });
     const now = new Date();
     const { token, pubkey } = await createNoticeToken({
@@ -727,7 +841,7 @@ export function createApp() {
       lastSeenAt: existing?.inputs?.last_seen_at || undefined,
       abuseFlag: existing?.inputs?.abuse_flag ?? false,
       claimRequested: existing?.claim_requested ?? false,
-      creditsBalance: registrarDomain.credits_balance
+      creditsBalance: creditsLedger.getBalance(domain)
     });
 
     const now = new Date();

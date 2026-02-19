@@ -32,6 +32,8 @@ export type DnsUpdateResult = {
 
 export type RegistrarPayment = {
   use_credits?: boolean;
+  credits_amount?: number;
+  payment_method?: "credits" | "fiat" | "card" | "stub";
 };
 
 export type RegistrarDomainRecord = {
