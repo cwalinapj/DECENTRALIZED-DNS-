@@ -36,6 +36,10 @@ Then open:
 - click **Fetch notice token**
 - click **Verify notice token**
 - confirm returned `valid: true` and decoded payload
+7. Use continuity API actions:
+- click **Start verification (TXT)** to generate/store a TXT challenge
+- click **Claim continuity** to create a claim request (policy-stubbed)
+- click **Call /v1/domain/renew** for renewal intent response (stubbed pending registrar integration)
 
 ## Expected MVP Behavior
 

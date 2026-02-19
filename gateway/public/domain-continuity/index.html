@@ -126,6 +126,9 @@
 
       <div class="actions">
         <button class="secondary" id="copyCurl">Copy curl /v1/domain/status</button>
+        <button class="secondary" id="startVerify">Start verification (TXT)</button>
+        <button class="secondary" id="claimContinuity">Claim continuity</button>
+        <button class="secondary" id="renewApi">Call /v1/domain/renew</button>
         <button class="secondary" id="fetchNotice">Fetch notice token</button>
         <button class="secondary" id="verifyNotice">Verify notice token</button>
         <button class="secondary" id="copyTxt">Copy TXT value</button>
@@ -222,6 +225,45 @@
         $("noticeVerifyResult").value = body.pubkey ? `pubkey: ${body.pubkey}` : "";
       }
 
+      async function startVerify() {
+        const domain = $("domain").value.trim();
+        const base = $("apiBase").value.trim();
+        const res = await fetch(`${base}/v1/domain/verify`, {
+          method: "POST",
+          headers: { "content-type": "application/json", accept: "application/json" },
+          body: JSON.stringify({ domain })
+        });
+        const body = await res.json().catch(() => ({}));
+        $("raw").textContent = JSON.stringify(body, null, 2);
+        if (body.txt_record_name && body.txt_record_value) {
+          $("txtRecord").value = `${body.txt_record_name} IN TXT "${body.txt_record_value}"`;
+        }
+      }
+
+      async function claimContinuity() {
+        const domain = $("domain").value.trim();
+        const base = $("apiBase").value.trim();
+        const res = await fetch(`${base}/v1/domain/continuity/claim`, {
+          method: "POST",
+          headers: { "content-type": "application/json", accept: "application/json" },
+          body: JSON.stringify({ domain })
+        });
+        const body = await res.json().catch(() => ({}));
+        $("raw").textContent = JSON.stringify(body, null, 2);
+      }
+
+      async function callRenew() {
+        const domain = $("domain").value.trim();
+        const base = $("apiBase").value.trim();
+        const res = await fetch(`${base}/v1/domain/renew`, {
+          method: "POST",
+          headers: { "content-type": "application/json", accept: "application/json" },
+          body: JSON.stringify({ domain, use_credits: true })
+        });
+        const body = await res.json().catch(() => ({}));
+        $("raw").textContent = JSON.stringify(body, null, 2);
+      }
+
       async function verifyNoticeToken() {
         const token = $("noticeToken").value.trim();
         const base = $("apiBase").value.trim();
@@ -240,6 +282,9 @@
 
       $("checkBtn").addEventListener("click", checkStatus);
       $("copyCurl").addEventListener("click", async () => copyText(statusCurl()));
+      $("startVerify").addEventListener("click", startVerify);
+      $("claimContinuity").addEventListener("click", claimContinuity);
+      $("renewApi").addEventListener("click", callRenew);
       $("fetchNotice").addEventListener("click", fetchNoticeToken);
       $("verifyNotice").addEventListener("click", verifyNoticeToken);
       $("copyTxt").addEventListener("click", async () => copyText($("txtRecord").value || ""));

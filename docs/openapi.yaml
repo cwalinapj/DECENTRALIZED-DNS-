@@ -282,6 +282,11 @@ components:
           type: string
           format: date-time
         policy_version: { type: string }
+        auth_required: { type: boolean }
+        auth_mode: { type: string, enum: [stub] }
+        owner_pubkey: { type: string, nullable: true }
+        txt_record_name: { type: string, nullable: true }
+        txt_record_value: { type: string, nullable: true }
         notice_signature: { type: string }
     DomainVerifyRequest:
       type: object
@@ -301,6 +306,8 @@ components:
         expires_at:
           type: string
           format: date-time
+        auth_required: { type: boolean }
+        auth_mode: { type: string, enum: [stub] }
         policy_version: { type: string }
     DomainRenewRequest:
       type: object
@@ -313,6 +320,7 @@ components:
       properties:
         domain: { type: string }
         accepted: { type: boolean }
+        message: { type: string }
         reason_codes:
           type: array
           items: { type: string }
@@ -323,6 +331,8 @@ components:
         grace_expires_at:
           type: string
           format: date-time
+        auth_required: { type: boolean }
+        auth_mode: { type: string, enum: [stub] }
         policy_version: { type: string }
         notice_signature: { type: string }
     DomainContinuityClaimRequest:
@@ -344,6 +354,8 @@ components:
         next_steps:
           type: array
           items: { type: string }
+        auth_required: { type: boolean }
+        auth_mode: { type: string, enum: [stub] }
         policy_version: { type: string }
         notice_signature: { type: string }
     DomainNoticeTokenResponse:

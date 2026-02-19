@@ -421,3 +421,27 @@ npm -C gateway test && npm -C gateway run build
 > tsc -p tsconfig.json
 ```
 - Result: `PASS`
+
+### 2026-02-19T09:20:00Z — PR3 Domain Status backend policy + storage stub
+- Base commit SHA: `c45f805`
+- Worktree: `/tmp/ddns-pr-domain-status-backend`
+- Commands run:
+```bash
+npm ci && npm test
+npm -C gateway test && npm -C gateway run build
+node gateway/dist/server.js & sleep 1
+curl 'http://127.0.0.1:8054/v1/domain/status?domain=example.com'
+curl 'http://127.0.0.1:8054/v1/domain/notice?domain=example.com'
+```
+- Output snippet:
+```text
+==> run_all: complete
+
+ RUN  v4.0.18 /private/tmp/ddns-pr-domain-status-backend/gateway
+ Test Files  12 passed (12)
+ Tests  34 passed (34)
+
+{"domain":"example.com","eligible":false,"phase":"A_SOFT_WARNING","reason_codes":["CONTROL_NOT_VERIFIED","NO_TRAFFIC_SIGNAL"],"next_steps":["Complete TXT verification via /v1/domain/verify","Serve active content and maintain uptime signals"],"credits_balance":120,"credits_applied_estimate":0,"renewal_due_date":"2026-03-11T09:19:09.568Z","grace_expires_at":"2026-03-26T09:19:09.568Z","policy_version":"mvp-2026-02","auth_required":false,"auth_mode":"stub","txt_record_name":null,"txt_record_value":null,"owner_pubkey":null,"notice_signature":"mvp-local-policy"}
+{"domain":"example.com","phase":"A_SOFT_WARNING","token":"<base64url-token>","pubkey":"25811fa4e3a6cf109176b5e4fab1d1b21a04e5bf7c31fb1f847248dd54a91307"}
+```
+- Result: `PASS`
