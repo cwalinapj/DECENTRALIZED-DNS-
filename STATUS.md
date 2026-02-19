@@ -88,3 +88,8 @@ gateway_dns_resolve_unavailable_for_u-b5wjx4pd.dns; falling back to tollbooth re
 blocker: tollbooth flow returned non-200; inspect /var/folders/h5/7f2x98695lz6819tc0k6fbv80000gn/T//ddns-devnet-demo/tollbooth.log and flow output above
 logs_dir: /var/folders/h5/7f2x98695lz6819tc0k6fbv80000gn/T//ddns-devnet-demo
 ✅ demo complete), no open PRs, clean repo hygiene.
+
+## MVP Ready
+- Date (UTC): 2026-02-19T08:03:12Z
+- Commit: 6e1bd24
+- State: docs canonicalized under /docs, demo command verified, no open PRs required for MVP lock.

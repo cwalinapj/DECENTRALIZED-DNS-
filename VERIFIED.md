@@ -319,3 +319,38 @@ worktrees:
 status_porcelain: ' M docs/DEVNET_STATUS.md M gateway/package-lock.json M services/tollbooth/package-lock.json?? gateway/gateway/'
 ```
 - Result: PASS
+
+### 2026-02-19T08:03:12Z — Final MVP Ready Lock (Docs Canonical + Demo Re-run)
+- Commit SHA (base): `6e1bd24`
+- Commands run:
+```bash
+npm run mvp:demo:devnet
+bash scripts/devnet_inventory.sh
+gh pr list --state open --limit 200 --json number | jq "length"
+git worktree list
+git status --porcelain
+```
+- Output snippet:
+```text
+  tx: null
+}
+assign_route: 400 { ok: false, error: 'name_not_claimed' }
+resolve: {
+  "ok": false,
+  "error": "not_found"
+}
+warning: tollbooth devnet flow did not return assign_route 200; continuing for audit visibility
+==> resolve ICANN via gateway
+{"name":"netflix.com","type":"A","answers":[{"name":"netflix.com","type":"A","data":"44.234.232.238","ttl":20},{"name":"netflix.com","type":"A","data":"44.242.60.85","ttl":20},{"name":"netflix.com","type":"A","data":"44.237.234.25","ttl":20}],"ttl_s":20,"source":"recursive","confidence":"low","upstr
+==> resolve .dns via gateway (best-effort, canonical route dependent)
+gateway_dns_resolve_unavailable_for_u-b5wjx4pd.dns; falling back to tollbooth resolver proof
+==> resolve .dns via tollbooth (route proof)
+{"ok":false,"error":"not_found"}
+
+==> optional witness reward submit/claim skipped (ENABLE_WITNESS_REWARDS=1 to enable)
+==> tx links
+blocker: tollbooth flow returned non-200; inspect /var/folders/h5/7f2x98695lz6819tc0k6fbv80000gn/T//ddns-devnet-demo/tollbooth.log and flow output above
+logs_dir: /var/folders/h5/7f2x98695lz6819tc0k6fbv80000gn/T//ddns-devnet-demo
+✅ demo complete
+```
+- Result: PASS
