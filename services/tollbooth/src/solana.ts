@@ -327,6 +327,33 @@ export async function getProgramAccountExists(ddns: DdnsSolana, pubkey: PublicKe
   return !!info;
 }
 
+function decodeLabelField(record: any): string | null {
+  const len = Number(record?.label_len ?? record?.labelLen ?? 0);
+  const raw = record?.label_bytes ?? record?.labelBytes;
+  if (!raw || !Number.isFinite(len) || len <= 0) return null;
+  const bytes = Array.isArray(raw) ? raw : Array.from(raw as Uint8Array);
+  return Buffer.from(bytes.slice(0, len)).toString("utf8");
+}
+
+export async function listOwnedNames(ddns: DdnsSolana, wallet: PublicKey): Promise<string[]> {
+  // NameRecord layout: discriminator(8) + name_hash(32) + owner_wallet(32) ...
+  const accounts = await ddns.connection.getProgramAccounts(ddns.programId, {
+    filters: [{ memcmp: { offset: 40, bytes: wallet.toBase58() } }],
+  });
+  const out = new Set<string>();
+  for (const a of accounts) {
+    try {
+      const rec = ddns.acctCoder.decode("NameRecord", a.account.data) as any;
+      const label = decodeLabelField(rec);
+      if (!label) continue;
+      out.add(`${label.toLowerCase()}.dns`);
+    } catch {
+      // Ignore non-NameRecord accounts returned by filter collisions.
+    }
+  }
+  return [...out];
+}
+
 export async function ensureProgramExists(ddns: DdnsSolana): Promise<void> {
   const info = await ddns.connection.getAccountInfo(ddns.programId, "confirmed");
   if (!info) throw new Error(`program not found on cluster: ${ddns.programId.toBase58()}`);

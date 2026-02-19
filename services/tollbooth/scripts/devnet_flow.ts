@@ -69,6 +69,7 @@ async function main() {
   const name = process.env.NAME || `${desired}.dns`;
   const dest = process.env.DEST || "https://example.com";
   const ttl = Number(process.env.TTL || 300);
+  let resolvedName = name;
 
   const assign = await postJson(`${BASE}/v1/assign-route`, {
     wallet_pubkey: client.pubkey58,
@@ -80,8 +81,29 @@ async function main() {
   });
   console.log("assign_route:", assign.status, assign.json);
 
+  if (assign.status !== 200 && assign.json?.error === "name_not_claimed") {
+    const names = await getJson(`${BASE}/v1/names?wallet=${client.pubkey58}`);
+    const fallback = Array.isArray(names?.names) ? names.names[0] : "";
+    if (fallback) {
+      const ch3 = await getJson(`${BASE}/v1/challenge?wallet=${client.pubkey58}`);
+      const sig3 = signChallenge(client.pubkey58, ch3.nonce, client.secretKey);
+      const assignRetry = await postJson(`${BASE}/v1/assign-route`, {
+        wallet_pubkey: client.pubkey58,
+        name: fallback,
+        dest,
+        ttl,
+        nonce: ch3.nonce,
+        signature: sig3,
+      });
+      console.log("assign_route_retry:", assignRetry.status, assignRetry.json);
+      if (assignRetry.status === 200) {
+        resolvedName = fallback;
+      }
+    }
+  }
+
   const resolved = await getJson(
-    `${BASE}/v1/resolve?wallet=${client.pubkey58}&name=${encodeURIComponent(name)}`
+    `${BASE}/v1/resolve?wallet=${client.pubkey58}&name=${encodeURIComponent(resolvedName)}`
   );
   console.log("resolve:", JSON.stringify(resolved, null, 2));
 }

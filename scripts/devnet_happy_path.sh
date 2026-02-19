@@ -29,7 +29,8 @@ if [[ ! -f "$WALLET_PATH" ]]; then
 fi
 
 if [[ -z "$CLIENT_WALLET_PATH" ]]; then
-  CLIENT_WALLET_PATH="$LOG_DIR/demo-client.json"
+  # Default demo client to authority wallet so on-chain signer requirements are satisfied.
+  CLIENT_WALLET_PATH="$WALLET_PATH"
 fi
 if [[ ! -f "$CLIENT_WALLET_PATH" ]]; then
   solana-keygen new --no-bip39-passphrase -o "$CLIENT_WALLET_PATH" -f >/dev/null
@@ -87,6 +88,16 @@ else
   echo "$NAMES_INIT_OUT" | tail -n 8
 fi
 
+echo "==> ensure anchor IDL for tollbooth (ddns_anchor)"
+if [[ ! -f "solana/target/idl/ddns_anchor.json" ]]; then
+  cd solana
+  anchor build --program-name ddns_anchor >"$LOG_DIR/anchor_build.log" 2>&1 || {
+    echo "anchor_build_failed: see $LOG_DIR/anchor_build.log"
+    exit 1
+  }
+  cd "$ROOT_DIR"
+fi
+
 echo "==> install + start tollbooth"
 npm -C services/tollbooth i >/dev/null
 PORT="$TOLLBOOTH_PORT" \
@@ -129,9 +140,9 @@ set -e
 echo "$FLOW_OUT" | tail -n 30
 
 CLAIM_TX="$(extract_tx "$(echo "$FLOW_OUT" | rg "claim_passport:" -A3 || true)")"
-ASSIGN_TX="$(extract_tx "$(echo "$FLOW_OUT" | rg "assign_route:" -A3 || true)")"
+ASSIGN_TX="$(extract_tx "$(echo "$FLOW_OUT" | rg "assign_route(_retry)?: " -A4 || true)")"
 FLOW_OK=1
-if [[ $FLOW_CMD_RC -ne 0 ]] || ! echo "$FLOW_OUT" | rg -q "assign_route:\s+200"; then
+if [[ $FLOW_CMD_RC -ne 0 ]] || ! echo "$FLOW_OUT" | rg -q "assign_route(_retry)?:\\s+200"; then
   FLOW_OK=0
   echo "warning: tollbooth devnet flow did not return assign_route 200; continuing for audit visibility"
 fi
