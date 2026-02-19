@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DDNS Cloudflare Miner Onboarding</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; background: #0b1220; color: #e7eefc; }
+    main { max-width: 900px; margin: 0 auto; padding: 32px 20px 48px; }
+    h1, h2 { margin: 0 0 12px; }
+    p, li { line-height: 1.5; color: #c7d3ef; }
+    .card { background: #131d33; border: 1px solid #263455; border-radius: 12px; padding: 18px; margin-top: 16px; }
+    code, pre { background: #0a1122; border: 1px solid #243252; border-radius: 8px; color: #cfe3ff; }
+    pre { padding: 12px; overflow-x: auto; }
+    button { background: #2f79ff; color: white; border: 0; padding: 10px 14px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+    .muted { font-size: 14px; color: #9fb1d9; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Become a DDNS Miner on Cloudflare Workers</h1>
+  <p>Run a lightweight resolver worker, return quorum confidence metadata, and join the network quickly.</p>
+
+  <div class="card">
+    <h2>What Is a Miner?</h2>
+    <p>A miner runs resolver infrastructure that returns DNS answers plus trust metadata (confidence, upstream audit, rrset hash). This helps reliability and censorship resistance.</p>
+  </div>
+
+  <div class="card">
+    <h2>Checklist</h2>
+    <ol>
+      <li>Create a Cloudflare account (free tier).</li>
+      <li>Run <code>wrangler login</code> (browser opens, complete email/CAPTCHA once).</li>
+      <li>Deploy the worker.</li>
+      <li>Verify <code>/v1/health</code> and <code>/resolve</code> endpoints.</li>
+    </ol>
+    <p class="muted">Wrangler cannot create accounts or bypass CAPTCHA/email verification. You must complete browser login once.</p>
+  </div>
+
+  <div class="card">
+    <h2>Deploy Command</h2>
+    <pre id="cmd">npm run miner:cf:deploy</pre>
+    <button id="copyBtn" type="button">Copy deploy command</button>
+    <p class="muted">After login is completed once, deploy is automated.</p>
+  </div>
+
+  <div class="card">
+    <h2>Required Variables (with defaults)</h2>
+    <ul>
+      <li><code>UPSTREAMS</code> = <code>https://cloudflare-dns.com/dns-query,https://dns.google/resolve</code></li>
+      <li><code>TIMEOUT_MS</code> = <code>2000</code></li>
+      <li><code>OVERLAP_RATIO</code> = <code>0.34</code></li>
+      <li><code>RECEIPT_ENDPOINT</code> = optional</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>After Deploy: curl Tests</h2>
+    <pre>curl "&lt;WORKER_URL&gt;/v1/health"
+curl "&lt;WORKER_URL&gt;/resolve?name=netflix.com&type=A"</pre>
+  </div>
+
+  <div class="card">
+    <h2>Common Errors</h2>
+    <ul>
+      <li><code>wrangler: command not found</code> → run <code>npm install</code> in <code>services/cf-worker-miner</code>.</li>
+      <li><code>Not logged in</code> → run <code>npx wrangler login</code>.</li>
+      <li>Permission/account mismatch → run <code>npx wrangler whoami</code> and verify account/zone.</li>
+    </ul>
+  </div>
+</main>
+<script>
+  document.getElementById("copyBtn").addEventListener("click", async () => {
+    const text = document.getElementById("cmd").textContent;
+    await navigator.clipboard.writeText(text);
+    document.getElementById("copyBtn").textContent = "Copied";
+    setTimeout(() => { document.getElementById("copyBtn").textContent = "Copy deploy command"; }, 1400);
+  });
+</script>
+</body>
+</html>

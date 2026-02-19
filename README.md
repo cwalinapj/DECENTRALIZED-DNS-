@@ -231,6 +231,19 @@ Devnet is the reference environment. Localnet is optional for MVP.
 - Sellable miner reward claims are premium-gated: claimants must prove ownership of a premium `.dns` account.
 - This gate changes reward eligibility only; it does not write ICANN results into canonical `.dns` consensus.
 
+## Become a Miner (Cloudflare Worker)
+
+- Quickstart doc: `docs/MINER_QUICKSTART_CF.md`
+- Onboarding UI: `docs/miner-onboard/index.html`
+- One-command deploy after login:
+  - `npm run miner:cf:deploy`
+- Local worker dev:
+  - `npm run miner:cf:dev`
+
+Important:
+- Wrangler cannot create accounts or bypass CAPTCHA/email verification.
+- You must complete browser login once via `wrangler login`; after that, deploy is automated.
+
 ---
 
 ## Miner Onboarding Path: Docker (Beta) → Pi Firmware → Router Firmware → ASIC Edge Routers

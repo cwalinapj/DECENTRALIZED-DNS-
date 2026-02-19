@@ -93,3 +93,23 @@
   - Checks: all required CI checks PASS
   - Local verification: docs-only; baseline smoke run on main (`npm -C gateway test && npm -C gateway run build`) PASS
 - PR #70 closed as superseded by #82 after main compatibility behavior was confirmed.
+
+## 2026-02-19T00:33:00Z — Cloudflare Miner Onboarding (Docs + Script)
+- Scope: add MVP Cloudflare miner onboarding UI, quickstart docs, deploy script, and root npm commands.
+- Commands run:
+  - `git rebase --abort` (cleaned prior interrupted state)
+  - `npm -C services/cf-worker-miner install`
+  - `npm -C services/cf-worker-miner run dev -- --help`
+  - `cd services/cf-worker-miner && npx wrangler deploy --dry-run`
+- Results:
+  - install: PASS (0 vulnerabilities)
+  - wrangler dev help: PASS
+  - wrangler deploy dry-run: PASS (bindings rendered, no auth needed for dry-run)
+- Files added/updated:
+  - `services/cf-worker-miner/{package.json,wrangler.toml,src/index.js,README.md}`
+  - `scripts/cf_miner_deploy.sh`
+  - `docs/MINER_QUICKSTART_CF.md`
+  - `docs/miner-onboard/index.html`
+  - `README.md`
+  - `package.json` (root scripts)
+  - `services/miner-witness/VERIFIED.md`

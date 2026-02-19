@@ -98,3 +98,31 @@ cd ../../solana
 npm run make-receipt -- --name example124.dns --dest https://example.com --ttl 300 --out /tmp/ddns-receipt.json
 npm run submit-receipts -- --url http://localhost:8790 --in /tmp/ddns-receipt.json
 ```
+
+## Cloudflare Miner Onboarding (MVP Docs/Script Verification)
+
+Date: 2026-02-19 UTC  
+Branch: `codex/main-ops`
+
+Commands run:
+
+```bash
+npm -C services/cf-worker-miner install
+npm -C services/cf-worker-miner run dev -- --help
+cd services/cf-worker-miner && npx wrangler deploy --dry-run
+```
+
+Output snippets:
+
+- `npm install`: added 35 packages, 0 vulnerabilities.
+- `wrangler dev --help`: prints dev command usage and flags.
+- `wrangler deploy --dry-run`: succeeded and showed bindings:
+  - `env.UPSTREAMS`
+  - `env.TIMEOUT_MS`
+  - `env.OVERLAP_RATIO`
+  - `env.RECEIPT_ENDPOINT`
+  - final line: `--dry-run: exiting now.`
+
+Notes:
+- No secrets were committed.
+- Cloudflare login/account creation is not automated; user must complete `wrangler login` once in browser.
