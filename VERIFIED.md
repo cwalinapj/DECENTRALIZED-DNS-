@@ -67,3 +67,40 @@ Changed files:
 - `solana/package-lock.json`
 
 No secrets/keypairs were added.
+
+## Cloudflare Worker Miner (MVP)
+
+Date (UTC): 2026-02-19
+Branch: `codex/pr-cf-worker-miner-readd`
+
+### Commands run
+
+```bash
+npm -C services/cf-worker-miner i
+npm -C services/cf-worker-miner run build
+npm run miner:cf:dev -- --help
+npm run miner:cf:deploy -- --help
+```
+
+### Output snippets
+
+- `npm -C services/cf-worker-miner i`
+  - `FAIL` in this environment due local `esbuild` postinstall binary execution (`SyntaxError: Invalid or unexpected token` under `node v24.10.0`).
+- `npm -C services/cf-worker-miner run build`
+  - `PASS`
+  - `wrangler deploy --dry-run`
+  - shows bindings for `UPSTREAMS`, `TIMEOUT_MS`, `OVERLAP_RATIO`, then exits on `--dry-run`.
+- `npm run miner:cf:dev -- --help`
+  - `FAIL` here because the script runs `npm i` first and hits the same `esbuild` postinstall error.
+- `npm run miner:cf:deploy -- --help`
+  - `FAIL` here because the script runs `npm i` first and hits the same `esbuild` postinstall error.
+
+### Files added/updated for this PR scope
+
+- `services/cf-worker-miner/src/index.ts`
+- `services/cf-worker-miner/wrangler.toml`
+- `services/cf-worker-miner/package.json`
+- `services/cf-worker-miner/README.md`
+- `docs/MINER_QUICKSTART_CF.md`
+- `docs/miner-onboard/index.html`
+- `package.json` (root scripts: `miner:cf:dev`, `miner:cf:deploy`)

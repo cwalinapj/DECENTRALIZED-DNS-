@@ -14,9 +14,9 @@ Important:
 
 ## Step-by-step
 
-1) Create/confirm Cloudflare account (free tier).
+1) Create/confirm Cloudflare account (free tier) in browser.
 
-2) Login once:
+2) Enable Workers on free tier and login once:
 
 ```bash
 cd services/cf-worker-miner
@@ -27,7 +27,7 @@ npx wrangler login
 3) Deploy:
 
 ```bash
-cd /Users/root1/scripts/DECENTRALIZED-DNS-
+cd /Users/root1/DECENTRALIZED-DNS-
 npm run miner:cf:deploy
 ```
 
@@ -65,7 +65,7 @@ npx wrangler secret put RECEIPT_ENDPOINT
 ## Local dev mode
 
 ```bash
-cd /Users/root1/scripts/DECENTRALIZED-DNS-
+cd /Users/root1/DECENTRALIZED-DNS-
 npm run miner:cf:dev
 ```
 
