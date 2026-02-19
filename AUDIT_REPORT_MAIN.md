@@ -1,4 +1,5 @@
 # Main Audit Report (origin/main)
+Generated: 2026-02-19T04:58:00Z
 
 ## 1) Executive Summary
 - MVP runnable? **Partial** (devnet is documented; local run works for gateway; miner-witness tests fail locally).
@@ -197,6 +198,7 @@
 - `cd solana && cargo test --workspace --all-targets` ✅ (warnings only)
 
 ### Program IDs (from `solana/Anchor.toml` `[programs.devnet]`)
+Note: These are the configured program IDs from `solana/Anchor.toml` `[programs.devnet]`. See Section 3 for deployment status; several are not currently deployed on devnet.
 - ddns_anchor: `9hwvtFzawMZ6R9eWJZ8YjC7rLCGgNK7PZBNeKMRCPBes`
 - ddns_registry: `5zg8CsxpRKyurnTg539wr2nVtS6zritQDTGy4uAUerdx`
 - ddns_quorum: `9gyHsemmJfujZEqH1o4VhefxvbUJFQkPko8ASAteX5YB`
