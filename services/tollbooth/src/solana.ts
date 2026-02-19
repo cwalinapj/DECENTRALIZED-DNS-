@@ -26,6 +26,9 @@ export type DdnsSolana = {
   authority: Keypair;
 };
 
+const TOLL_PASS_LEGACY_SIZE = 32 + 8 + 32 + 32 + 32 + 1 + 1;
+const TOLL_PASS_CURRENT_SIZE = 32 + 8 + 32 + 32 + 32 + 32 + 1 + 1;
+
 export function sha25632(bytes: Uint8Array): Uint8Array {
   return crypto.createHash("sha256").update(bytes).digest();
 }
@@ -192,7 +195,7 @@ export async function issuePassport(ddns: DdnsSolana, args: {
   const existing = await ddns.connection.getAccountInfo(tollPassPda, "confirmed");
   if (existing) {
     // Idempotent: do not mint again.
-    const decoded = ddns.acctCoder.decode("TollPass", existing.data) as any;
+    const decoded = decodeTollPassCompat(ddns, existing.data);
     const mintPk = decoded.ownerMint ?? decoded.owner_mint;
     return { tx: "", mint: mintPk as PublicKey, tollPassPda, nameRecordPda, nameHash };
   }
@@ -316,7 +319,7 @@ export async function getPassportIfExists(ddns: DdnsSolana, wallet: PublicKey): 
   const pda = pdaTollPass(ddns.programId, wallet);
   const info = await ddns.connection.getAccountInfo(pda, "confirmed");
   if (!info) return null;
-  return ddns.acctCoder.decode("TollPass", info.data) as any;
+  return decodeTollPassCompat(ddns, info.data);
 }
 
 export async function getProgramAccountExists(ddns: DdnsSolana, pubkey: PublicKey): Promise<boolean> {
@@ -327,4 +330,62 @@ export async function getProgramAccountExists(ddns: DdnsSolana, pubkey: PublicKe
 export async function ensureProgramExists(ddns: DdnsSolana): Promise<void> {
   const info = await ddns.connection.getAccountInfo(ddns.programId, "confirmed");
   if (!info) throw new Error(`program not found on cluster: ${ddns.programId.toBase58()}`);
+}
+
+function decodeTollPassCompat(ddns: DdnsSolana, data: Buffer | Uint8Array): any {
+  try {
+    return ddns.acctCoder.decode("TollPass", data) as any;
+  } catch (err: any) {
+    const legacy = decodeLegacyTollPassAccount(data);
+    if (legacy) return legacy;
+    throw err;
+  }
+}
+
+export function decodeLegacyTollPassAccount(data: Buffer | Uint8Array): any | null {
+  const buf = Buffer.from(data);
+  const rawLen = buf.length;
+
+  // Anchor account data may include an 8-byte discriminator prefix.
+  const offStart =
+    rawLen === TOLL_PASS_LEGACY_SIZE ? 0 :
+    rawLen === TOLL_PASS_CURRENT_SIZE ? 0 :
+    rawLen === 8 + TOLL_PASS_LEGACY_SIZE ? 8 :
+    rawLen === 8 + TOLL_PASS_CURRENT_SIZE ? 8 :
+    -1;
+  if (offStart < 0) return null;
+
+  let off = offStart;
+  const end = buf.length;
+  const need = TOLL_PASS_LEGACY_SIZE;
+  if (end - off < need) return null;
+
+  const owner = new PublicKey(buf.subarray(off, off + 32)); off += 32;
+  const issuedAt = buf.readBigInt64LE(off); off += 8;
+  const nameHash = Uint8Array.from(buf.subarray(off, off + 32)); off += 32;
+  const ownerMint = new PublicKey(buf.subarray(off, off + 32)); off += 32;
+  const pageCidHash = Uint8Array.from(buf.subarray(off, off + 32)); off += 32;
+
+  let metadataHash: Uint8Array;
+  if (end - off >= 34) {
+    metadataHash = Uint8Array.from(buf.subarray(off, off + 32));
+    off += 32;
+  } else {
+    metadataHash = new Uint8Array(32);
+  }
+
+  const bump = buf.readUInt8(off); off += 1;
+  const initialized = buf.readUInt8(off) !== 0;
+
+  return {
+    owner,
+    issuedAt,
+    nameHash,
+    ownerMint,
+    pageCidHash,
+    metadataHash,
+    bump,
+    initialized,
+    owner_mint: ownerMint,
+  };
 }

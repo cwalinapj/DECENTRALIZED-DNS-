@@ -6,6 +6,7 @@
   "scripts": {
     "test": "bash tests/run_all.sh",
     "devnet:inventory": "bash scripts/devnet_inventory.sh",
+    "mvp:demo:devnet": "npm -C solana ci --include=dev && npm -C solana run devnet:verify && npm -C solana run devnet:audit",
     "miner:cf:deploy": "cd services/cf-worker-miner && npm i && npx wrangler deploy",
     "miner:cf:dev": "cd services/cf-worker-miner && npm i && npx wrangler dev"
   },
