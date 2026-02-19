@@ -27,6 +27,7 @@ paths:
           schema:
             type: string
             enum: [A, AAAA]
+            default: A
       responses:
         '200':
           description: Resolved answer
@@ -343,6 +344,7 @@ components:
   schemas:
     ResolveAnswer:
       type: object
+      required: [name, type, data]
       properties:
         name: { type: string }
         type: { type: string }
@@ -350,6 +352,7 @@ components:
         ttl: { type: integer }
     ResolveResponse:
       type: object
+      required: [name, type, answers, ttl_s, source]
       properties:
         name: { type: string }
         type: { type: string }
@@ -362,12 +365,33 @@ components:
         confidence:
           type: string
           enum: [high, medium, low]
+        upstreams_used:
+          type: array
+          items:
+            type: object
+            properties:
+              url: { type: string }
+              rttMs: { type: number }
+              status: { type: string }
+              answersCount: { type: integer }
+        chosen_upstream:
+          type: object
+          properties:
+            url: { type: string }
+            rttMs: { type: number }
+        cache:
+          type: object
+          properties:
+            hit: { type: boolean }
+            stale_used: { type: boolean }
+        status: { type: string }
         rrset_hash: { type: string }
     RegistrarDomainStatus:
       type: string
       enum: [active, expiring, expired, redemption, pending_transfer, unknown]
     RegistrarDomainRecord:
       type: object
+      required: [domain, status, ns, registrar_enabled, provider, dry_run]
       properties:
         domain: { type: string }
         status:
@@ -392,6 +416,7 @@ components:
         dry_run: { type: boolean }
     RegistrarRenewalQuoteResponse:
       type: object
+      required: [domain, price_usd, price_sol, supported, expires_at, registrar_enabled, provider, dry_run]
       properties:
         domain: { type: string }
         price_usd: { type: number }
@@ -411,6 +436,7 @@ components:
         years: { type: integer, minimum: 1 }
     RegistrarRenewResponse:
       type: object
+      required: [domain, years, status, submitted, provider_ref, errors, registrar_enabled, provider, dry_run]
       properties:
         domain: { type: string }
         years: { type: integer }
@@ -440,6 +466,7 @@ components:
           items: { type: string }
     RegistrarNsUpdateResponse:
       type: object
+      required: [domain, ns, ok, provider_ref, errors, registrar_enabled, provider, dry_run]
       properties:
         domain: { type: string }
         ns:
@@ -458,6 +485,7 @@ components:
       enum: [A_SOFT_WARNING, B_HARD_WARNING, C_SAFE_PARKED, D_REGISTRY_FINALIZATION]
     DomainContinuityStatusResponse:
       type: object
+      required: [domain, eligible, phase, reason_codes, next_steps, credits_balance, credits_applied_estimate]
       properties:
         domain: { type: string }
         eligible: { type: boolean }
@@ -494,6 +522,7 @@ components:
         domain: { type: string }
     DomainVerifyResponse:
       type: object
+      required: [domain]
       properties:
         domain: { type: string }
         verification_method:
@@ -517,6 +546,7 @@ components:
         use_credits: { type: boolean, default: true }
     DomainRenewResponse:
       type: object
+      required: [domain, accepted, reason_codes]
       properties:
         domain: { type: string }
         accepted: { type: boolean }
@@ -542,6 +572,7 @@ components:
         domain: { type: string }
     DomainContinuityClaimResponse:
       type: object
+      required: [domain, accepted, eligible, phase, reason_codes, next_steps]
       properties:
         domain: { type: string }
         accepted: { type: boolean }
@@ -567,6 +598,7 @@ components:
               $ref: '#/components/schemas/RegistrarDomainStatus'
     DomainNoticeTokenResponse:
       type: object
+      required: [domain, phase, token, pubkey]
       properties:
         domain: { type: string }
         phase:
@@ -580,10 +612,12 @@ components:
         token: { type: string }
     DomainNoticeVerifyResponse:
       type: object
+      required: [valid]
       properties:
         valid: { type: boolean }
         payload:
           type: object
+          required: [domain, phase, issued_at, expires_at, reason_codes, policy_version, nonce]
           properties:
             domain: { type: string }
             phase:
