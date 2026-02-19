@@ -209,6 +209,53 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RegistrarNsUpdateResponse'
+  /v1/credits/balance:
+    get:
+      summary: Get domain/owner continuity credits balance and subsidy estimate
+      parameters:
+        - in: query
+          name: domain
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Credits balance snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreditsBalanceResponse'
+  /v1/credits/credit:
+    post:
+      summary: Credit continuity ledger (admin-only stub)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreditsMutationRequest'
+      responses:
+        '200':
+          description: Credits updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreditsMutationResponse'
+  /v1/credits/debit:
+    post:
+      summary: Debit continuity ledger (admin-only stub)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreditsMutationRequest'
+      responses:
+        '200':
+          description: Credits updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreditsMutationResponse'
   /v1/domain/status:
     get:
       summary: Domain continuity status
@@ -224,6 +271,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DomainContinuityStatusResponse'
+  /v1/domain/continuity:
+    get:
+      summary: Combined continuity status with registrar + credits context
+      parameters:
+        - in: query
+          name: domain
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Combined continuity payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DomainContinuityCombinedResponse'
   /v1/domain/verify:
     post:
       summary: Start domain control verification for continuity
@@ -455,7 +517,31 @@ components:
         dry_run: { type: boolean }
     DomainContinuityPhase:
       type: string
-      enum: [A_SOFT_WARNING, B_HARD_WARNING, C_SAFE_PARKED, D_REGISTRY_FINALIZATION]
+      enum: [A_SOFT_WARNING, B_HARD_WARNING, HOLD_BANNER, C_SAFE_PARKED, D_REGISTRY_FINALIZATION]
+    CreditsBalanceResponse:
+      type: object
+      properties:
+        domain: { type: string }
+        credits_balance: { type: number }
+        renewal_cost_estimate: { type: number }
+        covered_amount: { type: number }
+        renewal_covered_by_credits: { type: boolean }
+        auth_required: { type: boolean }
+        auth_mode: { type: string, enum: [stub] }
+    CreditsMutationRequest:
+      type: object
+      required: [domain, amount]
+      properties:
+        domain: { type: string }
+        amount: { type: number, minimum: 1 }
+        reason: { type: string }
+    CreditsMutationResponse:
+      type: object
+      properties:
+        domain: { type: string }
+        credits_balance: { type: number }
+        reason: { type: string }
+        accepted: { type: boolean }
     DomainContinuityStatusResponse:
       type: object
       properties:
@@ -469,8 +555,11 @@ components:
         next_steps:
           type: array
           items: { type: string }
+        hold_banner_active: { type: boolean }
         credits_balance: { type: number }
         credits_applied_estimate: { type: number }
+        estimated_renewal_cost: { type: number }
+        renewal_covered_by_credits: { type: boolean }
         uses_ddns_ns: { type: boolean }
         eligible_for_hold: { type: boolean }
         eligible_for_subsidy: { type: boolean }
@@ -487,6 +576,33 @@ components:
         txt_record_name: { type: string, nullable: true }
         txt_record_value: { type: string, nullable: true }
         notice_signature: { type: string }
+    DomainContinuityCombinedResponse:
+      type: object
+      properties:
+        domain: { type: string }
+        continuity:
+          $ref: '#/components/schemas/DomainContinuityStatusResponse'
+        registrar:
+          type: object
+          properties:
+            status:
+              $ref: '#/components/schemas/RegistrarDomainStatus'
+            renewal_due_date:
+              type: string
+              format: date-time
+              nullable: true
+            grace_expires_at:
+              type: string
+              format: date-time
+              nullable: true
+            ns:
+              type: array
+              items: { type: string }
+        credits:
+          $ref: '#/components/schemas/CreditsBalanceResponse'
+        auth_required: { type: boolean }
+        auth_mode: { type: string, enum: [stub] }
+        policy_version: { type: string }
     DomainVerifyRequest:
       type: object
       required: [domain]
@@ -525,6 +641,8 @@ components:
           type: array
           items: { type: string }
         credits_applied_estimate: { type: number }
+        credits_balance: { type: number }
+        renewal_covered_by_credits: { type: boolean }
         renewal_due_date:
           type: string
           format: date-time
