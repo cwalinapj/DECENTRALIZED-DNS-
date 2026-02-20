@@ -33,12 +33,13 @@ function requiredPrograms(): string[] {
   if (fromEnv && fromEnv.trim()) {
     return fromEnv.split(',').map((s) => s.trim()).filter(Boolean);
   }
-  return [
+  const DEMO_CRITICAL_REQUIRED = [
     'ddns_anchor',
     'ddns_registry',
     'ddns_quorum',
     'ddns_stake',
   ];
+  return DEMO_CRITICAL_REQUIRED;
 }
 
 async function main(): Promise<void> {

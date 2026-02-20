@@ -870,3 +870,69 @@ resolve ... "proof": {"mode": "local_fallback"}
   - Program ID sync invariant restored: `declare_id! == Anchor.toml [programs.*] == target/deploy keypair pubkey`.
   - Root test gate passes.
   - Local fallback is now explicit/opt-in only (`ALLOW_LOCAL_FALLBACK=1`), strict mode fails as expected.
+
+## 2026-02-20 — No-funds devnet prep (strict demo + deploy-wave + demo-critical required set)
+
+Base commit (start): `222f8c8`  
+Branch: `main`
+
+### Commands run
+
+```bash
+DRY_RUN=1 bash scripts/devnet_deploy_wave.sh
+bash scripts/devnet_inventory.sh
+DDNS_SKIP_DEPLOY_VERIFY=1 bash scripts/devnet_happy_path.sh
+ALLOW_LOCAL_FALLBACK=1 DDNS_SKIP_DEPLOY_VERIFY=1 bash scripts/devnet_happy_path.sh | sed -n '1,30p'
+npm test
+```
+
+### Output snippets
+
+`DRY_RUN=1 bash scripts/devnet_deploy_wave.sh`
+
+```text
+# Devnet Deploy Wave Plan
+- wallet: B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5
+- wallet_sol: 5.77959048
+- missing_required_count: 4
+- estimated_buffer_sol_total: 8.609185920
+planned_deploy_order: ddns_anchor ddns_registry ddns_quorum ddns_stake
+wallet_shortfall_sol_estimate: 2.829595440
+```
+
+`bash scripts/devnet_inventory.sh` (expected non-zero while required programs are undeployed)
+
+```text
+| ddns_anchor | REQUIRED | `DVXF1pMghQnuVeUJuuXJAZGXCDwrhr19nN3hQjvhReMU` | no | no | ... | missing |
+| ddns_anchor:config | `DVXF1pMghQnuVeUJuuXJAZGXCDwrhr19nN3hQjvhReMU` | `GwcVkFbR6ntRHhk1D5jNizYTAg1qJiKwJJjB5A5EJZa5` | no | 0 | 0 | 0 | 0 |
+required_failures: ddns_anchor, ddns_quorum, ddns_registry, ddns_stake
+EXIT_CODE:1
+```
+
+`DDNS_SKIP_DEPLOY_VERIFY=1 bash scripts/devnet_happy_path.sh` (strict mode default)
+
+```text
+selected_ddns_program_id: DVXF1pMghQnuVeUJuuXJAZGXCDwrhr19nN3hQjvhReMU
+claim_passport: 500 { ok: false, error: 'program not found on cluster: DVXF1pMghQnuVeUJuuXJAZGXCDwrhr19nN3hQjvhReMU' }
+❌ demo failed (.dns route+resolve did not succeed)
+EXIT_CODE:1
+```
+
+`ALLOW_LOCAL_FALLBACK=1 DDNS_SKIP_DEPLOY_VERIFY=1 bash scripts/devnet_happy_path.sh | sed -n '1,30p'`
+
+```text
+##############################
+### DEMO MODE: LOCAL FALLBACK
+### ALLOW_LOCAL_FALLBACK=1
+##############################
+```
+
+`npm test`
+
+```text
+==> gate: program id sync
+[id-check] FAIL
+==> warning: program id sync mismatch (STRICT_PROGRAM_ID_SYNC=1 to enforce hard-fail)
+==> run_all: complete
+EXIT_CODE:0
+```

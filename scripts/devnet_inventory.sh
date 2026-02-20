@@ -10,17 +10,11 @@ DEMO_NAME="${DEMO_NAME:-example.dns}"
 DEMO_EPOCH_ID="${DEMO_EPOCH_ID:-0}"
 DEMO_NAME_NORM="$(printf '%s' "$DEMO_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/\.$//')"
 
-REQUIRED_NAMES=(
+DEMO_CRITICAL_REQUIRED=(
   ddns_anchor
   ddns_registry
   ddns_quorum
   ddns_stake
-  ddns_escrow
-  ddns_domain_rewards
-  ddns_rewards
-  ddns_miner_score
-  ddns_cache_head
-  ddns_witness_rewards
 )
 
 for cmd in solana solana-keygen awk sed grep jq bc shasum mktemp; do
@@ -39,7 +33,7 @@ mkdir -p artifacts
 
 is_required() {
   local name="$1"
-  for req in "${REQUIRED_NAMES[@]}"; do
+  for req in "${DEMO_CRITICAL_REQUIRED[@]}"; do
     if [[ "$name" == "$req" ]]; then
       return 0
     fi

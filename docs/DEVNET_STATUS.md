@@ -1,44 +1,50 @@
 # Devnet Status Audit
 
-- Generated at (UTC): 2026-02-19T13:20:00Z
+- Generated at (UTC): 2026-02-20T04:51:31.228Z
 - Deploy wallet: `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5`
 - RPC: `https://api.devnet.solana.com`
-- Canonical IDs: `solana/target/deploy/*-keypair.json` pubkeys (synced into `solana/Anchor.toml` and all `declare_id!`).
+
+## Demo-critical classification
+
+For no-funds MVP prep, the script-level required set is:
+
+- `ddns_anchor`
+- `ddns_registry`
+- `ddns_quorum`
+- `ddns_stake`
+
+All other programs are treated as optional for demo deploy-wave planning.
 
 ## Programs from Anchor.toml [programs.devnet]
 
-| Program | Program ID | Status | Upgrade Authority | ProgramData |
-|---|---|---|---|---|
-| ddns_anchor | `EJVVNdwBdZiEpA4QjVaeV79WPsoUpa4zLA4mqpxWxXi5` | DEPLOYED | `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5` | `B8JBWF6LrmsVp6yFsvML4EEcuMoRNwHxrni5nGw37PA4` |
-| ddns_registry | `5F8ERKfRyErAJginsuRD4bN1oVZYFpJS5RVCFi9shRS3` | DEPLOYED | `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5` | `4qyzPe9GkLhq5HnDkDYmzKdhKhBmYEzKvv57tJ6VZSjR` |
-| ddns_quorum | `2PVfW3pT5q8gLSXi4VzAiB3JqJzowgvZW9akyXXANAE6` | DEPLOYED | `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5` | `7zpQFZV6M72vAfvgi41xbjmpvmoqG2Yg6GTLfjF8YMj8` |
-| ddns_stake | `FTeUikzSsLcr2U9WMhs7y5n4cLyjMwg59FB7wWmWYo86` | DEPLOYED | `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5` | `4kUVnSUAh4kMDLw7AgvCr43ptag1WD6B4Dxa2UEEGJbH` |
-| ddns_watchdog_policy | `Ct4gQ98PofJxca2HSQrfzd1Cohay4praM9dFF2L9jr1g` | DEPLOYED | `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5` | `9Gw4YeKFTL1RHM25njPRM2rVY8XjwpSs6VERZye2SUm9` |
-| ddns_stake_gov | `EeU6h3gUUVKJeBsGG77onyH9Sjbq87Uz976RYHt2pCPf` | DEPLOYED | `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5` | `Fcn1t45zKiWBSJ8nvU4spAoi34Q5Hytm9iFU77Mes2MC` |
-| ddns_escrow | `2it8BbaePYnGaKcBrT5fAk7uj2YWaGdKtqSPriervwtA` | DEPLOYED | `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5` | `FQCT9hH8dGtibbdYSuTJ4rXvHKLPBmZPoWBzTBEoz9Fd` |
-| ddns_domain_rewards | `CKuPPeJAM8GdfvVMvERxa7rXJcNYwEy2P7wevQ4tjja2` | NOT_FOUND | - | - |
-| ddns_ns_incentives | `J3rL2iuBB3LzvymJ92yRQbRV6biLFefBKh5UvHLBwEJ2` | DEPLOYED | `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5` | `4JkaTeMqwJnUXZs4gPBNcDHKLMGokrGfNGZTtCjofxgc` |
-| ddns_rewards | `D2P9nj4aVS9GiWu4UoLeBtJxKwVfu7FXqnj76f1sKwBd` | NOT_FOUND | - | - |
-| ddns_operators | `6QpkisF6re7KM5XwiYv5mqRmsfPBAwFEK6tkRmMeSRL8` | NOT_FOUND | - | - |
-| ddns_miner_score | `GYexwqwG1WArm3uSRNpTxZPVwvAPqrJp7BVzECJmWJGH` | NOT_FOUND | - | - |
-| ddns_names | `BYQ68JftwZD2JEMXLAiZYYGMr6AD9cD9XznntA4v6Mjj` | NOT_FOUND | - | - |
-| ddns_cache_head | `HjCiKFJKnSvuUd8gN8NjiFPdiwRZSqDit7LMJzFt3Sck` | NOT_FOUND | - | - |
-| ddns_rep | `BS62AYwh5KuhTWoVHiDbpAhifK4SDC1FJtKaYw9bSKaE` | NOT_FOUND | - | - |
-| ddns_witness_rewards | `6dNEBRscCHZB7yHo1iPBktccUSN7P32eSvY1FQkPh7hd` | NOT_FOUND | - | - |
+| Program | Program ID | Executable | Owner | Upgrade Authority | Data Length | Lamports | SOL |
+|---|---|---:|---|---|---:|---:|---:|
+| ddns_anchor | `DVXF1pMghQnuVeUJuuXJAZGXCDwrhr19nN3hQjvhReMU` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
+| ddns_registry | `D58DJ6VopJKZCJ2cppAJZUcHE1UFF1qruPiU3EP3WMqM` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
+| ddns_quorum | `DqSgwiSrtjjMEHoHNYpLpyp92yjruBTt6u7CYyhzyEbK` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
+| ddns_stake | `Ao1vX55CSLTMUoeWEtzfmjWufEUemwm4uL7XGZg1j2AV` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
+| ddns_watchdog_policy | `GTJWP2Mxu8DqVLMY8PAuAC3EwQKnviKAg4JY4mwMqVnF` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
+| ddns_stake_gov | `HrSpSTG1dg3vqszY4P3idJpw9zrSUJ63ATS1eDxyxjh4` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
+| ddns_escrow | `EoAdi1RNEYXurdHGUbCnHKGc2DgvKyJqrLVMkXPNj7MR` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
+| ddns_domain_rewards | `BTsZBPqu92LWeqtPHDoMDuDAhd3mHmiers3pwrH2r2Pe` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
+| ddns_ns_incentives | `AsnMwghaaKanvcYSffPr9MgwfXJoYini3BzVjaPPVMoL` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
+| ddns_rewards | `5jcbSwHWNzuSMY7iJJTeVaQtaT14gpu9x3RPeQ8ZhxJX` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
+| ddns_operators | `4onCDt3BR47VbJDkHeiFPXg6H6HJtGLzMQXJ58ovrx5d` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
+| ddns_miner_score | `CktwdmQXGar4qJKKPxFsPdKQ9RMM5joJhqxKtZC2KAf8` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
+| ddns_names | `AkABCWonPtbj8vpxef5GGBMdtWbLTo4p4ZnLR8rjYigB` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
+| ddns_cache_head | `943epY8PMFRQkzJGaqjS8wLexHnQxS2o1cNm4xU1UDGb` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
+| ddns_rep | `F2Jdqby47WQaqD7hYWdx2Hsg7yQCVUB7wCMyYGRhZ2EY` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
+| ddns_witness_rewards | `CxoBkEjwHDJWUX9DyURPNyu9hrv92TaUK2yTS9tFAPdC` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
 
-## Funding / Deploy Blocker
+## Funding / Reserve Summary
 
-- Wallet balance at verification time: **0.79716988 SOL**
-- Devnet faucet retries (`solana airdrop 1`) failed with rate-limit errors.
-- Remaining programs require additional SOL to deploy from canonical keypairs.
+- Total SOL locked in program accounts: **0.000000000 SOL** (0 lamports)
+- Deploy wallet balance: **5.779590480 SOL** (5779590480 lamports)
+- Biggest recent deploy-cost estimate (MVP proxy): **0.000000000 SOL** (0 lamports)
+- Recommended reserve rule: `max(5 SOL, 2x biggest_recent_deploy_cost + 1 SOL tx buffer)`
+- Recommended reserve: **5.000000000 SOL** (5000000000 lamports)
+- Reserve status: **OK**
 
-## Next Step
+## Upgrade Buffer Note
 
-Top up deploy wallet `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5` to **>= 8 SOL**, then run:
-
-```bash
-cd solana
-for p in ddns_domain_rewards ddns_rewards ddns_operators ddns_miner_score ddns_names ddns_cache_head ddns_rep ddns_witness_rewards; do
-  anchor deploy --provider.cluster devnet --program-name "$p"
-done
-```
+- If a program has an upgrade authority, future upgrades require SOL to create/write a new buffer account before finalize. Keep the deploy wallet funded.

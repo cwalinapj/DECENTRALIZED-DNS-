@@ -19,8 +19,13 @@ bash scripts/devnet_inventory.sh
 ```bash
 npm run mvp:demo:devnet
 ```
-Expected marker:
-- `✅ demo complete`
+Expected behavior:
+- strict mode (default) fails unless demo-critical devnet programs are actually deployed
+- optional fallback mode requires explicit opt-in:
+```bash
+ALLOW_LOCAL_FALLBACK=1 DDNS_SKIP_DEPLOY_VERIFY=1 bash scripts/devnet_happy_path.sh
+```
+- fallback mode prints `DEMO MODE: LOCAL FALLBACK` loudly
 
 ## Miner onboarding
 - Cloudflare worker miner docs: `/Users/root1/DECENTRALIZED-DNS-/docs/MINER_QUICKSTART_CF.md`
@@ -30,6 +35,7 @@ Expected marker:
 - `/Users/root1/DECENTRALIZED-DNS-/VERIFIED.md`
 - `/Users/root1/DECENTRALIZED-DNS-/docs/DEVNET_RUNBOOK.md`
 - `/Users/root1/DECENTRALIZED-DNS-/docs/DEVNET_STATUS.md`
+- `/Users/root1/DECENTRALIZED-DNS-/artifacts/devnet_inventory.json`
 
 ## One-line MVP definition
 "MVP is ready when a stranger can run `npm run mvp:demo:devnet` from a clean checkout and it ends with `✅ demo complete`, and main has no CI errors and no open PRs."

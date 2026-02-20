@@ -98,6 +98,12 @@ echo "wallet: $WALLET_PUBKEY"
 echo "client_wallet: $CLIENT_WALLET_PUBKEY"
 echo "rpc: $RPC_URL"
 echo "demo_name: $DEMO_NAME"
+if [[ "$ALLOW_LOCAL_FALLBACK" == "1" ]]; then
+  echo "##############################"
+  echo "### DEMO MODE: LOCAL FALLBACK"
+  echo "### ALLOW_LOCAL_FALLBACK=1"
+  echo "##############################"
+fi
 
 echo "==> init names config PDA (idempotent; continue if already initialized)"
 set +e
@@ -188,7 +194,10 @@ if [[ $FLOW_OK -eq 1 ]] && echo "$FLOW_OUT" | rg -q "mode:[[:space:]]*'local_fal
     FLOW_OK=0
     echo "strict_mode_blocked: local_fallback detected but ALLOW_LOCAL_FALLBACK!=1"
   else
-    echo "local_fallback_enabled: ALLOW_LOCAL_FALLBACK=1"
+    echo "##############################"
+    echo "### DEMO MODE: LOCAL FALLBACK"
+    echo "### ALLOW_LOCAL_FALLBACK=1"
+    echo "##############################"
   fi
 fi
 
@@ -237,6 +246,12 @@ fi
 TOLL_OK=0
 if [[ $TOLL_RC -eq 0 ]] && echo "$TOLL_JSON" | rg -q '"ok"\s*:\s*true'; then
   TOLL_OK=1
+fi
+if [[ $TOLL_OK -eq 1 ]] && echo "$TOLL_JSON" | rg -q '"mode"\s*:\s*"local_fallback"'; then
+  if [[ "$ALLOW_LOCAL_FALLBACK" != "1" ]]; then
+    TOLL_OK=0
+    echo "strict_mode_blocked: resolve proof mode=local_fallback but ALLOW_LOCAL_FALLBACK!=1"
+  fi
 fi
 
 if [[ "$ENABLE_WITNESS_REWARDS" == "1" ]]; then

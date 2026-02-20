@@ -33,9 +33,7 @@ npm -C solana run devnet:audit
 Optional direct checks:
 
 ```bash
-solana program show -u devnet 9hwvtFzawMZ6R9eWJZ8YjC7rLCGgNK7PZBNeKMRCPBes
-solana program show -u devnet 5zg8CsxpRKyurnTg539wr2nVtS6zritQDTGy4uAUerdx
-solana program show -u devnet 9gyHsemmJfujZEqH1o4VhefxvbUJFQkPko8ASAteX5YB
+bash scripts/devnet_inventory.sh
 ```
 
 ## Quickstart (Local)

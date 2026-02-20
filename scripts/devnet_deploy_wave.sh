@@ -10,17 +10,11 @@ WALLET_PATH="${WALLET:-${ANCHOR_WALLET:-$HOME/.config/solana/id.json}}"
 DRY_RUN="${DRY_RUN:-1}"
 APPEND_VERIFIED="${APPEND_VERIFIED:-0}"
 
-REQUIRED_PROGRAMS=(
+DEMO_CRITICAL_REQUIRED=(
   ddns_anchor
   ddns_registry
   ddns_quorum
   ddns_stake
-  ddns_escrow
-  ddns_domain_rewards
-  ddns_rewards
-  ddns_miner_score
-  ddns_cache_head
-  ddns_witness_rewards
 )
 
 for cmd in jq awk sed bc solana anchor; do
@@ -56,7 +50,7 @@ run_inventory() {
 
 is_required() {
   local target="$1"
-  for p in "${REQUIRED_PROGRAMS[@]}"; do
+  for p in "${DEMO_CRITICAL_REQUIRED[@]}"; do
     [[ "$p" == "$target" ]] && return 0
   done
   return 1
@@ -113,7 +107,7 @@ while read -r p; do
 done < <(jq -r '.summary.missing_required[]?, .summary.nonexec_required[]?' "$ROOT_DIR/artifacts/devnet_inventory.json" | sort -u)
 
 ordered_missing=()
-for p in "${REQUIRED_PROGRAMS[@]}"; do
+for p in "${DEMO_CRITICAL_REQUIRED[@]}"; do
   for m in "${missing_required[@]:-}"; do
     if [[ "$p" == "$m" ]]; then
       ordered_missing+=("$p")
