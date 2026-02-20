@@ -17,7 +17,7 @@ const WALLET_PATH =
   process.env.CLIENT_WALLET ||
   (process.env.HOME ? `${process.env.HOME}/.config/solana/id.json` : "");
 const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
-const DDNS_PROGRAM_ID = process.env.DDNS_PROGRAM_ID || "9hwvtFzawMZ6R9eWJZ8YjC7rLCGgNK7PZBNeKMRCPBes";
+const DDNS_PROGRAM_ID = process.env.DDNS_PROGRAM_ID || "DVXF1pMghQnuVeUJuuXJAZGXCDwrhr19nN3hQjvhReMU";
 const DDNS_IDL_PATH =
   process.env.DDNS_IDL_PATH || path.resolve("..", "..", "solana", "target", "idl", "ddns_anchor.json");
 const TOLLBOOTH_KEYPAIR =

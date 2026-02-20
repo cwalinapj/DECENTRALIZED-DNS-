@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-declare_id!("5F8ERKfRyErAJginsuRD4bN1oVZYFpJS5RVCFi9shRS3");
+declare_id!("D58DJ6VopJKZCJ2cppAJZUcHE1UFF1qruPiU3EP3WMqM");
 
 #[program]
 pub mod ddns_registry {

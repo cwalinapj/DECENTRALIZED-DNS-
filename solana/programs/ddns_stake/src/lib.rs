@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, MintTo, Token};
 
-declare_id!("FTeUikzSsLcr2U9WMhs7y5n4cLyjMwg59FB7wWmWYo86");
+declare_id!("Ao1vX55CSLTMUoeWEtzfmjWufEUemwm4uL7XGZg1j2AV");
 
 #[program]
 pub mod ddns_stake {

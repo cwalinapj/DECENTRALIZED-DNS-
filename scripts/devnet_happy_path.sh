@@ -12,8 +12,9 @@ TOLLBOOTH_PORT="${TOLLBOOTH_PORT:-8788}"
 DEMO_DEST="${DEMO_DEST:-https://example.com}"
 DEMO_TTL="${DEMO_TTL:-300}"
 ENABLE_WITNESS_REWARDS="${ENABLE_WITNESS_REWARDS:-0}"
-DEFAULT_DDNS_PROGRAM_ID_PRIMARY="9hwvtFzawMZ6R9eWJZ8YjC7rLCGgNK7PZBNeKMRCPBes"
-DEFAULT_DDNS_PROGRAM_ID_FALLBACK="EJVVNdwBdZiEpA4QjVaeV79WPsoUpa4zLA4mqpxWxXi5"
+ALLOW_LOCAL_FALLBACK="${ALLOW_LOCAL_FALLBACK:-0}"
+DDNS_SKIP_DEPLOY_VERIFY="${DDNS_SKIP_DEPLOY_VERIFY:-0}"
+DEFAULT_DDNS_PROGRAM_ID_PRIMARY="DVXF1pMghQnuVeUJuuXJAZGXCDwrhr19nN3hQjvhReMU"
 
 LOG_DIR="${TMPDIR:-/tmp}/ddns-devnet-demo"
 mkdir -p "$LOG_DIR"
@@ -63,6 +64,7 @@ start_tollbooth() {
   SOLANA_RPC_URL="$RPC_URL" \
   TOLLBOOTH_KEYPAIR="$WALLET_PATH" \
   DDNS_PROGRAM_ID="$program_id" \
+  ALLOW_LOCAL_FALLBACK="$ALLOW_LOCAL_FALLBACK" \
   npm -C services/tollbooth run dev >"$LOG_DIR/tollbooth.log" 2>&1 &
   TOLLBOOTH_PID=$!
   if ! wait_http "http://127.0.0.1:${TOLLBOOTH_PORT}/v1/challenge?wallet=${WALLET_PUBKEY}" 45; then
@@ -77,8 +79,12 @@ extract_tx() {
   printf "%s\n" "$blob" | rg -o "tx: '[^']+'" | sed -E "s/tx: '([^']+)'/\1/" | head -n 1 || true
 }
 
-echo "==> verify deployed MVP programs on devnet"
-npm -C solana run devnet:verify
+if [[ "$DDNS_SKIP_DEPLOY_VERIFY" == "1" ]]; then
+  echo "==> verify deployed MVP programs on devnet (skipped: DDNS_SKIP_DEPLOY_VERIFY=1)"
+else
+  echo "==> verify deployed MVP programs on devnet"
+  npm -C solana run devnet:verify
+fi
 
 echo "==> devnet funding/rent snapshot"
 npm -C solana run devnet:audit
@@ -127,7 +133,7 @@ echo "==> set .dns route via tollbooth devnet flow"
 if [[ -n "${DDNS_PROGRAM_ID:-}" ]]; then
   PROGRAM_CANDIDATES=("$DDNS_PROGRAM_ID")
 else
-  PROGRAM_CANDIDATES=("$DEFAULT_DDNS_PROGRAM_ID_PRIMARY" "$DEFAULT_DDNS_PROGRAM_ID_FALLBACK")
+  PROGRAM_CANDIDATES=("$DEFAULT_DDNS_PROGRAM_ID_PRIMARY")
 fi
 FLOW_CMD_RC=1
 FLOW_OUT=""
@@ -176,6 +182,14 @@ FLOW_OK=1
 if [[ $FLOW_CMD_RC -ne 0 ]] || ! echo "$FLOW_OUT" | rg -q "assign_route:\\s+200"; then
   FLOW_OK=0
   echo "warning: tollbooth devnet flow did not return assign_route 200; continuing for audit visibility"
+fi
+if [[ $FLOW_OK -eq 1 ]] && echo "$FLOW_OUT" | rg -q "mode:[[:space:]]*'local_fallback'"; then
+  if [[ "$ALLOW_LOCAL_FALLBACK" != "1" ]]; then
+    FLOW_OK=0
+    echo "strict_mode_blocked: local_fallback detected but ALLOW_LOCAL_FALLBACK!=1"
+  else
+    echo "local_fallback_enabled: ALLOW_LOCAL_FALLBACK=1"
+  fi
 fi
 
 echo "==> install + start gateway"
