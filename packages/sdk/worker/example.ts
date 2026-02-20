@@ -8,8 +8,21 @@ export default {
       type: "A"
     });
 
-    return new Response(JSON.stringify(out), {
+    return new Response(
+      JSON.stringify(
+        {
+          name: out.name,
+          confidence: out.confidence,
+          chosen_upstream: out.chosen_upstream,
+          upstreams_used: out.upstreams_used,
+          answers: out.answers
+        },
+        null,
+        2
+      ),
+      {
       headers: { "content-type": "application/json" }
-    });
+      }
+    );
   }
 };

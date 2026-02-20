@@ -81,9 +81,11 @@ extract_tx() {
 
 if [[ "$DDNS_SKIP_DEPLOY_VERIFY" == "1" ]]; then
   echo "==> verify deployed MVP programs on devnet (skipped: DDNS_SKIP_DEPLOY_VERIFY=1)"
+  VERIFY_STATUS="skipped"
 else
   echo "==> verify deployed MVP programs on devnet"
   npm -C solana run devnet:verify
+  VERIFY_STATUS="verified"
 fi
 
 echo "==> devnet funding/rent snapshot"
@@ -180,6 +182,13 @@ echo "$FLOW_OUT" | tail -n 30
 
 CLAIM_TX="$(extract_tx "$(echo "$FLOW_OUT" | rg "claim_passport:" -A3 || true)")"
 ASSIGN_TX="$(extract_tx "$(echo "$FLOW_OUT" | rg "assign_route(_retry)?: " -A4 || true)")"
+ROUTE_RECORD_PDA="$(echo "$FLOW_OUT" | sed -n "s/.*route_record_pda: '\([^']\+\)'.*/\1/p" | tail -n1)"
+NAME_RECORD_PDA="$(echo "$FLOW_OUT" | sed -n "s/.*name_record_pda: '\([^']\+\)'.*/\1/p" | tail -n1)"
+if echo "$FLOW_OUT" | rg -q "claim_passport:\s+200"; then
+  CLAIM_STATUS="claimed_or_exists"
+else
+  CLAIM_STATUS="not_claimed"
+fi
 EFFECTIVE_NAME="$(echo "$FLOW_OUT" | sed -n 's/^resolved_name:[[:space:]]*//p' | tail -n 1)"
 if [[ -z "$EFFECTIVE_NAME" ]]; then
   EFFECTIVE_NAME="$DEMO_NAME"
@@ -268,6 +277,13 @@ fi
 if [[ -n "$ASSIGN_TX" ]]; then
   echo "assign_route_tx: https://explorer.solana.com/tx/${ASSIGN_TX}?cluster=devnet"
 fi
+ROUTE_PROOF_SIG=""
+if command -v jq >/dev/null 2>&1 && [[ $TOLL_RC -eq 0 ]] && jq -e . >/dev/null 2>&1 <<<"$TOLL_JSON"; then
+  ROUTE_PROOF_SIG="$(jq -r '.proof.signature // empty' <<<"$TOLL_JSON")"
+  if [[ -n "$ROUTE_PROOF_SIG" && "$ROUTE_PROOF_SIG" != "$ASSIGN_TX" && "$ROUTE_PROOF_SIG" != "$CLAIM_TX" ]]; then
+    echo "resolve_proof_tx: https://explorer.solana.com/tx/${ROUTE_PROOF_SIG}?cluster=devnet"
+  fi
+fi
 if [[ -n "${SELECTED_DDNS_PROGRAM_ID:-}" ]]; then
   echo "ddns_program_id_used: ${SELECTED_DDNS_PROGRAM_ID}"
 fi
@@ -276,6 +292,36 @@ if [[ $FLOW_OK -eq 0 ]]; then
 fi
 
 echo "logs_dir: $LOG_DIR"
+echo
+echo "========== DEMO SUMMARY =========="
+echo "deploy_verify: ${VERIFY_STATUS:-unknown}"
+echo "name_claimed: $CLAIM_STATUS"
+echo "name: ${EFFECTIVE_NAME}"
+echo "route_written: $([[ $FLOW_OK -eq 1 ]] && echo "yes" || echo "no")"
+if [[ -n "$NAME_RECORD_PDA" ]]; then
+  echo "name_record_pda: $NAME_RECORD_PDA"
+fi
+if [[ -n "$ROUTE_RECORD_PDA" ]]; then
+  echo "route_record_pda: $ROUTE_RECORD_PDA"
+fi
+echo "resolve_result: $([[ $TOLL_OK -eq 1 ]] && echo "ok" || echo "failed")"
+if [[ $TOLL_OK -eq 1 ]]; then
+  if command -v jq >/dev/null 2>&1 && jq -e . >/dev/null 2>&1 <<<"$TOLL_JSON"; then
+    echo "resolved_dest: $(jq -r '.dest // "-" ' <<<"$TOLL_JSON")"
+    echo "resolved_ttl: $(jq -r '.ttl // "-" ' <<<"$TOLL_JSON")"
+  fi
+fi
+echo "tx_links:"
+if [[ -n "$CLAIM_TX" ]]; then
+  echo "- https://explorer.solana.com/tx/${CLAIM_TX}?cluster=devnet"
+fi
+if [[ -n "$ASSIGN_TX" ]]; then
+  echo "- https://explorer.solana.com/tx/${ASSIGN_TX}?cluster=devnet"
+fi
+if [[ -n "$ROUTE_PROOF_SIG" && "$ROUTE_PROOF_SIG" != "$ASSIGN_TX" && "$ROUTE_PROOF_SIG" != "$CLAIM_TX" ]]; then
+  echo "- https://explorer.solana.com/tx/${ROUTE_PROOF_SIG}?cluster=devnet"
+fi
+echo "=================================="
 if [[ $FLOW_OK -eq 1 && $TOLL_OK -eq 1 ]]; then
   echo "✅ demo complete"
 else

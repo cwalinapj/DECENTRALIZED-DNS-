@@ -86,6 +86,7 @@ This is the strict funded flow (`scripts/devnet_when_funded.sh`): deploy-wave ch
 
 - Quickstart: `docs/MINER_QUICKSTART_CF.md`
 - Onboarding page: `docs/miner-onboard/index.html`
+- Deploy a miner in 3 minutes -> earn REP / TOLL (policy-governed by current MVP settings)
 
 ```bash
 npm run miner:cf:dev
@@ -101,6 +102,7 @@ Important: Wrangler cannot create Cloudflare accounts or bypass CAPTCHA/email ve
 - adapter proofs (.dns / IPFS / ENS / SNS)
 - privacy-safe observations that strengthen network reliability
 - developers can earn more by using our nameservers (toll share / discounts / credits / reduced registration and renewal costs; policy-governed)
+- SDK examples (Node + Worker): `packages/sdk/examples/node.ts`, `packages/sdk/worker/example.ts`
 
 ## Domain Continuity (Anti-Expiration Loss)
 

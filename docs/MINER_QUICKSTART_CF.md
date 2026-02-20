@@ -2,6 +2,10 @@
 
 This is the fastest MVP path for joining as a Cloudflare Worker miner.
 
+## Canonical call-to-action
+
+Deploy a miner in 3 minutes -> earn REP / TOLL (policy-governed by current MVP settings).
+
 ## Prerequisites
 
 - Git clone of this repo

@@ -20,7 +20,10 @@ const out = await resolve({
   name: "netflix.com",
   type: "A"
 });
-console.log(out.confidence, out.answers);
+console.log("confidence:", out.confidence);
+console.log("chosen_upstream:", out.chosen_upstream?.url);
+console.log("upstreams_used:", out.upstreams_used?.map((u) => `${u.url}:${u.status}:${u.rtt_ms}ms`));
+console.log("answers:", out.answers);
 ```
 
 ## Domain continuity example (Node)
@@ -61,11 +64,14 @@ export default {
       name: "example.dns",
       type: "A"
     });
-    const continuity = await getDomainStatus({
-      baseUrl: "https://gateway.example.com",
-      domain: "example.com"
-    });
-    return new Response(JSON.stringify(out), {
+    const continuity = await getDomainStatus({ baseUrl: "https://gateway.example.com", domain: "example.com" });
+    return new Response(JSON.stringify({
+      name: out.name,
+      confidence: out.confidence,
+      upstreams_used: out.upstreams_used,
+      answers: out.answers,
+      continuity_phase: continuity.phase
+    }, null, 2), {
       headers: { "content-type": "application/json" }
     });
   }

@@ -1110,3 +1110,34 @@ assign_route_tx: https://explorer.solana.com/tx/2UeJZV4q2sNY6ZnF7SEKbBpbiyVDhiA9
 ✅ demo complete
 ✅ STRICT DEMO COMPLETE (ON-CHAIN)
 ```
+
+## 2026-02-20 — funded strict devnet flow
+
+Command:
+```bash
+bash scripts/devnet_when_funded.sh
+```
+
+Output snippet:
+```text
+==> resolve .dns via tollbooth (route proof)
+{"ok":true,"name":"u-b5wjx4pd.dns","wallet":"B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5","dest":"https://example.com","ttl":300,"dest_hash_hex":"100680ad546ce6a577f42f52df33b4cfdca756859e664b8d7de329b150d09ce9","proof":{"program_id":"EJVVNdwBdZiEpA4QjVaeV79WPsoUpa4zLA4mqpxWxXi5","record_pda":"4VjW
+==> optional witness reward submit/claim skipped (ENABLE_WITNESS_REWARDS=1 to enable)
+==> tx links
+assign_route_tx: https://explorer.solana.com/tx/53d1dud72xZhmTJ6HYdCgbrya4PkN63zQw4gn25bpch5PsZmQ6uy9pBxg9C6LwRPgRAuS9ie2P4vFKRCkpEyRfvB?cluster=devnet
+ddns_program_id_used: EJVVNdwBdZiEpA4QjVaeV79WPsoUpa4zLA4mqpxWxXi5
+logs_dir: /var/folders/h5/7f2x98695lz6819tc0k6fbv80000gn/T//ddns-devnet-demo
+
+========== DEMO SUMMARY ==========
+deploy_verify: verified
+name_claimed: claimed_or_exists
+name: u-b5wjx4pd.dns
+route_written: yes
+resolve_result: ok
+resolved_dest: https://example.com
+resolved_ttl: 300
+tx_links:
+- https://explorer.solana.com/tx/53d1dud72xZhmTJ6HYdCgbrya4PkN63zQw4gn25bpch5PsZmQ6uy9pBxg9C6LwRPgRAuS9ie2P4vFKRCkpEyRfvB?cluster=devnet
+==================================
+✅ demo complete
+```
