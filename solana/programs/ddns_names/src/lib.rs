@@ -21,7 +21,7 @@ const SEED_PRIMARY: &[u8] = b"primary";
 const SEED_POLICY: &[u8] = b"parent_policy";
 
 // `solana-keygen pubkey solana/target/deploy/ddns_names-keypair.json`
-declare_id!("BYQ68JftwZD2JEMXLAiZYYGMr6AD9cD9XznntA4v6Mjj");
+declare_id!("AkABCWonPtbj8vpxef5GGBMdtWbLTo4p4ZnLR8rjYigB");
 
 #[program]
 pub mod ddns_names {

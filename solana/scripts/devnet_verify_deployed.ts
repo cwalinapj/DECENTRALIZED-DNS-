@@ -38,8 +38,6 @@ function requiredPrograms(): string[] {
     'ddns_registry',
     'ddns_quorum',
     'ddns_stake',
-    'ddns_domain_rewards',
-    'ddns_rewards',
   ];
 }
 

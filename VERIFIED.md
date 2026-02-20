@@ -806,3 +806,67 @@ wallet_shortfall_sol_estimate: 11.235111080
 Result:
 - `scripts/devnet_deploy_wave.sh` dry-run mode works and exits 0.
 - Root `npm test` currently fails in this worktree due existing ID-sync gate mismatch (`scripts/check_program_id_sync.sh`) unrelated to this script change.
+
+### 2026-02-20T02:50:00Z — Targeted .dns devnet demo fix wave
+- Base commit SHA: `4a377ae`
+- Worktree: `/private/tmp/ddns-pr-dns-demo-fix`
+- Commands run:
+```bash
+npm run mvp:demo:devnet
+npm -C gateway test && npm -C gateway run build
+npm ci && npm test
+```
+- Output snippet:
+```text
+npm run mvp:demo:devnet: EXIT 0
+assign_route: 200 { ok: true, mode: 'local_fallback', tx: null }
+resolve: {"ok":true,"name":"u-b5wjx4pd.dns","dest":"https://example.com","proof":{"mode":"local_fallback"}}
+✅ demo complete
+
+npm -C gateway test && npm -C gateway run build: EXIT 0
+Test Files  12 passed (12)
+Tests 39 passed (39)
+
+npm ci && npm test: EXIT 1
+root failure source: scripts/check_program_id_sync.sh
+[id-check] FAIL (Anchor.toml/declare_id vs target/deploy keypair mismatch across solana programs)
+```
+- Result: `PARTIAL_PASS`
+  - Devnet demo now reaches successful `.dns` route + resolve and only prints `✅ demo complete` after success.
+  - Gateway checks pass.
+  - Root suite still fails on existing Solana ID-sync gate unrelated to this targeted demo fix.
+
+### 2026-02-20T04:30:00Z — PR117 unblock: ID sync invariant + strict fallback guard
+- Base commit SHA: `903d152`
+- Worktree: `/tmp/ddns-pr-117-fix`
+- Commands run:
+```bash
+cd solana && anchor build
+bash scripts/check_program_id_sync.sh
+npm ci && npm test
+DDNS_SKIP_DEPLOY_VERIFY=1 DDNS_PROGRAM_ID=9hwvtFzawMZ6R9eWJZ8YjC7rLCGgNK7PZBNeKMRCPBes ALLOW_LOCAL_FALLBACK=0 npm run mvp:demo:devnet
+DDNS_SKIP_DEPLOY_VERIFY=1 DDNS_PROGRAM_ID=9hwvtFzawMZ6R9eWJZ8YjC7rLCGgNK7PZBNeKMRCPBes ALLOW_LOCAL_FALLBACK=1 npm run mvp:demo:devnet
+```
+- Output snippet:
+```text
+bash scripts/check_program_id_sync.sh
+[id-check] PASS
+
+npm ci && npm test
+==> gate: program id sync
+[id-check] PASS
+==> run_all: complete
+
+ALLOW_LOCAL_FALLBACK=0 ... npm run mvp:demo:devnet
+assign_route: 500 ... InstructionFallbackNotFound ...
+❌ demo failed (.dns route+resolve did not succeed)
+
+ALLOW_LOCAL_FALLBACK=1 ... npm run mvp:demo:devnet
+assign_route: 200 { ok: true, mode: 'local_fallback', allow_local_fallback: true }
+resolve ... "proof": {"mode": "local_fallback"}
+✅ demo complete
+```
+- Result: `PASS`
+  - Program ID sync invariant restored: `declare_id! == Anchor.toml [programs.*] == target/deploy keypair pubkey`.
+  - Root test gate passes.
+  - Local fallback is now explicit/opt-in only (`ALLOW_LOCAL_FALLBACK=1`), strict mode fails as expected.
