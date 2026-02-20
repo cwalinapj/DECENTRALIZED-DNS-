@@ -768,3 +768,41 @@ required_failures: ddns_cache_head, ddns_domain_rewards, ddns_miner_score, ddns_
   - `artifacts/devnet_inventory.json`
   - `artifacts/devnet_inventory.md`
 - Result: `PASS` (script behavior matches requirements; exits non-zero only for missing REQUIRED programs)
+
+## Devnet Deploy Wave Script (Prep, Dry-Run)
+
+Date (UTC): 2026-02-20T00:12:00Z  
+Branch: `codex/pr-deploy-wave`  
+Worktree: `/tmp/ddns-pr-deploy-wave`
+
+Commands run:
+
+```bash
+npm ci && npm test
+DRY_RUN=1 bash scripts/devnet_deploy_wave.sh
+```
+
+Output snippet:
+
+```text
+npm test
+...
+==> gate: program id sync
+program_id_mismatch_detected
+  - ddns_anchor: Anchor.toml (...) != keypair (...)
+  - ddns_registry: Anchor.toml (...) != keypair (...)
+  - ... (full mismatch list emitted by scripts/check_program_id_sync.sh)
+
+DRY_RUN=1 bash scripts/devnet_deploy_wave.sh
+# Devnet Deploy Wave Plan
+- wallet: B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5
+- wallet_sol: 0.79716988
+- missing_required_count: 5
+- estimated_buffer_sol_total: 12.032280960
+planned_deploy_order: ddns_domain_rewards ddns_rewards ddns_miner_score ddns_cache_head ddns_witness_rewards
+wallet_shortfall_sol_estimate: 11.235111080
+```
+
+Result:
+- `scripts/devnet_deploy_wave.sh` dry-run mode works and exits 0.
+- Root `npm test` currently fails in this worktree due existing ID-sync gate mismatch (`scripts/check_program_id_sync.sh`) unrelated to this script change.
