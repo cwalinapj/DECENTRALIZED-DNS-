@@ -1031,6 +1031,20 @@ rrset_hash: 6e67410e6afe26b14efb77a483bf6d70ccc6808a1f89c67d2d9cc6f4aa4a1689
 upstreams_used_count: 2
 ```
 
+## 2026-02-20 — post-merge PR3 baseline + audit snapshot refresh
+
+Commands:
+```bash
+npm ci
+npm test
+```
+
+Output snippet:
+```text
+==> run_all: complete
+[id-check] PASS
+```
+
 ## 2026-02-20 — funded strict devnet flow
 
 Command:
