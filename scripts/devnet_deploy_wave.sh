@@ -9,6 +9,8 @@ RPC_URL="${SOLANA_RPC_URL:-https://api.devnet.solana.com}"
 WALLET_PATH="${WALLET:-${ANCHOR_WALLET:-$HOME/.config/solana/id.json}}"
 DRY_RUN="${DRY_RUN:-1}"
 APPEND_VERIFIED="${APPEND_VERIFIED:-0}"
+RPC_RETRIES="${RPC_RETRIES:-4}"
+RPC_RETRY_DELAY_S="${RPC_RETRY_DELAY_S:-2}"
 
 DEMO_CRITICAL_REQUIRED=(
   ddns_anchor
@@ -35,6 +37,31 @@ if [[ ! -f "$WALLET_PATH" ]]; then
 fi
 
 mkdir -p "$ROOT_DIR/artifacts"
+
+solana_retry() {
+  local out rc attempt=1
+  while true; do
+    set +e
+    out="$("$@" 2>&1)"
+    rc=$?
+    set -e
+    if [[ $rc -eq 0 ]]; then
+      printf "%s\n" "$out"
+      return 0
+    fi
+    if (( attempt >= RPC_RETRIES )); then
+      printf "%s\n" "$out"
+      return "$rc"
+    fi
+    if grep -Eqi '429|too many requests|rate limit|timed out|timeout|connection reset|temporar' <<<"$out"; then
+      sleep "$RPC_RETRY_DELAY_S"
+      attempt=$((attempt + 1))
+      continue
+    fi
+    printf "%s\n" "$out"
+    return "$rc"
+  done
+}
 
 run_inventory() {
   set +e
@@ -82,7 +109,7 @@ calc_buffer_estimate_lamports() {
   local bytes
   bytes="$(wc -c < "$so_path" | tr -d ' ')"
   local rent_line rent_lamports
-  rent_line="$(solana rent "$bytes" 2>/dev/null || true)"
+  rent_line="$(solana_retry solana rent "$bytes" || true)"
   if grep -q 'SOL' <<< "$rent_line"; then
     local rent_sol
     rent_sol="$(sed -n 's/.*Rent-exempt minimum:[[:space:]]*\([0-9.][0-9.]*\)[[:space:]]*SOL.*/\1/p' <<< "$rent_line" | head -n1)"
@@ -96,8 +123,11 @@ calc_buffer_estimate_lamports() {
 }
 
 wallet_pubkey="$(solana-keygen pubkey "$WALLET_PATH")"
-wallet_sol="$(solana balance -u "$RPC_URL" "$wallet_pubkey" | awk '{print $1}')"
+wallet_sol="$(solana_retry solana balance -u "$RPC_URL" "$wallet_pubkey" | awk '{print $1}')"
 wallet_lamports="$(printf "%.0f" "$(echo "$wallet_sol * 1000000000" | bc -l)")"
+echo "SOLANA_RPC_URL=$RPC_URL"
+echo "WALLET_PUBKEY=$wallet_pubkey"
+echo "WALLET_SOL=$wallet_sol"
 
 run_inventory || true
 
@@ -155,6 +185,13 @@ plan_file="$ROOT_DIR/artifacts/devnet_deploy_wave_plan.md"
 
 cat "$plan_file"
 
+top_up_target_lamports=$est_total_lamports
+if (( top_up_target_lamports < 5000000000 )); then
+  top_up_target_lamports=5000000000
+fi
+top_up_target_sol="$(echo "scale=9; $top_up_target_lamports / 1000000000" | bc -l)"
+echo "TOP_UP_TARGET_SOL=$top_up_target_sol"
+
 if [[ "$DRY_RUN" == "1" ]]; then
   echo
   echo "dry_run: true"
@@ -187,7 +224,7 @@ else
 
     pid="$(extract_devnet_program_id "$prog")"
     echo "==> verifying: $prog ($pid)"
-    solana program show -u "$RPC_URL" "$pid" | tee -a "$deploy_log"
+    solana_retry solana program show -u "$RPC_URL" "$pid" | tee -a "$deploy_log"
   done
 fi
 

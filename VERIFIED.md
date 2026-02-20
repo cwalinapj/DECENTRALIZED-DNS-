@@ -936,3 +936,45 @@ EXIT_CODE:1
 ==> run_all: complete
 EXIT_CODE:0
 ```
+
+## 2026-02-20 — funded deploy-wave readiness one-command flow
+
+Branch: `codex/pr-devnet-funded-flow`
+
+Commands run:
+
+```bash
+DRY_RUN=1 bash scripts/devnet_deploy_wave.sh
+bash scripts/devnet_inventory.sh
+npm run mvp:funded:devnet
+npm test
+```
+
+Output snippets:
+
+```text
+SOLANA_RPC_URL=https://api.devnet.solana.com
+WALLET_PUBKEY=B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5
+WALLET_SOL=5.77959048
+TOP_UP_TARGET_SOL=8.609185920
+planned_deploy_order: ddns_anchor ddns_registry ddns_quorum ddns_stake
+wallet_shortfall_sol_estimate: 2.829595440
+```
+
+```text
+# from npm run mvp:funded:devnet
+insufficient_wallet_sol_for_target
+TOP_UP_TARGET_SOL=8.609185920
+wallet_shortfall_sol=2.829595440
+proof_bundle: artifacts/proof_devnet_20260220T052918Z.md
+EXIT_CODE:2
+```
+
+```text
+# from npm test
+==> gate: program id sync
+[id-check] FAIL
+==> warning: program id sync mismatch (STRICT_PROGRAM_ID_SYNC=1 to enforce hard-fail)
+==> run_all: complete
+EXIT_CODE:0
+```
