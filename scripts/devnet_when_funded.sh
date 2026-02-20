@@ -7,9 +7,14 @@ cd "$ROOT_DIR"
 RPC_URL="${SOLANA_RPC_URL:-https://api.devnet.solana.com}"
 WALLET_PATH="${WALLET:-${ANCHOR_WALLET:-$HOME/.config/solana/id.json}}"
 APPEND_VERIFIED="${APPEND_VERIFIED:-1}"
+DEMO_JSON="${DEMO_JSON:-0}"
 
 if [[ ! -f "$WALLET_PATH" ]]; then
   echo "wallet_not_found: $WALLET_PATH" >&2
+  if [[ "$DEMO_JSON" == "1" ]] && command -v jq >/dev/null 2>&1; then
+    jq -cn --arg wallet_pubkey "" --arg timestamp_utc "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" --arg error "wallet_not_found" \
+      '{ok:false,name:null,dest:null,confidence:null,rrset_hash:null,tx_links:[],program_ids:{},wallet_pubkey:$wallet_pubkey,timestamp_utc:$timestamp_utc,error:$error}'
+  fi
   exit 1
 fi
 
@@ -66,6 +71,13 @@ if [[ "$shortfall_positive" == "1" ]]; then
     echo "wallet_shortfall_sol=$(echo "scale=9; $shortfall" | bc -l)"
     echo '```'
   } >> "$log_file"
+  if [[ "$DEMO_JSON" == "1" ]] && command -v jq >/dev/null 2>&1; then
+    jq -cn \
+      --arg wallet_pubkey "$wallet_pubkey" \
+      --arg timestamp_utc "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+      --arg error "insufficient_wallet_sol_for_target" \
+      '{ok:false,name:null,dest:null,confidence:null,rrset_hash:null,tx_links:[],program_ids:{},wallet_pubkey:$wallet_pubkey,timestamp_utc:$timestamp_utc,error:$error}'
+  fi
   echo "proof_bundle: $log_file"
   exit 2
 fi
@@ -77,10 +89,32 @@ echo "==> inventory after deploy"
 bash scripts/devnet_inventory.sh | tee -a "$run_log"
 
 echo "==> strict demo (no local fallback)"
-ALLOW_LOCAL_FALLBACK=0 bash scripts/devnet_happy_path.sh | tee -a "$run_log"
+set +e
+DEMO_JSON="$DEMO_JSON" ALLOW_LOCAL_FALLBACK=0 bash scripts/devnet_happy_path.sh | tee -a "$run_log"
+demo_rc=$?
+set -e
+
+if [[ "$demo_rc" -ne 0 ]]; then
+  echo "strict_demo_failed" >&2
+  if [[ "$DEMO_JSON" == "1" ]] && command -v jq >/dev/null 2>&1; then
+    jq -cn \
+      --arg wallet_pubkey "$wallet_pubkey" \
+      --arg timestamp_utc "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+      --arg error "strict_demo_failed" \
+      '{ok:false,name:null,dest:null,confidence:null,rrset_hash:null,tx_links:[],program_ids:{},wallet_pubkey:$wallet_pubkey,timestamp_utc:$timestamp_utc,error:$error}'
+  fi
+  exit 1
+fi
 
 if ! rg -q "✅ demo complete" "$run_log"; then
-  echo "strict_demo_missing_success_marker" >&2
+  echo "strict_demo_missing_marker_demo_complete" >&2
+  if [[ "$DEMO_JSON" == "1" ]] && command -v jq >/dev/null 2>&1; then
+    jq -cn \
+      --arg wallet_pubkey "$wallet_pubkey" \
+      --arg timestamp_utc "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+      --arg error "strict_demo_missing_marker_demo_complete" \
+      '{ok:false,name:null,dest:null,confidence:null,rrset_hash:null,tx_links:[],program_ids:{},wallet_pubkey:$wallet_pubkey,timestamp_utc:$timestamp_utc,error:$error}'
+  fi
   exit 1
 fi
 
@@ -90,7 +124,18 @@ if [[ -n "$TX_LINKS" ]]; then
   printf '%s\n' "$TX_LINKS"
 fi
 
-echo "✅ STRICT DEMO COMPLETE (ON-CHAIN)"
+echo "✅ STRICT DEMO COMPLETE (ON-CHAIN)" | tee -a "$run_log"
+if ! rg -q "✅ STRICT DEMO COMPLETE \(ON-CHAIN\)" "$run_log"; then
+  echo "strict_demo_missing_marker_onchain" >&2
+  if [[ "$DEMO_JSON" == "1" ]] && command -v jq >/dev/null 2>&1; then
+    jq -cn \
+      --arg wallet_pubkey "$wallet_pubkey" \
+      --arg timestamp_utc "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+      --arg error "strict_demo_missing_marker_onchain" \
+      '{ok:false,name:null,dest:null,confidence:null,rrset_hash:null,tx_links:[],program_ids:{},wallet_pubkey:$wallet_pubkey,timestamp_utc:$timestamp_utc,error:$error}'
+  fi
+  exit 1
+fi
 
 {
   echo "## Commands"
@@ -123,4 +168,16 @@ if [[ "$APPEND_VERIFIED" == "1" ]]; then
   } >> VERIFIED.md
 fi
 
-echo "proof_bundle: $log_file"
+if [[ "$DEMO_JSON" == "1" ]]; then
+  demo_json_line="$(awk '/^{.*}$/ {line=$0} END {print line}' "$run_log")"
+  if [[ -z "$demo_json_line" ]]; then
+    demo_json_line="$(jq -cn \
+      --arg wallet_pubkey "$wallet_pubkey" \
+      --arg timestamp_utc "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+      '{ok:true,name:null,dest:null,confidence:null,rrset_hash:null,tx_links:[],program_ids:{},wallet_pubkey:$wallet_pubkey,timestamp_utc:$timestamp_utc}')"
+  fi
+  echo "proof_bundle: $log_file" >&2
+  echo "$demo_json_line"
+else
+  echo "proof_bundle: $log_file"
+fi

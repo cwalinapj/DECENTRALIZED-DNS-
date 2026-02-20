@@ -1203,3 +1203,29 @@ tx_links:
 ==================================
 ✅ demo complete
 ```
+
+## 2026-02-20 — PR1 DEMO_JSON contract (strict failure JSON)
+
+Commands:
+```bash
+npm test
+DEMO_JSON=1 npm run mvp:demo:devnet | tail -n 1 | jq .
+```
+
+Output snippet:
+```text
+sh: tsx: command not found
+strict_demo_failed
+{
+  "ok": false,
+  "name": null,
+  "dest": null,
+  "confidence": null,
+  "rrset_hash": null,
+  "tx_links": [],
+  "program_ids": {},
+  "wallet_pubkey": "B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5",
+  "timestamp_utc": "2026-02-20T22:17:02Z",
+  "error": "strict_demo_failed"
+}
+```

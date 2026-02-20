@@ -13,20 +13,120 @@ DEMO_DEST="${DEMO_DEST:-https://example.com}"
 DEMO_TTL="${DEMO_TTL:-300}"
 ENABLE_WITNESS_REWARDS="${ENABLE_WITNESS_REWARDS:-0}"
 ALLOW_LOCAL_FALLBACK="${ALLOW_LOCAL_FALLBACK:-0}"
+DEMO_JSON="${DEMO_JSON:-0}"
 DDNS_SKIP_DEPLOY_VERIFY="${DDNS_SKIP_DEPLOY_VERIFY:-0}"
 DEFAULT_DDNS_PROGRAM_ID_PRIMARY="EJVVNdwBdZiEpA4QjVaeV79WPsoUpa4zLA4mqpxWxXi5"
 
 LOG_DIR="${TMPDIR:-/tmp}/ddns-devnet-demo"
 mkdir -p "$LOG_DIR"
 
+JSON_EMITTED=0
+DEMO_ERROR=""
+VERIFY_STATUS="unknown"
+CLAIM_STATUS="not_claimed"
+EFFECTIVE_NAME=""
+FLOW_OK=0
+TOLL_OK=0
+WALLET_PUBKEY=""
+SELECTED_DDNS_PROGRAM_ID=""
+CLAIM_TX=""
+ASSIGN_TX=""
+ROUTE_PROOF_SIG=""
+DEST_OUT=""
+CONFIDENCE_OUT=""
+RRSET_HASH_OUT=""
+TTL_OUT=""
+
+if [[ "$DEMO_JSON" == "1" ]] && ! command -v jq >/dev/null 2>&1; then
+  echo "error: DEMO_JSON=1 requires jq" >&2
+  exit 2
+fi
+
+get_anchor_program_id() {
+  local key="$1"
+  awk -v k="$key" '
+    $0 ~ /^\[programs\.devnet\]/ { in_devnet=1; next }
+    $0 ~ /^\[/ && $0 !~ /^\[programs\.devnet\]/ { in_devnet=0 }
+    in_devnet && $1 == k { gsub(/"/, "", $3); print $3; exit }
+  ' solana/Anchor.toml 2>/dev/null || true
+}
+
+emit_demo_json() {
+  local ok_bool="$1"
+  local err_msg="${2:-}"
+  local timestamp_utc
+  local tx_links_json program_ids_json names_program_id
+
+  if [[ "$DEMO_JSON" != "1" ]]; then
+    return 0
+  fi
+  if ! command -v jq >/dev/null 2>&1; then
+    echo "error: DEMO_JSON=1 requires jq" >&2
+    return 0
+  fi
+
+  names_program_id="$(get_anchor_program_id ddns_names)"
+  tx_links_json="$(
+    {
+      [[ -n "$CLAIM_TX" ]] && printf '%s\n' "https://explorer.solana.com/tx/${CLAIM_TX}?cluster=devnet"
+      [[ -n "$ASSIGN_TX" ]] && printf '%s\n' "https://explorer.solana.com/tx/${ASSIGN_TX}?cluster=devnet"
+      if [[ -n "$ROUTE_PROOF_SIG" && "$ROUTE_PROOF_SIG" != "$ASSIGN_TX" && "$ROUTE_PROOF_SIG" != "$CLAIM_TX" ]]; then
+        printf '%s\n' "https://explorer.solana.com/tx/${ROUTE_PROOF_SIG}?cluster=devnet"
+      fi
+    } | jq -Rsc 'split("\n") | map(select(length>0))'
+  )"
+
+  program_ids_json="$(
+    jq -cn \
+      --arg ddns_anchor "${SELECTED_DDNS_PROGRAM_ID:-}" \
+      --arg ddns_names "${names_program_id:-}" \
+      '{ddns_anchor:$ddns_anchor, ddns_names:$ddns_names}'
+  )"
+  timestamp_utc="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+
+  jq -cn \
+    --argjson ok "$ok_bool" \
+    --arg name "${EFFECTIVE_NAME:-}" \
+    --arg dest "${DEST_OUT:-}" \
+    --arg confidence "${CONFIDENCE_OUT:-}" \
+    --arg rrset_hash "${RRSET_HASH_OUT:-}" \
+    --arg wallet_pubkey "${WALLET_PUBKEY:-}" \
+    --arg timestamp_utc "$timestamp_utc" \
+    --arg error "$err_msg" \
+    --argjson tx_links "$tx_links_json" \
+    --argjson program_ids "$program_ids_json" \
+    '{
+      ok: $ok,
+      name: (if $name == "" then null else $name end),
+      dest: (if $dest == "" then null else $dest end),
+      confidence: (if $confidence == "" then null else $confidence end),
+      rrset_hash: (if $rrset_hash == "" then null else $rrset_hash end),
+      tx_links: $tx_links,
+      program_ids: $program_ids,
+      wallet_pubkey: $wallet_pubkey,
+      timestamp_utc: $timestamp_utc
+    } + (if $error == "" then {} else {error:$error} end)'
+
+  JSON_EMITTED=1
+}
+
 cleanup() {
   set +e
   if [[ -n "${GATEWAY_PID:-}" ]]; then kill "$GATEWAY_PID" >/dev/null 2>&1 || true; fi
   if [[ -n "${TOLLBOOTH_PID:-}" ]]; then kill "$TOLLBOOTH_PID" >/dev/null 2>&1 || true; fi
 }
-trap cleanup EXIT
+on_exit() {
+  local status=$?
+  cleanup
+  if [[ "$DEMO_JSON" == "1" && "$status" -ne 0 && "$JSON_EMITTED" -eq 0 ]]; then
+    emit_demo_json false "${DEMO_ERROR:-demo_failed}"
+  fi
+  exit "$status"
+}
+trap on_exit EXIT
 
 if [[ ! -f "$WALLET_PATH" ]]; then
+  DEMO_ERROR="wallet_not_found"
   echo "wallet_not_found: $WALLET_PATH"
   exit 1
 fi
@@ -219,6 +319,7 @@ npm -C gateway run start >"$LOG_DIR/gateway.log" 2>&1 &
 GATEWAY_PID=$!
 
 if ! wait_http "http://127.0.0.1:${GATEWAY_PORT}/healthz" 60; then
+  DEMO_ERROR="gateway_start_failed"
   echo "gateway_start_failed: see $LOG_DIR/gateway.log"
   exit 1
 fi
@@ -259,6 +360,7 @@ fi
 if [[ $TOLL_OK -eq 1 ]] && echo "$TOLL_JSON" | rg -q '"mode"\s*:\s*"local_fallback"'; then
   if [[ "$ALLOW_LOCAL_FALLBACK" != "1" ]]; then
     TOLL_OK=0
+    DEMO_ERROR="strict_mode_blocked_local_fallback"
     echo "strict_mode_blocked: resolve proof mode=local_fallback but ALLOW_LOCAL_FALLBACK!=1"
   fi
 fi
@@ -288,6 +390,7 @@ if [[ -n "${SELECTED_DDNS_PROGRAM_ID:-}" ]]; then
   echo "ddns_program_id_used: ${SELECTED_DDNS_PROGRAM_ID}"
 fi
 if [[ $FLOW_OK -eq 0 ]]; then
+  DEMO_ERROR="route_not_written"
   echo "blocker: tollbooth flow returned non-200; inspect $LOG_DIR/tollbooth.log and flow output above"
 fi
 
@@ -307,9 +410,19 @@ fi
 echo "resolve_result: $([[ $TOLL_OK -eq 1 ]] && echo "ok" || echo "failed")"
 if [[ $TOLL_OK -eq 1 ]]; then
   if command -v jq >/dev/null 2>&1 && jq -e . >/dev/null 2>&1 <<<"$TOLL_JSON"; then
-    echo "resolved_dest: $(jq -r '.dest // "-" ' <<<"$TOLL_JSON")"
-    echo "resolved_ttl: $(jq -r '.ttl // "-" ' <<<"$TOLL_JSON")"
+    DEST_OUT="$(jq -r '.dest // empty' <<<"$TOLL_JSON")"
+    TTL_OUT="$(jq -r '.ttl // empty' <<<"$TOLL_JSON")"
+    CONFIDENCE_OUT="$(jq -r '.confidence // empty' <<<"$TOLL_JSON")"
+    RRSET_HASH_OUT="$(jq -r '.rrset_hash // .dest_hash_hex // empty' <<<"$TOLL_JSON")"
+    echo "resolved_dest: ${DEST_OUT:--}"
+    echo "resolved_ttl: ${TTL_OUT:--}"
   fi
+fi
+if [[ -z "$DEST_OUT" && $DNS_RC -eq 0 ]] && command -v jq >/dev/null 2>&1 && jq -e . >/dev/null 2>&1 <<<"$DNS_JSON"; then
+  DEST_OUT="$(jq -r '.dest // empty' <<<"$DNS_JSON")"
+  TTL_OUT="$(jq -r '.ttl_s // .ttl // empty' <<<"$DNS_JSON")"
+  CONFIDENCE_OUT="$(jq -r '.confidence // empty' <<<"$DNS_JSON")"
+  RRSET_HASH_OUT="$(jq -r '.rrset_hash // empty' <<<"$DNS_JSON")"
 fi
 echo "tx_links:"
 if [[ -n "$CLAIM_TX" ]]; then
@@ -324,7 +437,9 @@ fi
 echo "=================================="
 if [[ $FLOW_OK -eq 1 && $TOLL_OK -eq 1 ]]; then
   echo "✅ demo complete"
+  emit_demo_json true ""
 else
+  DEMO_ERROR="${DEMO_ERROR:-dns_route_or_resolve_failed}"
   echo "❌ demo failed (.dns route+resolve did not succeed)"
   exit 1
 fi
