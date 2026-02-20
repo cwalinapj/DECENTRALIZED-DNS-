@@ -1009,3 +1009,58 @@ ddns_program_id_used: EJVVNdwBdZiEpA4QjVaeV79WPsoUpa4zLA4mqpxWxXi5
 logs_dir: /var/folders/h5/7f2x98695lz6819tc0k6fbv80000gn/T//ddns-devnet-demo
 ✅ demo complete
 ```
+
+## 2026-02-20 — funded strict devnet flow
+
+Command:
+```bash
+bash scripts/devnet_when_funded.sh
+```
+
+Output snippet:
+```text
+    "record_pda": "4VjWX1exvkSNS9WrsnSgd9ZfTvhJ8xx1QtT6bpsSKyZz",
+    "slot": 443522020,
+    "signature": "5d8mgk3wG59KrYQtxuEgrjmc4nq34VyWwLgQM7wn4TDVziYp12GkoXpoPmUpqd9M65K9cHzdFQFet85KBYsfmXaH"
+  }
+}
+resolved_name: u-b5wjx4pd.dns
+resolved_dest: https://example.com
+==> install + start gateway
+==> resolve ICANN via gateway
+{"name":"netflix.com","type":"A","answers":[{"name":"netflix.com","type":"A","data":"44.234.232.238","ttl":28},{"name":"netflix.com","type":"A","data":"44.237.234.25","ttl":28},{"name":"netflix.com","type":"A","data":"44.242.60.85","ttl":28}],"ttl_s":28,"source":"recursive","confidence":"low","upstr
+==> resolve .dns via gateway (best-effort, canonical route dependent)
+gateway_dns_resolve_unavailable_for_u-b5wjx4pd.dns; falling back to tollbooth resolver proof
+==> resolve .dns via tollbooth (route proof)
+{"ok":true,"name":"u-b5wjx4pd.dns","wallet":"B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5","dest":"https://example.com","ttl":300,"dest_hash_hex":"100680ad546ce6a577f42f52df33b4cfdca756859e664b8d7de329b150d09ce9","proof":{"program_id":"EJVVNdwBdZiEpA4QjVaeV79WPsoUpa4zLA4mqpxWxXi5","record_pda":"4VjW
+==> optional witness reward submit/claim skipped (ENABLE_WITNESS_REWARDS=1 to enable)
+==> tx links
+assign_route_tx: https://explorer.solana.com/tx/5d8mgk3wG59KrYQtxuEgrjmc4nq34VyWwLgQM7wn4TDVziYp12GkoXpoPmUpqd9M65K9cHzdFQFet85KBYsfmXaH?cluster=devnet
+ddns_program_id_used: EJVVNdwBdZiEpA4QjVaeV79WPsoUpa4zLA4mqpxWxXi5
+logs_dir: /var/folders/h5/7f2x98695lz6819tc0k6fbv80000gn/T//ddns-devnet-demo
+✅ demo complete
+```
+
+## 2026-02-20 — MVP freeze packaging pass (strict front-door)
+
+Base commit SHA:
+```text
+75be188
+```
+
+Commands run:
+```bash
+npm ci && npm test
+bash scripts/check_program_id_sync.sh
+npm run mvp:demo:devnet
+```
+
+Output snippet:
+```text
+[id-check] PASS
+...
+assign_route_tx: https://explorer.solana.com/tx/5d8mgk3wG59KrYQtxuEgrjmc4nq34VyWwLgQM7wn4TDVziYp12GkoXpoPmUpqd9M65K9cHzdFQFet85KBYsfmXaH?cluster=devnet
+✅ demo complete
+✅ STRICT DEMO COMPLETE (ON-CHAIN)
+proof_bundle: artifacts/proof_devnet_20260220T205216Z.md
+```

@@ -23,7 +23,15 @@ These appear in scripts as `DEMO_CRITICAL_REQUIRED`.
 - Human-readable snapshot:
   - `docs/DEVNET_STATUS.md`
 
-At the time of this update, all demo-critical programs are marked `missing` in the latest inventory snapshot and `scripts/devnet_inventory.sh` exits non-zero accordingly.
+Current executable/missing truth is determined by fresh inventory runs, not this static page. Run:
+
+```bash
+bash scripts/devnet_inventory.sh
+```
+
+and read:
+- `artifacts/devnet_inventory.json`
+- `artifacts/devnet_inventory.md`
 
 ## Demo behavior policy
 

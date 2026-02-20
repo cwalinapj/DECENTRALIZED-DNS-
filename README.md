@@ -9,6 +9,8 @@ This repo delivers a Web2-friendly DNS and gateway stack with verifiable on-chai
 - miner/operator onboarding paths (Cloudflare Worker + local services)
 - explicit MVP trust boundaries and roadmap to stronger decentralization
 
+If you only read one file first: `docs/START_HERE.md`.
+
 ## Start Here (MVP)
 
 - MVP scope and current behavior: `docs/MVP.md`
@@ -22,6 +24,21 @@ This repo delivers a Web2-friendly DNS and gateway stack with verifiable on-chai
 - Attack-mode behavior: `docs/ATTACK_MODE.md`
 - Local resolver testing: `docs/LOCAL_TEST.md`
 - Canonical docs index: `docs/INDEX.md`
+
+## 5 Minute Sanity Checks
+
+```bash
+npm ci && npm test
+npm run mvp:demo:devnet
+```
+
+Optional gateway spot checks:
+
+```bash
+PORT=8054 npm -C gateway run start
+curl 'http://localhost:8054/v1/resolve?name=netflix.com&type=A'
+curl 'http://localhost:8054/v1/resolve?name=example.dns&type=A'
+```
 
 ## Quick Verify (Devnet)
 
@@ -61,7 +78,7 @@ Expected:
 npm run mvp:demo:devnet
 ```
 
-This command currently runs the devnet verification + audit path (`solana` package scripts) and is the canonical MVP demo command exposed at repo root.
+This is the strict funded flow (`scripts/devnet_when_funded.sh`): deploy-wave check, inventory, and strict `.dns` on-chain demo. It exits non-zero on strict failure.
 
 ## Become a Miner (Cloudflare Worker)
 

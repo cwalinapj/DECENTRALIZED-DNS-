@@ -1,13 +1,12 @@
 # DEVNET_RUNBOOK
 
-This runbook is the minimal copy/paste path for running the current MVP on devnet.
+This runbook is the copy/paste strict funded flow for MVP.
 
 ## Environment
-
 - RPC: `https://api.devnet.solana.com`
 - Authority wallet: `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5`
 
-## 1) Verify Solana config + balance
+## 1) Preflight
 
 ```bash
 solana config set -u https://api.devnet.solana.com
@@ -16,64 +15,50 @@ solana balance
 ```
 
 Expected:
-- `solana address` is your intended signer.
-- Balance is sufficient for transaction fees and any deployment/tests.
+- wallet is the intended signer
+- balance is at/above `TOP_UP_TARGET_SOL` reported by deploy wave
 
-## 2) Verify deployed programs used by MVP flows
+## 2) Program ID sync gate
 
 ```bash
-solana program show -u devnet 5zg8CsxpRKyurnTg539wr2nVtS6zritQDTGy4uAUerdx
-solana program show -u devnet 9gyHsemmJfujZEqH1o4VhefxvbUJFQkPko8ASAteX5YB
-solana program show -u devnet 6gT4zHNpU4PtXL4LRv1sW8MwkFu254Z7gQM7wKqnmZYF
+bash scripts/check_program_id_sync.sh
 ```
 
 Expected:
-- Program account exists.
-- `ProgramData Address` and `Authority` fields resolve without error.
+- `Program ID sync check: PASS`
 
-## 3) Build local workspace used by scripts
+## 3) Strict funded flow (single command)
 
 ```bash
-cd solana
-npm install
-anchor build
+npm run mvp:demo:devnet
+```
+
+What it runs:
+- deploy-wave preflight (and deploy only missing demo-critical programs)
+- devnet inventory snapshot
+- strict demo with `ALLOW_LOCAL_FALLBACK=0`
+
+Expected final markers:
+- `✅ demo complete`
+- `✅ STRICT DEMO COMPLETE (ON-CHAIN)`
+
+If underfunded, it exits with a shortfall report and `proof_bundle:` path.
+
+## 4) Inventory proof
+
+```bash
+bash scripts/devnet_inventory.sh
 ```
 
 Expected:
-- `Finished` output from anchor/cargo build.
+- writes `artifacts/devnet_inventory.json`
+- writes `artifacts/devnet_inventory.md`
+- prints wallet/program summary and required-vs-optional status
 
-## 4) Run gateway locally and resolve ICANN + .dns
-
-```bash
-cd gateway
-npm install
-npm run build
-npm run dev
-```
-
-In a second shell:
+## 5) Optional direct gateway checks
 
 ```bash
+PORT=8054 npm -C gateway run start
 curl 'http://localhost:8054/v1/resolve?name=netflix.com&type=A'
 curl 'http://localhost:8054/v1/resolve?name=example.dns&type=A'
 ```
-
-Expected:
-- ICANN response includes recursive/adaptive source fields (`confidence`, `upstreams_used`, `cache`).
-- `.dns` requests go through PKDNS/adapted `.dns` path (not ICANN recursive consensus writes).
-
-## 5) Verify canonical PDA/account proof pattern
-
-Use the PDA and transaction references from `solana/VERIFIED.md`:
-
-```bash
-solana account -u devnet <PDA> --output json
-```
-
-Expected:
-- Account data exists and decodes according to the documented program/account type.
-
-## Notes
-
-- If devnet rate limits occur, retry after a short delay or switch to another healthy devnet RPC endpoint.
-- This runbook is for verification; it does not imply all experimental branches/programs are production-ready.

@@ -77,7 +77,7 @@ echo "==> inventory after deploy"
 bash scripts/devnet_inventory.sh | tee -a "$run_log"
 
 echo "==> strict demo (no local fallback)"
-ALLOW_LOCAL_FALLBACK=0 npm run mvp:demo:devnet | tee -a "$run_log"
+ALLOW_LOCAL_FALLBACK=0 bash scripts/devnet_happy_path.sh | tee -a "$run_log"
 
 if ! rg -q "✅ demo complete" "$run_log"; then
   echo "strict_demo_missing_success_marker" >&2
