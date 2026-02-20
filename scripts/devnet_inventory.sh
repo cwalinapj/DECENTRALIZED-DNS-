@@ -8,6 +8,7 @@ RPC_URL="${SOLANA_RPC_URL:-https://api.devnet.solana.com}"
 WALLET_PATH="${WALLET:-${ANCHOR_WALLET:-$HOME/.config/solana/id.json}}"
 DEMO_NAME="${DEMO_NAME:-example.dns}"
 DEMO_EPOCH_ID="${DEMO_EPOCH_ID:-0}"
+DEMO_NAME_NORM="$(printf '%s' "$DEMO_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/\.$//')"
 
 REQUIRED_NAMES=(
   ddns_anchor
@@ -49,6 +50,26 @@ is_required() {
 to_sol() {
   local lamports="$1"
   echo "scale=9; $lamports / 1000000000" | bc -l
+}
+
+rent_lamports_for_space() {
+  local space="$1"
+  local rent_line
+  rent_line="$(solana rent "$space" 2>/dev/null || true)"
+
+  # Newer CLI commonly prints SOL, older variants may print lamports.
+  if grep -q 'SOL' <<< "$rent_line"; then
+    local rent_sol
+    rent_sol="$(sed -n 's/.*Rent-exempt minimum:[[:space:]]*\([0-9.][0-9.]*\)[[:space:]]*SOL.*/\1/p' <<< "$rent_line" | head -n1)"
+    if [[ -n "$rent_sol" ]]; then
+      printf "%.0f" "$(echo "$rent_sol * 1000000000" | bc -l)"
+      return
+    fi
+  fi
+
+  local rent_lamports
+  rent_lamports="$(sed -n 's/.*Rent-exempt minimum:[[:space:]]*\([0-9][0-9]*\).*/\1/p' <<< "$rent_line" | head -n1)"
+  echo "${rent_lamports:-0}"
 }
 
 tmp_programs="$(mktemp)"
@@ -128,9 +149,9 @@ while read -r name program_id; do
 
     account_json="$(solana account -u "$RPC_URL" "$program_id" --output json 2>/dev/null || true)"
     if [[ -n "$account_json" ]]; then
-      executable_lamports="$(jq -r '.account.lamports // 0' <<< "$account_json")"
-      executable_json="$(jq -r '.account.executable // false' <<< "$account_json")"
-      owner="$(jq -r '.account.owner // "-"' <<< "$account_json")"
+      executable_lamports="$(jq -r '(.account.lamports // .lamports // 0)' <<< "$account_json")"
+      executable_json="$(jq -r '(.account.executable // .executable // false)' <<< "$account_json")"
+      owner="$(jq -r '(.account.owner // .owner // "-")' <<< "$account_json")"
     else
       executable_lamports=0
       executable_json="false"
@@ -141,7 +162,7 @@ while read -r name program_id; do
     if [[ -n "${programdata:-}" ]] && [[ "${programdata:-}" != "-" ]]; then
       programdata_json="$(solana account -u "$RPC_URL" "$programdata" --output json 2>/dev/null || true)"
       if [[ -n "$programdata_json" ]]; then
-        programdata_lamports="$(jq -r '.account.lamports // 0' <<< "$programdata_json")"
+        programdata_lamports="$(jq -r '(.account.lamports // .lamports // 0)' <<< "$programdata_json")"
       fi
     fi
     lamports=$((executable_lamports + programdata_lamports))
@@ -189,7 +210,7 @@ done < "$tmp_programs"
 anchor_program_id="$(awk '$1=="ddns_anchor" {print $2}' "$tmp_programs")"
 witness_program_id="$(awk '$1=="ddns_witness_rewards" {print $2}' "$tmp_programs")"
 
-name_hash_hex="$(printf '%s' "$DEMO_NAME" | shasum -a 256 | awk '{print $1}')"
+name_hash_hex="$(printf '%s' "$DEMO_NAME_NORM" | shasum -a 256 | awk '{print $1}')"
 
 derive_pda() {
   local label="$1"
@@ -224,13 +245,10 @@ derive_pda() {
 
   if [[ -n "$account_json" ]]; then
     exists="true"
-    lamports="$(jq -r '.account.lamports // 0' <<< "$account_json")"
-    data_len="$(jq -r '.account.space // 0' <<< "$account_json")"
+    lamports="$(jq -r '(.account.lamports // .lamports // 0)' <<< "$account_json")"
+    data_len="$(jq -r '(.account.space // .space // 0)' <<< "$account_json")"
     if [[ "$data_len" =~ ^[0-9]+$ ]] && (( data_len > 0 )); then
-      local rent_line
-      rent_line="$(solana rent --lamports "$data_len" 2>/dev/null || true)"
-      rent_exempt="$(grep -Eo '[0-9]+' <<< "$rent_line" | head -n1)"
-      rent_exempt="${rent_exempt:-0}"
+      rent_exempt="$(rent_lamports_for_space "$data_len")"
       if (( lamports < rent_exempt )); then
         topup=$((rent_exempt - lamports))
       fi
@@ -250,7 +268,45 @@ derive_pda() {
     '{label:$label,program:$program,derived:true,pda:$pda,bump:$bump,exists:($exists=="true"),lamports:$lamports,data_len:$data_len,rent_exempt_lamports:$rent_exempt_lamports,recommended_topup_lamports:$recommended_topup_lamports}' >> "$tmp_pda_rows"
 }
 
+add_account_row() {
+  local label="$1"
+  local program_id="$2"
+  local account="$3"
+  local account_json
+  account_json="$(solana account -u "$RPC_URL" "$account" --output json 2>/dev/null || true)"
+
+  local exists="false"
+  local lamports=0
+  local data_len=0
+  local rent_exempt=0
+  local topup=0
+
+  if [[ -n "$account_json" ]]; then
+    exists="true"
+    lamports="$(jq -r '(.account.lamports // .lamports // 0)' <<< "$account_json")"
+    data_len="$(jq -r '(.account.space // .space // 0)' <<< "$account_json")"
+    if [[ "$data_len" =~ ^[0-9]+$ ]] && (( data_len > 0 )); then
+      rent_exempt="$(rent_lamports_for_space "$data_len")"
+      if (( lamports < rent_exempt )); then
+        topup=$((rent_exempt - lamports))
+      fi
+    fi
+  fi
+
+  jq -nc \
+    --arg label "$label" \
+    --arg program "$program_id" \
+    --arg pda "$account" \
+    --arg exists "$exists" \
+    --argjson lamports "${lamports:-0}" \
+    --argjson data_len "${data_len:-0}" \
+    --argjson rent_exempt_lamports "${rent_exempt:-0}" \
+    --argjson recommended_topup_lamports "${topup:-0}" \
+    '{label:$label,program:$program,derived:false,pda:$pda,bump:null,exists:($exists=="true"),lamports:$lamports,data_len:$data_len,rent_exempt_lamports:$rent_exempt_lamports,recommended_topup_lamports:$recommended_topup_lamports}' >> "$tmp_pda_rows"
+}
+
 # Key PDAs/vaults used by demo flows.
+add_account_row "ddns_anchor:program_account" "$anchor_program_id" "$anchor_program_id"
 derive_pda "ddns_anchor:config" "$anchor_program_id" string:config
 derive_pda "ddns_anchor:toll_pass(wallet)" "$anchor_program_id" string:toll_pass "pubkey:$wallet_pubkey"
 derive_pda "ddns_anchor:name_record(example.dns)" "$anchor_program_id" string:name "hex:$name_hash_hex"
@@ -294,7 +350,7 @@ jq -n \
   --arg wallet_balance_line "$wallet_balance_line" \
   --arg wallet_lamports "$wallet_balance_lamports" \
   --arg wallet_sol "$wallet_balance_sol" \
-  --arg demo_name "$DEMO_NAME" \
+  --arg demo_name "$DEMO_NAME_NORM" \
   --arg demo_epoch_id "$DEMO_EPOCH_ID" \
   --arg required_total "$required_total" \
   --arg required_ok "$required_ok" \
@@ -342,7 +398,8 @@ jq -n \
     }
   }' > artifacts/devnet_inventory.json
 
-# Human-readable markdown output
+# Human-readable markdown output (stdout + artifact file)
+{
 echo "# Devnet Inventory"
 echo
 echo "- timestamp_utc: $(jq -r '.timestamp_utc' artifacts/devnet_inventory.json)"
@@ -381,6 +438,7 @@ echo "- optional_missing: $(jq -r '.summary.optional_missing' artifacts/devnet_i
 echo "- total_program_sol: $(jq -r '.summary.total_program_sol' artifacts/devnet_inventory.json)"
 echo "- recommended_reserve_sol: $(jq -r '.summary.recommended_reserve_sol' artifacts/devnet_inventory.json)"
 echo "- recommended_wallet_topup_sol: $(jq -r '.summary.recommended_wallet_topup_sol' artifacts/devnet_inventory.json)"
+} | tee artifacts/devnet_inventory.md
 
 if (( required_fail > 0 )); then
   echo
