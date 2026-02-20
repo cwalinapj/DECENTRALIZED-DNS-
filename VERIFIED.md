@@ -1307,3 +1307,20 @@ Output snippet:
   "upstreams_used": [ ... ]
 }
 ```
+
+### 2026-02-20 — PR #126 Copilot triage + baseline proof
+
+- PR: #126
+- Commit: 1f5749e
+- Copilot feedback: NO_COPILOT_FEEDBACK (no review comments, no inline comments, no issue comments)
+- Commands:
+```bash
+npm ci && npm test
+```
+- Output snippet:
+```text
+==> gate: no protocol drift (solana/programs/**)
+[protocol-gate] PASS: no protocol drift
+==> run_all: complete
+```
+- Result: PASS
