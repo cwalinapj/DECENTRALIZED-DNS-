@@ -1229,3 +1229,57 @@ strict_demo_failed
   "error": "strict_demo_failed"
 }
 ```
+
+## 2026-02-20 — funded strict devnet flow
+
+Command:
+```bash
+bash scripts/devnet_when_funded.sh
+```
+
+Output snippet:
+```text
+{"ok":true,"name":"u-b5wjx4pd.dns","wallet":"B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5","dest":"https://example.com","ttl":300,"dest_hash_hex":"100680ad546ce6a577f42f52df33b4cfdca756859e664b8d7de329b150d09ce9","proof":{"program_id":"EJVVNdwBdZiEpA4QjVaeV79WPsoUpa4zLA4mqpxWxXi5","record_pda":"4VjW
+==> optional witness reward submit/claim skipped (ENABLE_WITNESS_REWARDS=1 to enable)
+==> tx links
+assign_route_tx: https://explorer.solana.com/tx/QVumYeF8JbZpg1NyJLpt4TVadeiYcxYyhskf12ZxJ3GKtBNLJ8H5P5zUTVF5xnS1yDopgQjPaYpcooDPXfqG1wq?cluster=devnet
+ddns_program_id_used: EJVVNdwBdZiEpA4QjVaeV79WPsoUpa4zLA4mqpxWxXi5
+logs_dir: /var/folders/h5/7f2x98695lz6819tc0k6fbv80000gn/T//ddns-devnet-demo
+
+========== DEMO SUMMARY ==========
+deploy_verify: verified
+name_claimed: claimed_or_exists
+name: u-b5wjx4pd.dns
+route_written: yes
+resolve_result: ok
+resolved_dest: https://example.com
+resolved_ttl: 300
+tx_links:
+- https://explorer.solana.com/tx/QVumYeF8JbZpg1NyJLpt4TVadeiYcxYyhskf12ZxJ3GKtBNLJ8H5P5zUTVF5xnS1yDopgQjPaYpcooDPXfqG1wq?cluster=devnet
+==================================
+✅ demo complete
+✅ STRICT DEMO COMPLETE (ON-CHAIN)
+```
+
+## 2026-02-20 — PR2 PROOF.md auto-refresh on strict success
+
+Commands:
+```bash
+npm test
+npm -C solana ci --include=dev
+npm run mvp:demo:devnet
+sed -n '1,30p' docs/PROOF.md
+```
+
+Output snippet:
+```text
+✅ demo complete
+✅ STRICT DEMO COMPLETE (ON-CHAIN)
+proof_bundle: artifacts/proof_devnet_20260220T223614Z.md
+
+# PROOF
+- canonical_command: `npm run mvp:demo:devnet`
+- name: `u-b5wjx4pd.dns`
+- dest: `https://example.com`
+- https://explorer.solana.com/tx/QVumYeF8JbZpg1NyJLpt4TVadeiYcxYyhskf12ZxJ3GKtBNLJ8H5P5zUTVF5xnS1yDopgQjPaYpcooDPXfqG1wq?cluster=devnet
+```

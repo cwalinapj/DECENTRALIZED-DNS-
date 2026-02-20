@@ -22,6 +22,7 @@ mkdir -p artifacts
 stamp="$(date -u +"%Y%m%dT%H%M%SZ")"
 log_file="artifacts/proof_devnet_${stamp}.md"
 run_log="artifacts/devnet_when_funded_${stamp}.log"
+proof_doc="docs/PROOF.md"
 
 wallet_pubkey="$(solana-keygen pubkey "$WALLET_PATH")"
 wallet_sol="$(solana balance -u "$RPC_URL" "$wallet_pubkey" | awk '{print $1}')"
@@ -136,6 +137,77 @@ if ! rg -q "✅ STRICT DEMO COMPLETE \(ON-CHAIN\)" "$run_log"; then
   fi
   exit 1
 fi
+
+mapfile -t program_id_lines < <(
+  awk '
+    /^\[programs\.devnet\]/ { in_section=1; next }
+    /^\[/ { if (in_section) exit }
+    in_section && /^[[:space:]]*[a-zA-Z0-9_]+[[:space:]]*=[[:space:]]*"/ {
+      line=$0
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", line)
+      split(line, parts, "=")
+      key=parts[1]
+      gsub(/[[:space:]]/, "", key)
+      value=parts[2]
+      gsub(/^[[:space:]]*"/, "", value)
+      gsub(/"[[:space:]]*$/, "", value)
+      printf("- `%s`: `%s`\n", key, value)
+    }
+  ' solana/Anchor.toml
+)
+
+mapfile -t tx_links_array < <(printf '%s\n' "$TX_LINKS" | sed '/^$/d')
+proof_name="$(sed -n 's/^name:[[:space:]]*//p' "$run_log" | tail -n 1)"
+proof_dest="$(sed -n 's/^resolved_dest:[[:space:]]*//p' "$run_log" | tail -n 1)"
+proof_confidence="$(sed -n 's/^confidence:[[:space:]]*//p' "$run_log" | tail -n 1)"
+proof_rrset_hash="$(sed -n 's/^rrset_hash:[[:space:]]*//p' "$run_log" | tail -n 1)"
+if [[ -z "$proof_confidence" ]]; then
+  proof_confidence="$(sed -n 's/^resolve_confidence:[[:space:]]*//p' "$run_log" | tail -n 1)"
+fi
+if [[ -z "$proof_rrset_hash" ]]; then
+  proof_rrset_hash="$(sed -n 's/^resolve_rrset_hash:[[:space:]]*//p' "$run_log" | tail -n 1)"
+fi
+
+{
+  echo "# PROOF"
+  echo
+  echo "- last_success_utc: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+  echo "- canonical_command: \`npm run mvp:demo:devnet\`"
+  echo "- wallet_pubkey: \`$wallet_pubkey\`"
+  echo "- rpc: \`$RPC_URL\`"
+  echo
+  echo "## Latest Demo Summary"
+  echo
+  echo "- name: \`${proof_name:-unknown}\`"
+  echo "- dest: \`${proof_dest:-unknown}\`"
+  echo "- confidence: \`${proof_confidence:-unknown}\`"
+  echo "- rrset_hash: \`${proof_rrset_hash:-unknown}\`"
+  echo
+  echo "## Latest Tx Links"
+  echo
+  if [[ ${#tx_links_array[@]} -eq 0 ]]; then
+    echo "- (none)"
+  else
+    for link in "${tx_links_array[@]}"; do
+      echo "- $link"
+    done
+  fi
+  echo
+  echo "## Devnet Program IDs (from solana/Anchor.toml)"
+  echo
+  if [[ ${#program_id_lines[@]} -gt 0 ]]; then
+    printf '%s\n' "${program_id_lines[@]}"
+  else
+    echo "- no program IDs parsed from [programs.devnet]"
+  fi
+  echo
+  echo "## Success Criteria"
+  echo
+  echo "- [x] \`✅ demo complete\` marker observed"
+  echo "- [x] \`✅ STRICT DEMO COMPLETE (ON-CHAIN)\` marker observed"
+  echo "- [x] strict mode used (\`ALLOW_LOCAL_FALLBACK=0\`)"
+  echo "- [x] deploy-wave + inventory + demo executed"
+} > "$proof_doc"
 
 {
   echo "## Commands"
