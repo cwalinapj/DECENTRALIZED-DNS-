@@ -3,6 +3,11 @@ set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+if [ -x "$root/scripts/check_no_protocol_drift.sh" ]; then
+  echo "==> gate: no protocol drift (solana/programs/**)"
+  (cd "$root" && bash scripts/check_no_protocol_drift.sh)
+fi
+
 run_pkg() {
   local dir="$1"
   local cmd="$2"

@@ -1045,6 +1045,33 @@ Output snippet:
 [id-check] PASS
 ```
 
+## 2026-02-20 — no protocol drift gate (MVP polish wave)
+
+Commands:
+```bash
+bash scripts/check_no_protocol_drift.sh
+mkdir -p solana/programs/.gate_probe && touch solana/programs/.gate_probe/probe.txt
+bash scripts/check_no_protocol_drift.sh ; echo EXIT_CODE:$?
+rm -rf solana/programs/.gate_probe
+touch gate_non_protocol_probe.txt
+bash scripts/check_no_protocol_drift.sh
+rm -f gate_non_protocol_probe.txt
+npm test
+```
+
+Output snippet:
+```text
+[protocol-gate] PASS: no protocol drift
+[protocol-gate] FAIL: changes under solana/programs/** are blocked in MVP polish waves.
+[protocol-gate] touched:
+solana/programs/.gate_probe/probe.txt
+EXIT_CODE:1
+[protocol-gate] PASS: no protocol drift
+==> gate: no protocol drift (solana/programs/**)
+[protocol-gate] PASS: no protocol drift
+==> run_all: complete
+```
+
 ## 2026-02-20 — funded strict devnet flow
 
 Command:

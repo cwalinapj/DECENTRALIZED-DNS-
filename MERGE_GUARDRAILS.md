@@ -48,3 +48,6 @@ Path-based selection:
   - non-empty `git status --porcelain`.
 - Script never asks for interactive approvals.
 - Script never logs secrets.
+- MVP polish-wave protocol drift gate:
+  - `scripts/check_no_protocol_drift.sh` blocks changes under `solana/programs/**` by default.
+  - Override only for explicit protocol-change waves with `ALLOW_PROTOCOL_CHANGE=1`.
