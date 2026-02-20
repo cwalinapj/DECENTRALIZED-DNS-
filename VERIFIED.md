@@ -1283,3 +1283,27 @@ proof_bundle: artifacts/proof_devnet_20260220T223614Z.md
 - dest: `https://example.com`
 - https://explorer.solana.com/tx/QVumYeF8JbZpg1NyJLpt4TVadeiYcxYyhskf12ZxJ3GKtBNLJ8H5P5zUTVF5xnS1yDopgQjPaYpcooDPXfqG1wq?cluster=devnet
 ```
+
+## 2026-02-20 — PR3 SDK helpers + examples
+
+Commands:
+```bash
+npm test
+npm -C packages/sdk ci
+npm -C packages/sdk run build
+PORT=8054 npm -C gateway run start
+DDNS_GATEWAY_URL=http://127.0.0.1:8054 npx tsx packages/sdk/examples/node.ts
+DDNS_GATEWAY_URL=http://127.0.0.1:8054 npx tsx packages/sdk/worker/example.ts
+```
+
+Output snippet:
+```text
+[protocol-gate] PASS: no protocol drift
+==> run_all: complete
+{
+  "name": "netflix.com",
+  "confidence": "low",
+  "rrset_hash": "193fafc674490ac59d35ba1aaa4b73807f404e89592d980ca6310aa70011616c",
+  "upstreams_used": [ ... ]
+}
+```

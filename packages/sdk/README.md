@@ -5,6 +5,8 @@ Minimal TypeScript SDK for gateway resolution.
 ## API
 
 - `resolve({ baseUrl, name, type })`
+- `resolveOrThrow({ baseUrl, name, type })`
+- `assertResponseShape(response)`
 - `getDomainStatus({ baseUrl, domain })`
 - `startDomainVerify({ baseUrl, domain })`
 - `renewDomain({ baseUrl, domain, useCredits })`
@@ -13,17 +15,18 @@ Minimal TypeScript SDK for gateway resolution.
 ## Node example
 
 ```ts
-import { resolve } from "@ddns/sdk";
+import { resolveOrThrow } from "@ddns/sdk";
 
-const out = await resolve({
+const out = await resolveOrThrow({
   baseUrl: "http://localhost:8054",
   name: "netflix.com",
   type: "A"
 });
 console.log("confidence:", out.confidence);
+console.log("rrset_hash:", out.rrset_hash);
 console.log("chosen_upstream:", out.chosen_upstream?.url);
 console.log("upstreams_used:", out.upstreams_used?.map((u) => `${u.url}:${u.status}:${u.rtt_ms}ms`));
-console.log("answers:", out.answers);
+console.log("answers_count:", out.answers.length);
 ```
 
 ## Domain continuity example (Node)
@@ -55,11 +58,11 @@ console.log(renew.accepted, renew.credits_applied_estimate);
 ## Worker example
 
 ```ts
-import { getDomainStatus, resolve } from "@ddns/sdk";
+import { getDomainStatus, resolveOrThrow } from "@ddns/sdk";
 
 export default {
   async fetch(): Promise<Response> {
-    const out = await resolve({
+    const out = await resolveOrThrow({
       baseUrl: "https://gateway.example.com",
       name: "example.dns",
       type: "A"
@@ -68,8 +71,9 @@ export default {
     return new Response(JSON.stringify({
       name: out.name,
       confidence: out.confidence,
+      rrset_hash: out.rrset_hash,
       upstreams_used: out.upstreams_used,
-      answers: out.answers,
+      answers_count: out.answers.length,
       continuity_phase: continuity.phase
     }, null, 2), {
       headers: { "content-type": "application/json" }

@@ -1,4 +1,5 @@
 export type ResolveType = "A" | "AAAA";
+export type ResolveConfidence = "high" | "medium" | "low";
 
 export type ResolveAnswer = {
   name: string;
@@ -9,9 +10,11 @@ export type ResolveAnswer = {
 
 export type UpstreamUsed = {
   url: string;
-  rtt_ms: number;
+  rtt_ms?: number;
+  rttMs?: number;
   status: string;
-  answers_count: number;
+  answers_count?: number;
+  answersCount?: number;
 };
 
 export type ResolveResponse = {
@@ -20,9 +23,9 @@ export type ResolveResponse = {
   answers: ResolveAnswer[];
   ttl_s: number;
   source: string;
-  confidence?: "high" | "medium" | "low";
+  confidence?: ResolveConfidence;
   upstreams_used?: UpstreamUsed[];
-  chosen_upstream?: { url: string; rtt_ms: number };
+  chosen_upstream?: { url: string; rtt_ms?: number; rttMs?: number };
   cache?: { hit: boolean; stale_used?: boolean };
   status?: string;
   rrset_hash?: string;
@@ -44,6 +47,49 @@ export async function resolve(options: ResolveOptions): Promise<ResolveResponse>
     path: "/v1/resolve",
     query: { name, type }
   });
+}
+
+export function isResolveConfidence(value: unknown): value is ResolveConfidence {
+  return value === "high" || value === "medium" || value === "low";
+}
+
+export function isResolveResponse(value: unknown): value is ResolveResponse {
+  if (!value || typeof value !== "object") return false;
+  const v = value as Partial<ResolveResponse>;
+  if (typeof v.name !== "string") return false;
+  if (v.type !== "A" && v.type !== "AAAA") return false;
+  if (!Array.isArray(v.answers)) return false;
+  if (typeof v.ttl_s !== "number") return false;
+  if (typeof v.source !== "string") return false;
+  if (v.confidence !== undefined && !isResolveConfidence(v.confidence)) return false;
+  if (v.rrset_hash !== undefined && typeof v.rrset_hash !== "string") return false;
+  if (
+    v.upstreams_used !== undefined &&
+    (!Array.isArray(v.upstreams_used) ||
+      !v.upstreams_used.every(
+        (u) =>
+          u &&
+          typeof u.url === "string" &&
+          (typeof u.rtt_ms === "number" || typeof u.rttMs === "number") &&
+          typeof u.status === "string" &&
+          (typeof u.answers_count === "number" || typeof u.answersCount === "number")
+      ))
+  ) {
+    return false;
+  }
+  return true;
+}
+
+export function assertResponseShape(value: unknown): asserts value is ResolveResponse {
+  if (!isResolveResponse(value)) {
+    throw new Error("invalid_resolve_response_shape");
+  }
+}
+
+export async function resolveOrThrow(options: ResolveOptions): Promise<ResolveResponse> {
+  const response = await resolve(options);
+  assertResponseShape(response);
+  return response;
 }
 
 export type DomainContinuityPhase =
