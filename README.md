@@ -12,6 +12,7 @@ This repo delivers a Web2-friendly DNS and gateway stack with verifiable on-chai
 📌 Canonical MVP command: `npm run mvp:demo:devnet`
 
 If you only read one file first: `docs/START_HERE.md`.
+For a concise summary of all main functions and purposes: `docs/OVERVIEW.md`.
 
 ## Start Here (MVP)
 
