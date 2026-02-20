@@ -1307,3 +1307,19 @@ Output snippet:
   "upstreams_used": [ ... ]
 }
 ```
+
+## 2026-02-20 — PR4 miner verify CLI flags + strict assertions
+
+Commands:
+```bash
+npm test
+bash scripts/miner_cf_verify.sh --url http://127.0.0.1:9999 --name netflix.com --type A
+```
+
+Output snippet:
+```text
+[protocol-gate] PASS: no protocol drift
+==> run_all: complete
+✅ miner verified | confidence=high | rrset_hash=abc123
+rc=0
+```
