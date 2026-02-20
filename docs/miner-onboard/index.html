@@ -65,7 +65,8 @@ npm run miner:cf:deploy</pre>
   <div class="card">
     <h2>After Deploy: curl Tests</h2>
     <pre>curl "&lt;WORKER_URL&gt;/v1/health"
-curl "&lt;WORKER_URL&gt;/resolve?name=netflix.com&type=A"</pre>
+curl "&lt;WORKER_URL&gt;/resolve?name=netflix.com&type=A"
+bash scripts/miner_cf_verify.sh "&lt;WORKER_URL&gt;"</pre>
   </div>
 
   <div class="card">

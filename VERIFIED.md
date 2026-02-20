@@ -1010,6 +1010,27 @@ logs_dir: /var/folders/h5/7f2x98695lz6819tc0k6fbv80000gn/T//ddns-devnet-demo
 ✅ demo complete
 ```
 
+## 2026-02-20 — miner Cloudflare verify script
+
+Commands:
+```bash
+npm test
+npm -C services/cf-worker-miner i
+(cd services/cf-worker-miner && npx wrangler dev --port 8787 >/tmp/cf_worker_dev.log 2>&1 &)
+bash scripts/miner_cf_verify.sh http://127.0.0.1:8787
+pkill -f "wrangler dev --port 8787"
+```
+
+Output snippet:
+```text
+verify: PASS
+health_url: http://127.0.0.1:8787/v1/health
+resolve_url: http://127.0.0.1:8787/resolve?name=netflix.com&type=A
+confidence: high
+rrset_hash: 6e67410e6afe26b14efb77a483bf6d70ccc6808a1f89c67d2d9cc6f4aa4a1689
+upstreams_used_count: 2
+```
+
 ## 2026-02-20 — funded strict devnet flow
 
 Command:
