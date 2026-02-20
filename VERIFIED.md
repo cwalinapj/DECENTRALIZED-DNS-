@@ -1064,3 +1064,49 @@ assign_route_tx: https://explorer.solana.com/tx/5d8mgk3wG59KrYQtxuEgrjmc4nq34VyW
 ✅ STRICT DEMO COMPLETE (ON-CHAIN)
 proof_bundle: artifacts/proof_devnet_20260220T205216Z.md
 ```
+
+## 2026-02-20 — funded strict devnet flow
+
+Command:
+```bash
+bash scripts/devnet_when_funded.sh
+```
+
+Output snippet:
+```text
+    "record_pda": "4VjWX1exvkSNS9WrsnSgd9ZfTvhJ8xx1QtT6bpsSKyZz",
+    "slot": 443524638,
+    "signature": "2UeJZV4q2sNY6ZnF7SEKbBpbiyVDhiA9xRYTeCeJRWdRSkP2V3E3sCNNgqNM8tC2yHGUxkJPU9swuW1qkucRCpg3"
+  }
+}
+resolved_name: u-b5wjx4pd.dns
+resolved_dest: https://example.com
+==> install + start gateway
+==> resolve ICANN via gateway
+{"name":"netflix.com","type":"A","answers":[{"name":"netflix.com","type":"A","data":"52.38.7.83","ttl":24},{"name":"netflix.com","type":"A","data":"44.240.158.19","ttl":24},{"name":"netflix.com","type":"A","data":"44.242.13.161","ttl":24}],"ttl_s":24,"source":"recursive","confidence":"low","upstream
+==> resolve .dns via gateway (best-effort, canonical route dependent)
+gateway_dns_resolve_unavailable_for_u-b5wjx4pd.dns; falling back to tollbooth resolver proof
+==> resolve .dns via tollbooth (route proof)
+{"ok":true,"name":"u-b5wjx4pd.dns","wallet":"B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5","dest":"https://example.com","ttl":300,"dest_hash_hex":"100680ad546ce6a577f42f52df33b4cfdca756859e664b8d7de329b150d09ce9","proof":{"program_id":"EJVVNdwBdZiEpA4QjVaeV79WPsoUpa4zLA4mqpxWxXi5","record_pda":"4VjW
+==> optional witness reward submit/claim skipped (ENABLE_WITNESS_REWARDS=1 to enable)
+==> tx links
+assign_route_tx: https://explorer.solana.com/tx/2UeJZV4q2sNY6ZnF7SEKbBpbiyVDhiA9xRYTeCeJRWdRSkP2V3E3sCNNgqNM8tC2yHGUxkJPU9swuW1qkucRCpg3?cluster=devnet
+ddns_program_id_used: EJVVNdwBdZiEpA4QjVaeV79WPsoUpa4zLA4mqpxWxXi5
+logs_dir: /var/folders/h5/7f2x98695lz6819tc0k6fbv80000gn/T//ddns-devnet-demo
+✅ demo complete
+```
+
+## 2026-02-20 — canonical command visibility patch
+
+Commands:
+```bash
+npm test
+npm run mvp:demo:devnet
+```
+
+Snippet:
+```text
+assign_route_tx: https://explorer.solana.com/tx/2UeJZV4q2sNY6ZnF7SEKbBpbiyVDhiA9xRYTeCeJRWdRSkP2V3E3sCNNgqNM8tC2yHGUxkJPU9swuW1qkucRCpg3?cluster=devnet
+✅ demo complete
+✅ STRICT DEMO COMPLETE (ON-CHAIN)
+```

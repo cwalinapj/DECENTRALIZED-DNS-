@@ -2,6 +2,11 @@
 
 If you only read one file, read this one.
 
+## Quickstart
+📌 Canonical MVP command (devnet, strict): `npm run mvp:demo:devnet`
+
+This runs the funded deploy-wave check, inventory, and strict on-chain demo end-to-end.
+
 ## What this repo is
 TollDNS is a DNS + gateway MVP with:
 - recursive ICANN resolution with quorum/audit metadata

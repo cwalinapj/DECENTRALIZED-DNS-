@@ -9,6 +9,8 @@ This repo delivers a Web2-friendly DNS and gateway stack with verifiable on-chai
 - miner/operator onboarding paths (Cloudflare Worker + local services)
 - explicit MVP trust boundaries and roadmap to stronger decentralization
 
+📌 Canonical MVP command: `npm run mvp:demo:devnet`
+
 If you only read one file first: `docs/START_HERE.md`.
 
 ## Start Here (MVP)
