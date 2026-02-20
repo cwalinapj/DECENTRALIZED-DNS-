@@ -9,6 +9,8 @@ WALLET_PATH="${WALLET:-${ANCHOR_WALLET:-$HOME/.config/solana/id.json}}"
 DEMO_NAME="${DEMO_NAME:-example.dns}"
 DEMO_EPOCH_ID="${DEMO_EPOCH_ID:-0}"
 DEMO_NAME_NORM="$(printf '%s' "$DEMO_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/\.$//')"
+RPC_RETRIES="${RPC_RETRIES:-4}"
+RPC_RETRY_DELAY_S="${RPC_RETRY_DELAY_S:-2}"
 
 DEMO_CRITICAL_REQUIRED=(
   ddns_anchor
@@ -31,6 +33,41 @@ fi
 
 mkdir -p artifacts
 
+solana_retry() {
+  local out rc attempt=1
+  while true; do
+    set +e
+    out="$("$@" 2>&1)"
+    rc=$?
+    set -e
+    if [[ $rc -eq 0 ]]; then
+      printf "%s\n" "$out"
+      return 0
+    fi
+    if (( attempt >= RPC_RETRIES )); then
+      printf "%s\n" "$out"
+      return "$rc"
+    fi
+    if grep -Eqi '429|too many requests|rate limit|timed out|timeout|connection reset|temporar' <<<"$out"; then
+      sleep "$RPC_RETRY_DELAY_S"
+      attempt=$((attempt + 1))
+      continue
+    fi
+    printf "%s\n" "$out"
+    return "$rc"
+  done
+}
+
+json_or_empty() {
+  local raw="${1:-}"
+  if [[ -z "$raw" ]]; then
+    return 0
+  fi
+  if jq -e . >/dev/null 2>&1 <<<"$raw"; then
+    printf "%s\n" "$raw"
+  fi
+}
+
 is_required() {
   local name="$1"
   for req in "${DEMO_CRITICAL_REQUIRED[@]}"; do
@@ -49,7 +86,7 @@ to_sol() {
 rent_lamports_for_space() {
   local space="$1"
   local rent_line
-  rent_line="$(solana rent "$space" 2>/dev/null || true)"
+  rent_line="$(solana_retry solana rent "$space" || true)"
 
   # Newer CLI commonly prints SOL, older variants may print lamports.
   if grep -q 'SOL' <<< "$rent_line"; then
@@ -90,9 +127,12 @@ if [[ ! -s "$tmp_programs" ]]; then
 fi
 
 wallet_pubkey="$(solana-keygen pubkey "$WALLET_PATH")"
-wallet_balance_line="$(solana balance -u "$RPC_URL" "$wallet_pubkey")"
+wallet_balance_line="$(solana_retry solana balance -u "$RPC_URL" "$wallet_pubkey")"
 wallet_balance_sol="$(awk '{print $1}' <<< "$wallet_balance_line")"
 wallet_balance_lamports="$(printf "%.0f" "$(echo "$wallet_balance_sol * 1000000000" | bc -l)")"
+echo "SOLANA_RPC_URL=$RPC_URL"
+echo "WALLET_PUBKEY=$wallet_pubkey"
+echo "WALLET_SOL=$wallet_balance_sol"
 
 program_count=0
 required_total=0
@@ -115,7 +155,7 @@ while read -r name program_id; do
     required_total=$((required_total + 1))
   fi
 
-  show_out="$(solana program show -u "$RPC_URL" "$program_id" 2>&1 || true)"
+  show_out="$(solana_retry solana program show -u "$RPC_URL" "$program_id" 2>&1 || true)"
   if ! grep -q '^Program Id:' <<< "$show_out"; then
     exists="false"
     executable="false"
@@ -141,7 +181,7 @@ while read -r name program_id; do
     programdata="$(sed -n 's/^ProgramData Address:[[:space:]]*//p' <<< "$show_out" | head -n1)"
     slot="$(sed -n 's/^Last Deployed In Slot:[[:space:]]*//p' <<< "$show_out" | head -n1)"
 
-    account_json="$(solana account -u "$RPC_URL" "$program_id" --output json 2>/dev/null || true)"
+    account_json="$(json_or_empty "$(solana_retry solana account -u "$RPC_URL" "$program_id" --output json 2>/dev/null || true)")"
     if [[ -n "$account_json" ]]; then
       executable_lamports="$(jq -r '(.account.lamports // .lamports // 0)' <<< "$account_json")"
       executable_json="$(jq -r '(.account.executable // .executable // false)' <<< "$account_json")"
@@ -154,7 +194,7 @@ while read -r name program_id; do
 
     programdata_lamports=0
     if [[ -n "${programdata:-}" ]] && [[ "${programdata:-}" != "-" ]]; then
-      programdata_json="$(solana account -u "$RPC_URL" "$programdata" --output json 2>/dev/null || true)"
+      programdata_json="$(json_or_empty "$(solana_retry solana account -u "$RPC_URL" "$programdata" --output json 2>/dev/null || true)")"
       if [[ -n "$programdata_json" ]]; then
         programdata_lamports="$(jq -r '(.account.lamports // .lamports // 0)' <<< "$programdata_json")"
       fi
@@ -218,7 +258,7 @@ derive_pda() {
   fi
 
   local pda_json
-  pda_json="$(solana find-program-derived-address -u "$RPC_URL" --output json-compact "$program_id" "${args[@]}" 2>/dev/null || true)"
+  pda_json="$(json_or_empty "$(solana_retry solana find-program-derived-address -u "$RPC_URL" --output json-compact "$program_id" "${args[@]}" 2>/dev/null || true)")"
   local pda
   pda="$(jq -r '.address // empty' <<< "$pda_json" 2>/dev/null || true)"
   local bump
@@ -230,7 +270,7 @@ derive_pda() {
   fi
 
   local account_json
-  account_json="$(solana account -u "$RPC_URL" "$pda" --output json 2>/dev/null || true)"
+  account_json="$(json_or_empty "$(solana_retry solana account -u "$RPC_URL" "$pda" --output json 2>/dev/null || true)")"
   local exists="false"
   local lamports=0
   local data_len=0
@@ -267,7 +307,7 @@ add_account_row() {
   local program_id="$2"
   local account="$3"
   local account_json
-  account_json="$(solana account -u "$RPC_URL" "$account" --output json 2>/dev/null || true)"
+  account_json="$(json_or_empty "$(solana_retry solana account -u "$RPC_URL" "$account" --output json 2>/dev/null || true)")"
 
   local exists="false"
   local lamports=0
