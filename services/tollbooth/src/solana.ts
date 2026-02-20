@@ -181,6 +181,7 @@ export async function ensureInitialized(ddns: DdnsSolana): Promise<{ tx?: string
 
 export async function issuePassport(ddns: DdnsSolana, args: {
   ownerWallet: PublicKey;
+  ownerSigner?: Keypair;
   labelLower: string;
   pageCidHash?: Uint8Array;
   metadataHash?: Uint8Array;
@@ -246,10 +247,23 @@ export async function issuePassport(ddns: DdnsSolana, args: {
     systemProgram: SystemProgram.programId,
     tokenProgram: TOKEN_PROGRAM_ID,
   });
+  if (args.ownerSigner) {
+    for (const k of keys) {
+      if (k.pubkey.equals(args.ownerWallet)) k.isSigner = true;
+    }
+  }
 
   const ix = new TransactionInstruction({ programId: ddns.programId, keys, data });
   const tx = new Transaction().add(ix);
-  const sig = await ddns.connection.sendTransaction(tx, [ddns.authority], { preflightCommitment: "confirmed" });
+  const signers: Keypair[] = [ddns.authority];
+  if (
+    args.ownerSigner &&
+    args.ownerSigner.publicKey.equals(args.ownerWallet) &&
+    !args.ownerSigner.publicKey.equals(ddns.authority.publicKey)
+  ) {
+    signers.push(args.ownerSigner);
+  }
+  const sig = await ddns.connection.sendTransaction(tx, signers, { preflightCommitment: "confirmed" });
   await ddns.connection.confirmTransaction(sig, "confirmed");
 
   return { tx: sig, mint, tollPassPda, nameRecordPda, nameHash };
@@ -257,6 +271,7 @@ export async function issuePassport(ddns: DdnsSolana, args: {
 
 export async function setRoute(ddns: DdnsSolana, args: {
   ownerWallet: PublicKey;
+  ownerSigner?: Keypair;
   fullNameLower: string;
   dest: string;
   ttl: number;
@@ -290,10 +305,23 @@ export async function setRoute(ddns: DdnsSolana, args: {
     system_program: SystemProgram.programId,
     systemProgram: SystemProgram.programId,
   });
+  if (args.ownerSigner) {
+    for (const k of keys) {
+      if (k.pubkey.equals(args.ownerWallet)) k.isSigner = true;
+    }
+  }
 
   const ix = new TransactionInstruction({ programId: ddns.programId, keys, data });
   const tx = new Transaction().add(ix);
-  const sig = await ddns.connection.sendTransaction(tx, [ddns.authority], { preflightCommitment: "confirmed" });
+  const signers: Keypair[] = [ddns.authority];
+  if (
+    args.ownerSigner &&
+    args.ownerSigner.publicKey.equals(args.ownerWallet) &&
+    !args.ownerSigner.publicKey.equals(ddns.authority.publicKey)
+  ) {
+    signers.push(args.ownerSigner);
+  }
+  const sig = await ddns.connection.sendTransaction(tx, signers, { preflightCommitment: "confirmed" });
   await ddns.connection.confirmTransaction(sig, "confirmed");
   const status = await ddns.connection.getSignatureStatus(sig, { searchTransactionHistory: true });
   const slot = status?.value?.slot ?? 0;

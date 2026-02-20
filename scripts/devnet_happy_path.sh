@@ -12,6 +12,8 @@ TOLLBOOTH_PORT="${TOLLBOOTH_PORT:-8788}"
 DEMO_DEST="${DEMO_DEST:-https://example.com}"
 DEMO_TTL="${DEMO_TTL:-300}"
 ENABLE_WITNESS_REWARDS="${ENABLE_WITNESS_REWARDS:-0}"
+DEFAULT_DDNS_PROGRAM_ID_PRIMARY="9hwvtFzawMZ6R9eWJZ8YjC7rLCGgNK7PZBNeKMRCPBes"
+DEFAULT_DDNS_PROGRAM_ID_FALLBACK="EJVVNdwBdZiEpA4QjVaeV79WPsoUpa4zLA4mqpxWxXi5"
 
 LOG_DIR="${TMPDIR:-/tmp}/ddns-devnet-demo"
 mkdir -p "$LOG_DIR"
@@ -29,7 +31,7 @@ if [[ ! -f "$WALLET_PATH" ]]; then
 fi
 
 if [[ -z "$CLIENT_WALLET_PATH" ]]; then
-  # Default demo client to authority wallet so on-chain signer requirements are satisfied.
+  # Default demo client to authority wallet for legacy signer-constrained deployments.
   CLIENT_WALLET_PATH="$WALLET_PATH"
 fi
 if [[ ! -f "$CLIENT_WALLET_PATH" ]]; then
@@ -48,6 +50,26 @@ wait_http() {
     i=$((i + 1))
   done
   return 1
+}
+
+start_tollbooth() {
+  local program_id="$1"
+  if [[ -n "${TOLLBOOTH_PID:-}" ]]; then
+    kill "$TOLLBOOTH_PID" >/dev/null 2>&1 || true
+    TOLLBOOTH_PID=""
+    sleep 1
+  fi
+  PORT="$TOLLBOOTH_PORT" \
+  SOLANA_RPC_URL="$RPC_URL" \
+  TOLLBOOTH_KEYPAIR="$WALLET_PATH" \
+  DDNS_PROGRAM_ID="$program_id" \
+  npm -C services/tollbooth run dev >"$LOG_DIR/tollbooth.log" 2>&1 &
+  TOLLBOOTH_PID=$!
+  if ! wait_http "http://127.0.0.1:${TOLLBOOTH_PORT}/v1/challenge?wallet=${WALLET_PUBKEY}" 45; then
+    echo "tollbooth_start_failed: see $LOG_DIR/tollbooth.log"
+    return 1
+  fi
+  return 0
 }
 
 extract_tx() {
@@ -98,17 +120,62 @@ if [[ ! -f "solana/target/idl/ddns_anchor.json" ]]; then
   cd "$ROOT_DIR"
 fi
 
-echo "==> install + start tollbooth"
+echo "==> install tollbooth"
 npm -C services/tollbooth i >/dev/null
-PORT="$TOLLBOOTH_PORT" \
-SOLANA_RPC_URL="$RPC_URL" \
-TOLLBOOTH_KEYPAIR="$WALLET_PATH" \
-npm -C services/tollbooth run dev >"$LOG_DIR/tollbooth.log" 2>&1 &
-TOLLBOOTH_PID=$!
 
-if ! wait_http "http://127.0.0.1:${TOLLBOOTH_PORT}/v1/challenge?wallet=${WALLET_PUBKEY}" 45; then
-  echo "tollbooth_start_failed: see $LOG_DIR/tollbooth.log"
-  exit 1
+echo "==> set .dns route via tollbooth devnet flow"
+if [[ -n "${DDNS_PROGRAM_ID:-}" ]]; then
+  PROGRAM_CANDIDATES=("$DDNS_PROGRAM_ID")
+else
+  PROGRAM_CANDIDATES=("$DEFAULT_DDNS_PROGRAM_ID_PRIMARY" "$DEFAULT_DDNS_PROGRAM_ID_FALLBACK")
+fi
+FLOW_CMD_RC=1
+FLOW_OUT=""
+SELECTED_DDNS_PROGRAM_ID=""
+for CANDIDATE in "${PROGRAM_CANDIDATES[@]}"; do
+  echo "==> start tollbooth with ddns_program_id=$CANDIDATE"
+  if ! start_tollbooth "$CANDIDATE"; then
+    continue
+  fi
+  set +e
+  CANDIDATE_FLOW_OUT="$(
+    TOLLBOOTH_URL="http://127.0.0.1:${TOLLBOOTH_PORT}" \
+    CLIENT_WALLET="$CLIENT_WALLET_PATH" \
+    LABEL="$DEMO_LABEL" \
+    NAME="$DEMO_NAME" \
+    DEST="$DEMO_DEST" \
+    TTL="$DEMO_TTL" \
+    npm -C services/tollbooth run flow:devnet 2>&1
+  )"
+  CANDIDATE_FLOW_RC=$?
+  set -e
+
+  FLOW_OUT="$CANDIDATE_FLOW_OUT"
+  FLOW_CMD_RC=$CANDIDATE_FLOW_RC
+  SELECTED_DDNS_PROGRAM_ID="$CANDIDATE"
+  if [[ $FLOW_CMD_RC -eq 0 ]] && echo "$FLOW_OUT" | rg -q "assign_route:\\s+200"; then
+    break
+  fi
+  if echo "$FLOW_OUT" | rg -q "DeclaredProgramIdMismatch"; then
+    echo "declared_program_id_mismatch_on_$CANDIDATE; trying next candidate"
+    continue
+  fi
+  break
+done
+
+echo "selected_ddns_program_id: ${SELECTED_DDNS_PROGRAM_ID:-unknown}"
+echo "$FLOW_OUT" | tail -n 30
+
+CLAIM_TX="$(extract_tx "$(echo "$FLOW_OUT" | rg "claim_passport:" -A3 || true)")"
+ASSIGN_TX="$(extract_tx "$(echo "$FLOW_OUT" | rg "assign_route(_retry)?: " -A4 || true)")"
+EFFECTIVE_NAME="$(echo "$FLOW_OUT" | sed -n 's/^resolved_name:[[:space:]]*//p' | tail -n 1)"
+if [[ -z "$EFFECTIVE_NAME" ]]; then
+  EFFECTIVE_NAME="$DEMO_NAME"
+fi
+FLOW_OK=1
+if [[ $FLOW_CMD_RC -ne 0 ]] || ! echo "$FLOW_OUT" | rg -q "assign_route:\\s+200"; then
+  FLOW_OK=0
+  echo "warning: tollbooth devnet flow did not return assign_route 200; continuing for audit visibility"
 fi
 
 echo "==> install + start gateway"
@@ -122,33 +189,6 @@ GATEWAY_PID=$!
 if ! wait_http "http://127.0.0.1:${GATEWAY_PORT}/healthz" 60; then
   echo "gateway_start_failed: see $LOG_DIR/gateway.log"
   exit 1
-fi
-
-echo "==> set .dns route via tollbooth devnet flow"
-set +e
-FLOW_OUT="$(
-  TOLLBOOTH_URL="http://127.0.0.1:${TOLLBOOTH_PORT}" \
-  CLIENT_WALLET="$CLIENT_WALLET_PATH" \
-  LABEL="$DEMO_LABEL" \
-  NAME="$DEMO_NAME" \
-  DEST="$DEMO_DEST" \
-  TTL="$DEMO_TTL" \
-  npm -C services/tollbooth run flow:devnet 2>&1
-)"
-FLOW_CMD_RC=$?
-set -e
-echo "$FLOW_OUT" | tail -n 30
-
-CLAIM_TX="$(extract_tx "$(echo "$FLOW_OUT" | rg "claim_passport:" -A3 || true)")"
-ASSIGN_TX="$(extract_tx "$(echo "$FLOW_OUT" | rg "assign_route(_retry)?: " -A4 || true)")"
-EFFECTIVE_NAME="$(echo "$FLOW_OUT" | sed -n 's/^resolved_name:[[:space:]]*//p' | tail -n 1)"
-if [[ -z "$EFFECTIVE_NAME" ]]; then
-  EFFECTIVE_NAME="$DEMO_NAME"
-fi
-FLOW_OK=1
-if [[ $FLOW_CMD_RC -ne 0 ]] || ! echo "$FLOW_OUT" | rg -q "assign_route:\\s+200"; then
-  FLOW_OK=0
-  echo "warning: tollbooth devnet flow did not return assign_route 200; continuing for audit visibility"
 fi
 
 echo "==> resolve ICANN via gateway"
@@ -198,6 +238,9 @@ if [[ -n "$CLAIM_TX" ]]; then
 fi
 if [[ -n "$ASSIGN_TX" ]]; then
   echo "assign_route_tx: https://explorer.solana.com/tx/${ASSIGN_TX}?cluster=devnet"
+fi
+if [[ -n "${SELECTED_DDNS_PROGRAM_ID:-}" ]]; then
+  echo "ddns_program_id_used: ${SELECTED_DDNS_PROGRAM_ID}"
 fi
 if [[ $FLOW_OK -eq 0 ]]; then
   echo "blocker: tollbooth flow returned non-200; inspect $LOG_DIR/tollbooth.log and flow output above"
