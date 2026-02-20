@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-declare_id!("GTJWP2Mxu8DqVLMY8PAuAC3EwQKnviKAg4JY4mwMqVnF");
+declare_id!("Ct4gQ98PofJxca2HSQrfzd1Cohay4praM9dFF2L9jr1g");
 
 const MAX_WATCHDOGS: usize = 64;
 const MAX_SUBMITTERS: usize = 16;

@@ -1,28 +1,17 @@
 # Devnet Status Audit
 
-- Generated at (UTC): 2026-02-20T04:51:31.228Z
+- Generated at (UTC): 2026-02-20T20:29:53.541Z
 - Deploy wallet: `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5`
 - RPC: `https://api.devnet.solana.com`
-
-## Demo-critical classification
-
-For no-funds MVP prep, the script-level required set is:
-
-- `ddns_anchor`
-- `ddns_registry`
-- `ddns_quorum`
-- `ddns_stake`
-
-All other programs are treated as optional for demo deploy-wave planning.
 
 ## Programs from Anchor.toml [programs.devnet]
 
 | Program | Program ID | Executable | Owner | Upgrade Authority | Data Length | Lamports | SOL |
 |---|---|---:|---|---|---:|---:|---:|
-| ddns_anchor | `DVXF1pMghQnuVeUJuuXJAZGXCDwrhr19nN3hQjvhReMU` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
-| ddns_registry | `D58DJ6VopJKZCJ2cppAJZUcHE1UFF1qruPiU3EP3WMqM` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
-| ddns_quorum | `DqSgwiSrtjjMEHoHNYpLpyp92yjruBTt6u7CYyhzyEbK` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
-| ddns_stake | `Ao1vX55CSLTMUoeWEtzfmjWufEUemwm4uL7XGZg1j2AV` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
+| ddns_anchor | `EJVVNdwBdZiEpA4QjVaeV79WPsoUpa4zLA4mqpxWxXi5` | yes | `BPFLoaderUpgradeab1e11111111111111111111111` | `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5` | 36 | 1141440 | 0.001141440 |
+| ddns_registry | `5F8ERKfRyErAJginsuRD4bN1oVZYFpJS5RVCFi9shRS3` | yes | `BPFLoaderUpgradeab1e11111111111111111111111` | `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5` | 36 | 1141440 | 0.001141440 |
+| ddns_quorum | `2PVfW3pT5q8gLSXi4VzAiB3JqJzowgvZW9akyXXANAE6` | yes | `BPFLoaderUpgradeab1e11111111111111111111111` | `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5` | 36 | 1141440 | 0.001141440 |
+| ddns_stake | `FTeUikzSsLcr2U9WMhs7y5n4cLyjMwg59FB7wWmWYo86` | yes | `BPFLoaderUpgradeab1e11111111111111111111111` | `B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5` | 36 | 1141440 | 0.001141440 |
 | ddns_watchdog_policy | `GTJWP2Mxu8DqVLMY8PAuAC3EwQKnviKAg4JY4mwMqVnF` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
 | ddns_stake_gov | `HrSpSTG1dg3vqszY4P3idJpw9zrSUJ63ATS1eDxyxjh4` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
 | ddns_escrow | `EoAdi1RNEYXurdHGUbCnHKGc2DgvKyJqrLVMkXPNj7MR` | no | `missing` | `unknown` | 0 | 0 | 0.000000000 |
@@ -38,9 +27,9 @@ All other programs are treated as optional for demo deploy-wave planning.
 
 ## Funding / Reserve Summary
 
-- Total SOL locked in program accounts: **0.000000000 SOL** (0 lamports)
-- Deploy wallet balance: **5.779590480 SOL** (5779590480 lamports)
-- Biggest recent deploy-cost estimate (MVP proxy): **0.000000000 SOL** (0 lamports)
+- Total SOL locked in program accounts: **0.004565760 SOL** (4565760 lamports)
+- Deploy wallet balance: **15.746172680 SOL** (15746172680 lamports)
+- Biggest recent deploy-cost estimate (MVP proxy): **0.001141440 SOL** (1141440 lamports)
 - Recommended reserve rule: `max(5 SOL, 2x biggest_recent_deploy_cost + 1 SOL tx buffer)`
 - Recommended reserve: **5.000000000 SOL** (5000000000 lamports)
 - Reserve status: **OK**

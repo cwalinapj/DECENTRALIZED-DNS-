@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{program::invoke, program_pack::Pack, system_instruction};
 use anchor_spl::token::{self, Token, Transfer};
 
-declare_id!("HrSpSTG1dg3vqszY4P3idJpw9zrSUJ63ATS1eDxyxjh4");
+declare_id!("EeU6h3gUUVKJeBsGG77onyH9Sjbq87Uz976RYHt2pCPf");
 
 const BPS_DENOM: u64 = 10_000;
 

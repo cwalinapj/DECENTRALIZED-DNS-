@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-declare_id!("F2Jdqby47WQaqD7hYWdx2Hsg7yQCVUB7wCMyYGRhZ2EY");
+declare_id!("BS62AYwh5KuhTWoVHiDbpAhifK4SDC1FJtKaYw9bSKaE");
 
 const SEED_CONFIG: &[u8] = b"rep_config";
 const SEED_EPOCH_REP: &[u8] = b"rep_epoch";
