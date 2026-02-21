@@ -15,6 +15,9 @@ import {
   createRecursiveAdapter,
   createSnsAdapter
 } from "./adapters/index.js";
+import { fetchArweaveSite } from "./hosting/arweave.js";
+import { fetchIpfsSite } from "./hosting/ipfs.js";
+import { parseHostingTarget } from "./hosting/targets.js";
 import { anchorRoot, loadAnchorStore, type AnchorRecord } from "./anchor.js";
 import { hash as blake3 } from "blake3";
 import * as ed from "@noble/ed25519";
@@ -81,6 +84,10 @@ const SNS_CLUSTER = process.env.SNS_CLUSTER || "devnet";
 const ANCHOR_STORE_PATH = process.env.ANCHOR_STORE_PATH || "settlement/anchors/anchors.json";
 const WATCHDOG_POLICY_PROGRAM_ID = process.env.DDNS_WATCHDOG_POLICY_PROGRAM_ID || "";
 const IPFS_HTTP_GATEWAY_BASE_URL = process.env.IPFS_HTTP_GATEWAY_BASE_URL || "https://ipfs.io/ipfs";
+const IPFS_GATEWAY_BASE = process.env.IPFS_GATEWAY_BASE || IPFS_HTTP_GATEWAY_BASE_URL;
+const ARWEAVE_GATEWAY_BASE = process.env.ARWEAVE_GATEWAY_BASE || "https://arweave.net";
+const SITE_FETCH_TIMEOUT_MS = Number(process.env.SITE_FETCH_TIMEOUT_MS || "5000");
+const SITE_MAX_BYTES = Number(process.env.SITE_MAX_BYTES || String(5 * 1024 * 1024));
 const DDNS_REGISTRY_PROGRAM_ID = process.env.DDNS_REGISTRY_PROGRAM_ID || "";
 const DDNS_WITNESS_URL = process.env.DDNS_WITNESS_URL || "";
 const REGISTRY_ADMIN_TOKEN = process.env.REGISTRY_ADMIN_TOKEN || "";
@@ -617,8 +624,9 @@ async function resolveVia(url: string, queryBytes: Buffer): Promise<Uint8Array> 
   }
 }
 
-export function createApp() {
+export function createApp(overrides?: { adapterRegistry?: { resolveAuto: typeof adapterRegistry.resolveAuto } }) {
   const app = express();
+  const activeAdapterRegistry = overrides?.adapterRegistry || adapterRegistry;
 
   app.use("/dns-query", express.raw({ type: ["application/dns-message"], limit: "512kb" }));
 
@@ -1182,7 +1190,7 @@ export function createApp() {
     try {
       const name = typeof req.query.name === "string" ? req.query.name : "";
       if (!name) return res.status(400).json({ error: "missing_name" });
-      const ans = await adapterRegistry.resolveAuto({
+      const ans = await activeAdapterRegistry.resolveAuto({
         name,
         nowUnix: Math.floor(Date.now() / 1000),
         network: "gateway",
@@ -1215,6 +1223,61 @@ export function createApp() {
   app.get("/v1/route", handleRoute);
   app.get("/v1/resolve-adapter", handleRoute);
 
+  app.get("/v1/site", async (req, res) => {
+    try {
+      const name = typeof req.query.name === "string" ? req.query.name : "";
+      const sitePath = typeof req.query.path === "string" ? req.query.path : "/";
+      if (!name) return res.status(400).json({ error: "missing_name" });
+
+      const ans = await activeAdapterRegistry.resolveAuto({
+        name,
+        nowUnix: Math.floor(Date.now() / 1000),
+        network: "gateway",
+        opts: { timeoutMs: REQUEST_TIMEOUT_MS }
+      });
+
+      const target = ans.dest ? parseHostingTarget(ans.dest) : null;
+      if (!target) {
+        return res.status(400).json({ error: "not_hosting_target", dest: ans.dest });
+      }
+
+      const fetched =
+        target.scheme === "ipfs"
+          ? await fetchIpfsSite({
+            cid: target.value,
+            path: sitePath,
+            gatewayBase: IPFS_GATEWAY_BASE,
+            timeoutMs: SITE_FETCH_TIMEOUT_MS,
+            maxBytes: SITE_MAX_BYTES
+          })
+          : await fetchArweaveSite({
+            tx: target.value,
+            path: sitePath,
+            gatewayBase: ARWEAVE_GATEWAY_BASE,
+            timeoutMs: SITE_FETCH_TIMEOUT_MS,
+            maxBytes: SITE_MAX_BYTES
+          });
+
+      if (fetched.contentType) {
+        res.setHeader("Content-Type", fetched.contentType);
+      }
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      res.setHeader(
+        "Content-Security-Policy",
+        "default-src 'self'; base-uri 'none'; frame-ancestors 'none'; object-src 'none'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self'"
+      );
+      res.setHeader("X-DDNS-Hosting-Source", fetched.sourceUrl);
+      return res.status(200).send(fetched.body);
+    } catch (err: any) {
+      const status = Number(err?.statusCode || 500);
+      if (status >= 400 && status <= 599) {
+        return res.status(status).json({ error: String(err?.message || err) });
+      }
+      return res.status(500).json({ error: String(err?.message || err) });
+    }
+  });
+
   app.get("/v1/resolve", async (req, res) => {
     try {
       const name = typeof req.query.name === "string" ? req.query.name : "";
@@ -1222,7 +1285,7 @@ export function createApp() {
       if (!name) return res.status(400).json({ error: "missing_name" });
 
       if (name.toLowerCase().endsWith(".dns")) {
-        const ans = await adapterRegistry.resolveAuto({
+        const ans = await activeAdapterRegistry.resolveAuto({
           name,
           nowUnix: Math.floor(Date.now() / 1000),
           network: "gateway",

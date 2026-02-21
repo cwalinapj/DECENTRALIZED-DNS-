@@ -106,6 +106,7 @@ Important: Wrangler cannot create Cloudflare accounts or bypass CAPTCHA/email ve
 - privacy-safe observations that strengthen network reliability
 - developers can earn more by using our nameservers (toll share / discounts / credits / reduced registration and renewal costs; policy-governed)
 - SDK examples (Node + Worker): `packages/sdk/examples/node.ts`, `packages/sdk/worker/example.ts`
+- hosting from wallet domains (`.eth` / `.sol`) via IPFS/Arweave: `docs/HOSTING_FROM_WALLET_DOMAINS.md`
 
 ## Domain Continuity (Anti-Expiration Loss)
 
