@@ -322,6 +322,32 @@ function addEligibilityFlags(
   };
 }
 
+function buildRenewalBannerState(
+  status: ReturnType<typeof addEligibilityFlags>,
+  ackedAt?: string | null
+) {
+  const nowMs = Date.now();
+  const dueTs = Date.parse(status.renewal_due_date);
+  const graceTs = Date.parse(status.grace_expires_at);
+  const renewalDue = Number.isFinite(dueTs) ? nowMs >= dueTs : false;
+  const graceSecondsRemaining = Number.isFinite(graceTs) ? Math.max(0, Math.floor((graceTs - nowMs) / 1000)) : 0;
+  const bannerState = renewalDue ? "renewal_due" : "ok";
+  const bannerMessage = renewalDue
+    ? "Payment failed or renewal due. Renew during the grace window to avoid service interruption."
+    : "Domain is active. No renewal warning is currently required.";
+  const graceCountdown = renewalDue
+    ? `${Math.floor(graceSecondsRemaining / 86400)}d ${Math.floor((graceSecondsRemaining % 86400) / 3600)}h`
+    : "n/a";
+
+  return {
+    banner_state: bannerState,
+    banner_message: bannerMessage,
+    grace_seconds_remaining: graceSecondsRemaining,
+    grace_countdown: graceCountdown,
+    acked_at: ackedAt || null
+  };
+}
+
 
 async function continuityStatusFromSources(
   domainRaw: string,
@@ -1309,6 +1335,25 @@ export function createApp(overrides?: { adapterRegistry?: { resolveAuto: typeof 
     return res.json(result);
   });
 
+  app.post("/v1/domain/banner/ack", express.json(), async (req, res) => {
+    const domain = typeof req.body?.domain === "string" ? req.body.domain : "";
+    if (!domain) return res.status(400).json({ error: "missing_domain" });
+    if (enforceRateLimit(req, "/v1/domain/banner/ack", domain)) {
+      auditEvent(req, { endpoint: "/v1/domain/banner/ack", domain, decision: "rate_limited" });
+      return res.status(429).json({ error: "rate_limited" });
+    }
+
+    const ackedAt = new Date().toISOString();
+    domainStatusStore.upsert(domain, (current) => ({
+      domain: normalizeDomainInput(domain),
+      ...current,
+      banner_ack_at: ackedAt,
+      last_updated_at: ackedAt
+    }));
+    auditEvent(req, { endpoint: "/v1/domain/banner/ack", domain, decision: "executed" });
+    return res.json({ ok: true, domain: normalizeDomainInput(domain), acked_at: ackedAt });
+  });
+
   app.get("/v1/domain/banner", async (req, res) => {
     const domain = typeof req.query.domain === "string" ? req.query.domain : "";
     if (!domain) return res.status(400).json({ error: "missing_domain" });
@@ -1325,6 +1370,17 @@ export function createApp(overrides?: { adapterRegistry?: { resolveAuto: typeof 
       claimRequested: existing?.claim_requested ?? false,
       creditsBalance: creditsLedger.getBalance(domain)
     });
+    const bannerState = buildRenewalBannerState(status, existing?.banner_ack_at);
+
+    if (typeof req.query.format === "string" && req.query.format.toLowerCase() === "json") {
+      return res.json({
+        domain: status.domain,
+        phase: status.phase,
+        renewal_due_date: status.renewal_due_date,
+        grace_expires_at: status.grace_expires_at,
+        ...bannerState
+      });
+    }
 
     const now = new Date();
     const { token } = await createNoticeToken({
@@ -1345,7 +1401,7 @@ export function createApp(overrides?: { adapterRegistry?: { resolveAuto: typeof 
     const useInterstitial =
       forceMode === "interstitial" || (forceMode !== "banner" && (status.phase === "C_SAFE_PARKED" || status.phase === "D_REGISTRY_FINALIZATION"));
     const fallbackTemplate =
-      "<!doctype html><html><body><h1>{{domain}}</h1><p>{{phase}}</p><a href=\"{{renew_url}}\">Renew now</a><pre>{{token}}</pre><code>{{verify_url}}</code></body></html>";
+      "<!doctype html><html><body><h1>{{domain}}</h1><p>{{phase}}</p><p>{{banner_message}}</p><p>{{grace_countdown}}</p><a href=\"{{renew_url}}\">Renew now</a><pre>{{token}}</pre><code>{{verify_url}}</code></body></html>";
     const template = useInterstitial
       ? readTemplate(INTERSTITIAL_TEMPLATE_PATH, fallbackTemplate)
       : readTemplate(BANNER_TEMPLATE_PATH, fallbackTemplate);
@@ -1355,7 +1411,9 @@ export function createApp(overrides?: { adapterRegistry?: { resolveAuto: typeof 
       renew_url: renewUrl,
       dashboard_url: dashboardUrl,
       token,
-      verify_url: verifyUrl
+      verify_url: verifyUrl,
+      banner_message: bannerState.banner_message,
+      grace_countdown: bannerState.grace_countdown
     });
     res.setHeader("content-type", "text/html; charset=utf-8");
     return res.status(200).send(html);

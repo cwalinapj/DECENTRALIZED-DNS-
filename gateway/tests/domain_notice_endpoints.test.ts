@@ -75,6 +75,28 @@ describe("domain continuity notice endpoints", () => {
     expect(res.text).toContain("/v1/domain/notice/verify");
   });
 
+  it("returns renewal-due banner state and supports ack", async () => {
+    resetStores();
+    const app = await loadApp();
+
+    const due = await request(app).get("/v1/domain/banner").query({ domain: "low-traffic.com", format: "json" });
+    expect(due.status).toBe(200);
+    expect(due.body.domain).toBe("low-traffic.com");
+    expect(due.body.banner_state).toBe("renewal_due");
+    expect(String(due.body.banner_message)).toContain("Payment failed or renewal due");
+    expect(typeof due.body.grace_seconds_remaining).toBe("number");
+    expect(due.body.grace_seconds_remaining).toBeGreaterThan(0);
+
+    const ack = await request(app).post("/v1/domain/banner/ack").send({ domain: "low-traffic.com" });
+    expect(ack.status).toBe(200);
+    expect(ack.body.ok).toBe(true);
+    expect(typeof ack.body.acked_at).toBe("string");
+
+    const afterAck = await request(app).get("/v1/domain/banner").query({ domain: "low-traffic.com", format: "json" });
+    expect(afterAck.status).toBe(200);
+    expect(afterAck.body.acked_at).toBe(ack.body.acked_at);
+  });
+
   it("returns status payload with continuity fields", async () => {
     resetStores();
     const app = await loadApp();
