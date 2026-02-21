@@ -628,6 +628,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "ddns_rent_bond"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+]
+
+[[package]]
 name = "ddns_rep"
 version = "0.1.0"
 dependencies = [

@@ -29,6 +29,7 @@ This index is intentionally short and categorized.
 ## Product / Developer Positioning
 - `docs/DEVELOPER_API.md`
 - `docs/WHY_DEVS_USE_THIS.md`
+- `docs/RENT_BOND.md`
 - `docs/DOMAIN_CONTINUITY.md`
 - `docs/DOMAIN_CONTINUITY_UI.md`
 - `docs/HOSTING_FROM_WALLET_DOMAINS.md`

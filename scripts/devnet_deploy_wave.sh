@@ -221,6 +221,11 @@ if [[ "$DRY_RUN" == "1" ]]; then
   echo
   echo "dry_run: true"
   if [[ ${#deploy_targets[@]} -eq 0 ]]; then
+    echo "planned_deploy_order: (none)"
+  else
+    echo "planned_deploy_order: ${deploy_targets[*]}"
+  fi
+  if [[ ${#deploy_targets[@]} -eq 0 ]]; then
     echo "action: no programs scheduled for deployment"
     if [[ "$DEPLOY_ALL" == "1" ]]; then
       echo "reason: no missing programs in [programs.devnet]"
@@ -228,13 +233,13 @@ if [[ "$DRY_RUN" == "1" ]]; then
       echo "reason: no missing REQUIRED programs (optional may still be missing: $missing_optional_count)"
     fi
   else
-    echo "planned_deploy_order: ${deploy_targets[*]}"
     if (( wallet_lamports < est_total_lamports )); then
       shortfall=$((est_total_lamports - wallet_lamports))
       shortfall_sol="$(echo "scale=9; $shortfall / 1000000000" | bc -l)"
       echo "wallet_shortfall_sol_estimate: $shortfall_sol"
     fi
   fi
+  echo "deploy_wave_complete"
   exit 0
 fi
 

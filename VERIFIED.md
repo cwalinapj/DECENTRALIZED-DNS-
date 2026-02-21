@@ -1456,3 +1456,52 @@ planned_deploy_order: ddns_domain_rewards ddns_rewards ddns_operators ddns_miner
 [protocol-gate] PASS: no protocol drift
 ==> run_all: complete
 ```
+
+## 2026-02-21 — deploy-all support + rent reserve bond (planning)
+
+Commands:
+```bash
+npm ci && npm test
+cd solana && anchor build
+bash scripts/devnet_inventory.sh
+REQUIRE_ALL=1 bash scripts/devnet_inventory.sh
+DRY_RUN=1 DEPLOY_ALL=1 bash scripts/devnet_deploy_wave.sh
+npm run rent:bond:audit
+
+# AGENTS validation targets
+make fmt
+make lint
+make test
+make e2e
+```
+
+Output snippet:
+```text
+# inventory (required mode)
+- required_fail: 0
+- optional_fail: 9
+- total_program_sol: 19.191559680
+- recommended_reserve_sol: 6.861892960
+
+# inventory (all mode)
+optional_failures(require_all=1): ddns_cache_head, ddns_domain_rewards, ddns_miner_score, ddns_names, ddns_operators, ddns_rent_bond, ddns_rep, ddns_rewards, ddns_witness_rewards
+(exit=1 expected until all optional programs are executable)
+
+# deploy wave dry-run (DEPLOY_ALL=1)
+- missing_required_count: 0
+- missing_optional_count: 9
+- scheduled_count: 9
+TOP_UP_TARGET_SOL=22.867720320
+planned_deploy_order: ddns_domain_rewards ddns_rewards ddns_operators ddns_miner_score ddns_names ddns_cache_head ddns_rep ddns_witness_rewards ddns_rent_bond
+deploy_wave_complete
+
+# rent bond audit
+- reserve_target_lamports: 6861892960
+- reserve_shortfall_lamports: 6861892960
+- reserve_shortfall_sol: 6.861892960
+
+# harness
+[protocol-gate] BYPASS: explicit protocol change branch (codex/pr-deploy-all-plus-rent-bond)
+==> run_all: complete
+[compat] docker-compose.validation.yml not found; skipping compat validation (MVP).
+```

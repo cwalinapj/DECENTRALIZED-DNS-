@@ -22,6 +22,7 @@ ddns_names = "BYQ68JftwZD2JEMXLAiZYYGMr6AD9cD9XznntA4v6Mjj"
 ddns_cache_head = "HjCiKFJKnSvuUd8gN8NjiFPdiwRZSqDit7LMJzFt3Sck"
 ddns_rep = "BS62AYwh5KuhTWoVHiDbpAhifK4SDC1FJtKaYw9bSKaE"
 ddns_witness_rewards = "6dNEBRscCHZB7yHo1iPBktccUSN7P32eSvY1FQkPh7hd"
+ddns_rent_bond = "9RNRmBdFfdo6GNRzgutbNcV3bJSJXzhoCtqGQ8HBpfTi"
 [programs.localnet]
 ddns_anchor = "EJVVNdwBdZiEpA4QjVaeV79WPsoUpa4zLA4mqpxWxXi5"
 ddns_registry = "5F8ERKfRyErAJginsuRD4bN1oVZYFpJS5RVCFi9shRS3"
@@ -39,6 +40,7 @@ ddns_names = "BYQ68JftwZD2JEMXLAiZYYGMr6AD9cD9XznntA4v6Mjj"
 ddns_cache_head = "HjCiKFJKnSvuUd8gN8NjiFPdiwRZSqDit7LMJzFt3Sck"
 ddns_rep = "BS62AYwh5KuhTWoVHiDbpAhifK4SDC1FJtKaYw9bSKaE"
 ddns_witness_rewards = "6dNEBRscCHZB7yHo1iPBktccUSN7P32eSvY1FQkPh7hd"
+ddns_rent_bond = "9RNRmBdFfdo6GNRzgutbNcV3bJSJXzhoCtqGQ8HBpfTi"
 [registry]
 url = "https://api.apr.dev"
 

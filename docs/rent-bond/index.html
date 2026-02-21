@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TollDNS Rent Bond Dashboard</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f7fb;
+      --fg: #111827;
+      --muted: #6b7280;
+      --card: #ffffff;
+      --ok: #0f766e;
+      --warn: #b45309;
+      --bad: #b91c1c;
+      --border: #d1d5db;
+    }
+    body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 20px; }
+    h1 { margin: 0 0 8px; font-size: 24px; }
+    p { margin: 0 0 12px; color: var(--muted); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 16px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+    .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+    .value { font-size: 20px; font-weight: 700; margin-top: 6px; }
+    .ok { color: var(--ok); }
+    .warn { color: var(--warn); }
+    .bad { color: var(--bad); }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; overflow-wrap: anywhere; }
+    .panel { margin-top: 16px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+    .small { font-size: 13px; color: var(--muted); }
+    pre { margin: 0; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Rent Reserve Bond Dashboard</h1>
+    <p>Read-only planning view from <span class="mono">artifacts/rent_bond_report.json</span>.</p>
+
+    <div id="state" class="panel small">Loading…</div>
+
+    <div class="grid" id="cards" hidden>
+      <div class="card">
+        <div class="label">Wallet SOL</div>
+        <div class="value" id="wallet-sol">-</div>
+      </div>
+      <div class="card">
+        <div class="label">Total Program Lamports</div>
+        <div class="value" id="total-program-lamports">-</div>
+      </div>
+      <div class="card">
+        <div class="label">Missing Required / Optional</div>
+        <div class="value" id="missing-counts">-</div>
+      </div>
+      <div class="card">
+        <div class="label">Reserve Target SOL</div>
+        <div class="value" id="reserve-target">-</div>
+      </div>
+      <div class="card">
+        <div class="label">Reserve Shortfall SOL</div>
+        <div class="value" id="reserve-shortfall">-</div>
+      </div>
+      <div class="card">
+        <div class="label">Last Updated</div>
+        <div class="value" id="last-updated">-</div>
+      </div>
+    </div>
+
+    <div class="panel" id="json-panel" hidden>
+      <div class="label">Raw JSON</div>
+      <pre id="raw-json" class="mono"></pre>
+    </div>
+  </div>
+
+  <script>
+    const state = document.getElementById("state");
+    const cards = document.getElementById("cards");
+    const panel = document.getElementById("json-panel");
+
+    function fmtInt(v) {
+      return Number(v || 0).toLocaleString("en-US");
+    }
+
+    async function load() {
+      try {
+        const res = await fetch("../../artifacts/rent_bond_report.json", { cache: "no-store" });
+        if (!res.ok) {
+          state.textContent = "No report yet. Run `npm run rent:bond:audit` to generate artifacts/rent_bond_report.json.";
+          return;
+        }
+        const j = await res.json();
+        cards.hidden = false;
+        panel.hidden = false;
+        state.innerHTML = `Loaded report for <span class="mono">${j.ddns_rent_bond_program_id || "-"}</span> / reserve <span class="mono">${j.reserve_pda || "-"}</span>.`;
+        document.getElementById("wallet-sol").textContent = j.wallet_sol || "0.000000000";
+        document.getElementById("total-program-lamports").textContent = fmtInt(j.total_program_lamports);
+        document.getElementById("missing-counts").textContent = `${j.missing_required_count || 0} / ${j.missing_optional_count || 0}`;
+        document.getElementById("reserve-target").textContent = j.reserve_target_sol || "0.000000000";
+        const shortfall = j.reserve_shortfall_sol || "0.000000000";
+        const shortfallEl = document.getElementById("reserve-shortfall");
+        shortfallEl.textContent = shortfall;
+        shortfallEl.className = Number(shortfall) > 0 ? "value bad" : "value ok";
+        document.getElementById("last-updated").textContent = j.timestamp_utc || "-";
+        document.getElementById("raw-json").textContent = JSON.stringify(j, null, 2);
+      } catch (err) {
+        state.textContent = `Dashboard error: ${err instanceof Error ? err.message : String(err)}`;
+      }
+    }
+
+    load();
+  </script>
+</body>
+</html>
