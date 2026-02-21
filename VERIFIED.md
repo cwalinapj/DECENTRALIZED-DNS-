@@ -1361,3 +1361,22 @@ packages/attack-mode: 5 -> 5
 lockfile change: gateway/package-lock.json
 bn.js: 5.2.2 -> 5.2.3
 ```
+
+## 2026-02-21 — Repo Health Dashboard (read-only)
+
+Commands:
+```bash
+bash scripts/generate_dashboard_report.sh
+sed -n '1,20p' reports/latest.json
+npm test
+python3 -m http.server 8080
+curl -s http://127.0.0.1:8080/docs/dashboard/index.html | sed -n '1,24p'
+```
+
+Output snippet:
+```text
+[dashboard-report] wrote /tmp/ddns-pr-upgrade-dashboard/reports/latest.json
+{"timestamp_utc":"2026-02-21T01:01:39Z","git_sha":"fc0473281dfdbc931bbf50ea56426505c736d244","demo_ok":true,...}
+==> run_all: complete
+<title>TollDNS Repo Health Dashboard</title>
+```
