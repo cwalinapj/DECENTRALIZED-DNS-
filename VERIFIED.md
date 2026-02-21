@@ -1949,3 +1949,28 @@ resolve summary: confidence=low rrset_hash=1eb606392b416acee3576085e567f54b3a331
 ==> run_all: complete
 [compat] docker-compose.validation.yml not found; skipping compat validation (MVP).
 ```
+
+## 2026-02-21 — PR2 local installer stack (`npm run local:stack`)
+
+Commands:
+```bash
+npm test
+npm run local:stack
+```
+
+Output snippet:
+```text
+==> run_all: complete
+[protocol-gate] PASS: no protocol drift
+
+Firefox about:config values:
+  network.trr.mode = 3
+  network.trr.uri = https://127.0.0.1:8443/dns-query
+  network.trr.custom_uri = https://127.0.0.1:8443/dns-query
+
+==> verifying DoH A
+✅ firefox DoH verify passed
+==> verifying DoH AAAA
+✅ firefox DoH verify passed
+✅ LOCAL STACK READY
+```

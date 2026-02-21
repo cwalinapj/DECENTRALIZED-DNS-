@@ -18,7 +18,8 @@
     "miner:cf:dev": "cd services/cf-worker-miner && npm i && npx wrangler dev",
     "demo:cf:deploy": "cd services/cf-demo-gateway && npm i && npx wrangler deploy",
     "demo:cf:dev": "cd services/cf-demo-gateway && npm i && npx wrangler dev --local --port 8788",
-    "openapi:verify": "bash scripts/openapi_verify.sh"
+    "openapi:verify": "bash scripts/openapi_verify.sh",
+    "local:stack": "bash scripts/run_local_stack.sh"
   },
   "dependencies": {
     "@noble/ed25519": "^2.1.0",
