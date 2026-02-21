@@ -46,6 +46,7 @@ This index is intentionally short and categorized.
 - `docs/FIREFOX_TRR.md` (Firefox TRR setup against local HTTPS DoH endpoint)
 - `docs/FIREFOX_DOH.md` (wireformat DoH endpoint sanity checks)
 - `docs/DEMO_ENDPOINT_CF.md` (public Cloudflare demo gateway deploy + verify)
+- `docs/PUBLIC_DEMO.md` (shareable Cloudflare resolver UI + API quickstart)
 
 ## Tokenomics / Settlement (Background)
 - `docs/05-tokenomics.md`
