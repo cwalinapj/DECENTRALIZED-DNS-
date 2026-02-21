@@ -32,9 +32,17 @@
 - User-facing billing remains USD-stable.
 - Treasury handles SOL/TOLL/USDC rails, reserve management, and operational funding in the background.
 
+## Quote-lock behavior (MVP)
+
+- Checkout starts from a USD quote (`/v1/pay/quote`) and returns a short quote lock window (`expires_at`, 60-120s).
+- If the quote expires, clients refresh and request a new quote before checkout continues.
+- This keeps user-facing pricing deterministic even when optional crypto rails are selected.
+
 ## Renewal protection (user-facing)
 
 - If renewal payment is at risk, continuity warning/banner flows activate first.
+- Renewal warning state is visible through `/v1/domain/banner?domain=<name>&format=json`, including grace countdown.
+- Owner acknowledgement is recorded through `/v1/domain/banner/ack` for operator visibility.
 - Eligible domains can remain reachable in safe degraded mode during recovery windows.
 - Final handling remains bounded by registrar/registry policy windows; this is protection against accidental loss, not an infinite hold promise.
 

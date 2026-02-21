@@ -1686,3 +1686,20 @@ Test Files 17 passed (17)
 Tests 57 passed (57)
 ==> run_all: complete
 ```
+
+## 2026-02-21 — PR3 docs reality sync (USD quote-lock + renewal banner)
+
+Commands:
+```bash
+npm test
+PORT=18054 node gateway/dist/server.js
+curl 'http://127.0.0.1:18054/v1/pay/quote?sku=renewal-basic&currency=USD'
+curl 'http://127.0.0.1:18054/v1/domain/banner?domain=low-traffic.com&format=json'
+```
+
+Output snippet:
+```text
+==> run_all: complete
+quote.usd_price=12 quote.disclaimer="Quote expires; refresh on expiry"
+banner.domain=low-traffic.com banner.banner_state=renewal_due grace_seconds_remaining=3023999
+```
