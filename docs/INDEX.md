@@ -4,6 +4,7 @@ This index is intentionally short and categorized.
 
 ## Overview (Start Here)
 
+- `docs/GET_STARTED.md` — product onboarding funnel (browse, local run, miner)
 - `docs/OVERVIEW.md` — **main functions and purposes of this repo** (components, endpoints, flow)
 - `docs/START_HERE.md` — canonical MVP run instructions
 
