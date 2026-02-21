@@ -19,41 +19,77 @@
         line-height: 1.4;
         color: #374151;
       }
-      label {
+      .picker {
+        display: flex;
+        gap: 16px;
+        margin-top: 10px;
+        font-size: 12px;
+      }
+      .picker label {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin: 0;
+        font-weight: normal;
+        cursor: pointer;
+      }
+      label.field-label {
         display: block;
-        margin-top: 12px;
-        margin-bottom: 6px;
+        margin-top: 10px;
+        margin-bottom: 4px;
         font-size: 12px;
         font-weight: 600;
       }
-      input {
+      input[type="text"] {
         width: 100%;
         box-sizing: border-box;
         border: 1px solid #d1d5db;
         border-radius: 8px;
         padding: 8px 10px;
+        font-size: 12px;
+      }
+      input[type="text"]:disabled {
+        background: #f3f4f6;
+        color: #9ca3af;
       }
       .actions {
         display: grid;
         gap: 8px;
-        margin-top: 10px;
+        margin-top: 8px;
       }
       button {
         border: 1px solid #d1d5db;
         background: #f9fafb;
         border-radius: 8px;
-        padding: 8px;
+        padding: 8px 10px;
         cursor: pointer;
         text-align: left;
+        font-size: 12px;
       }
       button:hover {
         background: #f3f4f6;
+      }
+      button.primary {
+        background: #eff6ff;
+        border-color: #93c5fd;
+      }
+      button.primary:hover {
+        background: #dbeafe;
       }
       code {
         font-size: 11px;
         background: #f3f4f6;
         padding: 1px 4px;
         border-radius: 4px;
+      }
+      .section-label {
+        margin-top: 14px;
+        margin-bottom: 4px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #6b7280;
       }
       #status {
         margin-top: 10px;
@@ -66,33 +102,47 @@
         font-size: 12px;
       }
       .steps ol {
-        margin: 6px 0 0 18px;
+        margin: 4px 0 0 18px;
         padding: 0;
+      }
+      .steps li {
+        margin-bottom: 2px;
       }
     </style>
   </head>
   <body>
     <h1>TollDNS DoH Helper</h1>
     <p class="note">
-      Wrangler and extensions cannot create Cloudflare accounts or bypass browser CAPTCHA/email checks.
-      This helper only prepares Firefox DoH settings.
+      Copies <code>about:config</code> TRR settings and verification commands.
+      This helper cannot write Firefox prefs directly.
     </p>
 
-    <label for="gateway-url">DoH endpoint</label>
-    <input id="gateway-url" type="text" value="http://127.0.0.1:8054/dns-query" />
+    <div class="section-label">Endpoint</div>
+    <div class="picker">
+      <label><input type="radio" name="endpoint-type" id="ep-local" value="local" checked /> Local (8443)</label>
+      <label><input type="radio" name="endpoint-type" id="ep-custom" value="custom" /> Custom</label>
+    </div>
+    <label class="field-label" for="custom-url">Custom base URL</label>
+    <input id="custom-url" type="text" value="https://127.0.0.1:8443" placeholder="https://host:port" disabled />
 
+    <div class="section-label">Configure</div>
     <div class="actions">
-      <button id="copy-enable" type="button">Copy “Enable DDNS DoH” about:config values</button>
-      <button id="copy-disable" type="button">Copy “Disable DDNS DoH” values</button>
-      <button id="copy-policy" type="button">Copy policies.json snippet</button>
+      <button id="copy-trr" type="button" class="primary">&#x1F4CB; Copy TRR prefs (about:config checklist)</button>
+      <button id="copy-disable" type="button">Copy &#x201C;Disable TRR&#x201D; values</button>
+    </div>
+
+    <div class="section-label">Verify</div>
+    <div class="actions">
+      <button id="btn-verify" type="button" class="primary">&#x1F50D; Verify &#x2014; open /v1/resolve tab</button>
+      <button id="copy-curl" type="button">&#x1F4CB; Copy verify curl command</button>
     </div>
 
     <div class="steps">
-      <strong>Apply settings:</strong>
+      <strong>Steps:</strong>
       <ol>
-        <li>Open <code>about:config</code>.</li>
-        <li>Paste copied values into your notes and set each pref manually.</li>
-        <li>Browse <code>https://netflix.com</code> (hostnames + TLS remain valid).</li>
+        <li>Click <strong>Copy TRR prefs</strong>, then open <code>about:config</code> and set each pref.</li>
+        <li>Click <strong>Verify</strong> to check the gateway resolves <code>netflix.com</code>.</li>
+        <li>To undo, click <strong>Disable TRR</strong> and reset the prefs.</li>
       </ol>
     </div>
 
