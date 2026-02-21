@@ -1505,3 +1505,30 @@ deploy_wave_complete
 ==> run_all: complete
 [compat] docker-compose.validation.yml not found; skipping compat validation (MVP).
 ```
+
+## 2026-02-21 — Web2-first pricing docs framing (USD-first, operator lanes split)
+
+Commands:
+```bash
+npm test
+make fmt
+make lint
+make test
+make e2e
+rg -n "WEB2_PRICING_MODEL|PAYMENTS_AND_TREASURY" README.md docs/START_HERE.md docs/INDEX.md
+```
+
+Output snippet:
+```text
+==> gate: no protocol drift (solana/programs/**)
+[protocol-gate] PASS: no protocol drift
+==> run_all: complete
+[compat] docker-compose.validation.yml not found; skipping compat validation (MVP).
+
+README.md:26:- `docs/WEB2_PRICING_MODEL.md`
+README.md:27:- `docs/PAYMENTS_AND_TREASURY.md`
+docs/START_HERE.md:12:- `docs/WEB2_PRICING_MODEL.md`
+docs/START_HERE.md:13:- `docs/PAYMENTS_AND_TREASURY.md`
+docs/INDEX.md:32:- `docs/WEB2_PRICING_MODEL.md`
+docs/INDEX.md:33:- `docs/PAYMENTS_AND_TREASURY.md`
+```

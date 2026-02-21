@@ -2,56 +2,53 @@
 
 If you only read one file, read this one.
 
-## Quickstart
-📌 Canonical MVP command (devnet, strict): `npm run mvp:demo:devnet`
+## User Onboarding (Web2-first)
 
-This runs the funded deploy-wave check, inventory, and strict on-chain demo end-to-end.
+- No crypto required for users.
+- Pricing is fixed in USD.
+- You can pay in USD (recommended) or crypto; TollDNS handles settlement/volatility in treasury rails.
 
-Latest successful proof snapshot: `/Users/root1/DECENTRALIZED-DNS-/docs/PROOF.md`
-Dashboard: `/Users/root1/DECENTRALIZED-DNS-/docs/dashboard/index.html` (read-only, safe when empty; optional Pages path `/docs/dashboard/index.html`)
+Read first:
+- `docs/WEB2_PRICING_MODEL.md`
+- `docs/PAYMENTS_AND_TREASURY.md`
+- `docs/DOMAIN_CONTINUITY.md`
 
-## What this repo is
-TollDNS is a DNS + gateway MVP with:
-- recursive ICANN resolution with quorum/audit metadata
-- `.dns` route + resolve flow through Solana-backed tooling
-- strict devnet proof scripts and inventory/audit outputs
+## Quickstart (user-facing)
 
-## Canonical strict devnet demo
+1. Point your domain nameservers to TollDNS.
+2. Enable continuity/notification policy so renewal problems are visible early.
+3. Use TollDNS gateway/hosting defaults for reliability and faster rollout.
+4. Use USD billing (or crypto rails with USD quote lock) without needing token ops.
+
+## Pricing that won't surprise you
+
+- renewals should not fail silently
+- if payment fails, continuity warning/banner flow activates first
+- eligible domains can remain reachable in safe degraded mode while renewal is pending
+- policy remains bound by registrar/registry windows
+
+## Developer quick verify
+
+```bash
+npm -C gateway ci
+npm -C gateway run build
+PORT=8054 npm -C gateway run start
+curl 'http://localhost:8054/v1/resolve?name=netflix.com&type=A'
+```
+
+## Operator/Developer Proof (advanced)
 
 ```bash
 npm run mvp:demo:devnet
 ```
 
-This command runs `scripts/devnet_when_funded.sh` and must end with:
-- `✅ demo complete`
-- `✅ STRICT DEMO COMPLETE (ON-CHAIN)`
+This is internal proof for operators/developers (strict on-chain path), not end-user onboarding.
 
-If required programs are missing or wallet SOL is below target, it fails non-zero and prints top-up guidance.
-
-## Copy/paste MVP path
-
-```bash
-npm ci && npm test
-bash scripts/check_program_id_sync.sh
-npm run mvp:demo:devnet
-bash scripts/devnet_inventory.sh
-```
-
-Expected markers:
-- test suite passes
-- program ID sync gate passes
-- strict demo completion markers appear
-- inventory writes `artifacts/devnet_inventory.json`
+Latest proof snapshot:
+- `docs/PROOF.md`
+- `VERIFIED.md`
+- `docs/DEVNET_STATUS.md`
 
 ## Miner onboarding
-- Quickstart: `/Users/root1/DECENTRALIZED-DNS-/docs/MINER_QUICKSTART_CF.md`
-- Onboarding UI: `/Users/root1/DECENTRALIZED-DNS-/docs/miner-onboard/index.html`
-
-## Proof and status locations
-- `/Users/root1/DECENTRALIZED-DNS-/VERIFIED.md`
-- `/Users/root1/DECENTRALIZED-DNS-/DEVNET_RUNBOOK.md`
-- `/Users/root1/DECENTRALIZED-DNS-/docs/DEVNET_STATUS.md`
-- `/Users/root1/DECENTRALIZED-DNS-/artifacts/devnet_inventory.json`
-
-## MVP definition
-MVP is ready when a clean checkout can run `npm run mvp:demo:devnet` and finish strict on-chain with the success markers above.
+- Quickstart: `docs/MINER_QUICKSTART_CF.md`
+- Onboarding UI: `docs/miner-onboard/index.html`
