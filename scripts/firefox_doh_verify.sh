@@ -60,15 +60,20 @@ RESOLVE_ENDPOINT="${BASE_URL%/}/v1/resolve?name=$(printf '%s' "$NAME" | jq -sRr 
 
 tmp_dir="$(mktemp -d)"
 query_file="${tmp_dir}/query.bin"
-response_file="${tmp_dir}/response.bin"
+query_b64_file="${tmp_dir}/query.b64"
+response_post_file="${tmp_dir}/response_post.bin"
+response_get_file="${tmp_dir}/response_get.bin"
+headers_post_file="${tmp_dir}/headers_post.txt"
+headers_get_file="${tmp_dir}/headers_get.txt"
 trap 'rm -rf "$tmp_dir"' EXIT
 
-NAME="$NAME" QTYPE="$QTYPE" QUERY_FILE="$query_file" node --input-type=module <<'NODE'
+NAME="$NAME" QTYPE="$QTYPE" QUERY_FILE="$query_file" QUERY_B64_FILE="$query_b64_file" node --input-type=module <<'NODE'
 import fs from "node:fs";
 import dnsPacket from "./gateway/node_modules/dns-packet/index.js";
 const name = process.env.NAME;
 const qtype = process.env.QTYPE;
 const queryFile = process.env.QUERY_FILE;
+const queryB64File = process.env.QUERY_B64_FILE;
 
 const query = dnsPacket.encode({
   type: "query",
@@ -76,24 +81,52 @@ const query = dnsPacket.encode({
   flags: dnsPacket.RECURSION_DESIRED,
   questions: [{ type: qtype, name, class: "IN" }]
 });
-fs.writeFileSync(queryFile, Buffer.from(query));
+const queryBytes = Buffer.from(query);
+fs.writeFileSync(queryFile, queryBytes);
+fs.writeFileSync(queryB64File, queryBytes.toString("base64url"));
 NODE
 
-curl_args=(-sS -o "$response_file" -w "%{http_code}" -X POST "$DOH_ENDPOINT" \
+query_b64="$(cat "$query_b64_file")"
+
+curl_post_args=(-sS -D "$headers_post_file" -o "$response_post_file" -w "%{http_code}" -X POST "$DOH_ENDPOINT" \
   -H "content-type: application/dns-message" \
   -H "accept: application/dns-message" \
   --data-binary "@${query_file}")
 if [[ "$INSECURE_TLS" == "1" ]]; then
-  curl_args=(-k "${curl_args[@]}")
+  curl_post_args=(-k "${curl_post_args[@]}")
 fi
-DOH_STATUS="$(curl "${curl_args[@]}")"
-
-if [[ "$DOH_STATUS" != "200" ]]; then
-  echo "DoH verification failed: http_status=$DOH_STATUS endpoint=$DOH_ENDPOINT" >&2
+DOH_POST_STATUS="$(curl "${curl_post_args[@]}")"
+if [[ "$DOH_POST_STATUS" != "200" ]]; then
+  echo "DoH POST verification failed: http_status=$DOH_POST_STATUS endpoint=$DOH_ENDPOINT" >&2
   exit 1
 fi
 
-DOH_RESULT="$(RESPONSE_FILE="$response_file" EXPECT_TYPE="$QTYPE" node --input-type=module <<'NODE'
+curl_get_args=(-sS -D "$headers_get_file" -o "$response_get_file" -w "%{http_code}" \
+  "${DOH_ENDPOINT}?dns=${query_b64}" \
+  -H "accept: application/dns-message")
+if [[ "$INSECURE_TLS" == "1" ]]; then
+  curl_get_args=(-k "${curl_get_args[@]}")
+fi
+DOH_GET_STATUS="$(curl "${curl_get_args[@]}")"
+if [[ "$DOH_GET_STATUS" != "200" ]]; then
+  echo "DoH GET verification failed: http_status=$DOH_GET_STATUS endpoint=${DOH_ENDPOINT}?dns=..." >&2
+  exit 1
+fi
+
+post_ct="$(tr -d '\r' < "$headers_post_file" | awk -F': ' 'tolower($1)=="content-type"{print tolower($2)}' | tail -n 1)"
+get_ct="$(tr -d '\r' < "$headers_get_file" | awk -F': ' 'tolower($1)=="content-type"{print tolower($2)}' | tail -n 1)"
+if [[ "$post_ct" != *"application/dns-message"* ]]; then
+  echo "DoH POST content-type invalid: '$post_ct'" >&2
+  exit 1
+fi
+if [[ "$get_ct" != *"application/dns-message"* ]]; then
+  echo "DoH GET content-type invalid: '$get_ct'" >&2
+  exit 1
+fi
+
+parse_wire() {
+  local response_file="$1"
+  RESPONSE_FILE="$response_file" EXPECT_TYPE="$QTYPE" node --input-type=module <<'NODE'
 import fs from "node:fs";
 import dnsPacket from "./gateway/node_modules/dns-packet/index.js";
 
@@ -111,17 +144,30 @@ console.log(JSON.stringify({
   answers: filtered
 }));
 NODE
-)"
+}
 
-DOH_OK="$(printf '%s' "$DOH_RESULT" | jq -r '.ok // false')"
-if [[ "$DOH_OK" != "true" ]]; then
-  echo "DoH verification failed: $DOH_RESULT" >&2
+DOH_POST_RESULT="$(parse_wire "$response_post_file")"
+DOH_GET_RESULT="$(parse_wire "$response_get_file")"
+
+POST_OK="$(printf '%s' "$DOH_POST_RESULT" | jq -r '.ok // false')"
+POST_RCODE="$(printf '%s' "$DOH_POST_RESULT" | jq -r '.rcode // -1')"
+if [[ "$POST_OK" != "true" || "$POST_RCODE" != "0" ]]; then
+  echo "DoH POST verification failed: $DOH_POST_RESULT" >&2
+  exit 1
+fi
+GET_OK="$(printf '%s' "$DOH_GET_RESULT" | jq -r '.ok // false')"
+GET_RCODE="$(printf '%s' "$DOH_GET_RESULT" | jq -r '.rcode // -1')"
+if [[ "$GET_OK" != "true" || "$GET_RCODE" != "0" ]]; then
+  echo "DoH GET verification failed: $DOH_GET_RESULT" >&2
   exit 1
 fi
 
-ANSWER_LINES="$(printf '%s' "$DOH_RESULT" | jq -r '.answers[] | "\(.type):\(.data):ttl=\(.ttl)"')"
-echo "DoH answers:"
-echo "$ANSWER_LINES"
+POST_ANSWER_LINES="$(printf '%s' "$DOH_POST_RESULT" | jq -r '.answers[] | "\(.type):\(.data):ttl=\(.ttl)"')"
+GET_ANSWER_LINES="$(printf '%s' "$DOH_GET_RESULT" | jq -r '.answers[] | "\(.type):\(.data):ttl=\(.ttl)"')"
+echo "DoH POST answers:"
+echo "$POST_ANSWER_LINES"
+echo "DoH GET answers:"
+echo "$GET_ANSWER_LINES"
 
 resolve_curl_args=(-fsS "$RESOLVE_ENDPOINT")
 if [[ "$INSECURE_TLS" == "1" ]]; then
@@ -133,6 +179,11 @@ RRSET_HASH="$(printf '%s' "$RESOLVE_JSON" | jq -r '.rrset_hash // empty')"
 
 if [[ -z "$CONFIDENCE" || -z "$RRSET_HASH" ]]; then
   echo "resolve payload missing confidence/rrset_hash: $RESOLVE_JSON" >&2
+  exit 1
+fi
+
+if [[ "$CONFIDENCE" != "high" && "$CONFIDENCE" != "medium" && "$CONFIDENCE" != "low" ]]; then
+  echo "resolve confidence invalid: $CONFIDENCE" >&2
   exit 1
 fi
 

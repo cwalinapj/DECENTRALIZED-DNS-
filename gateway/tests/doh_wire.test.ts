@@ -63,6 +63,8 @@ describe("/dns-query RFC8484 wireformat", () => {
 
     expect(res.status).toBe(200);
     expect(String(res.headers["content-type"] || "")).toContain("application/dns-message");
+    expect(String(res.headers["cache-control"] || "")).toContain("max-age=");
+    expect(String(res.headers["server-timing"] || "")).toContain("total;dur=");
 
     const decoded = dnsPacket.decode(Buffer.from(res.body)) as any;
     expect(Number(decoded.id)).toBe(0x1234);
@@ -96,6 +98,9 @@ describe("/dns-query RFC8484 wireformat", () => {
       .parse(binaryParser);
 
     expect(res.status).toBe(200);
+    expect(String(res.headers["content-type"] || "")).toContain("application/dns-message");
+    expect(String(res.headers["cache-control"] || "")).toContain("max-age=");
+    expect(String(res.headers["server-timing"] || "")).toContain("total;dur=");
     const decoded = dnsPacket.decode(Buffer.from(res.body)) as any;
     expect(Number(decoded.id)).toBe(0x7777);
     expect(decoded.answers.length).toBeGreaterThan(0);
