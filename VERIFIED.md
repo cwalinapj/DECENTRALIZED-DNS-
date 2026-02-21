@@ -1836,3 +1836,27 @@ resolve.icann confidence=low rrset_hash=6e67410e6afe26b14efb77a483bf6d70ccc6808a
 resolve.dns name=alice.dns records=5
 ✅ gateway smoke passed
 ```
+
+## 2026-02-21 — PR4 miner onboarding verification polish
+
+Commands:
+```bash
+npm test
+make fmt
+make lint
+make test
+make e2e
+npm -C services/cf-worker-miner i
+cd services/cf-worker-miner && npx wrangler dev --port 8787
+bash scripts/miner_cf_verify.sh --url http://127.0.0.1:8787 --name netflix.com --type A
+```
+
+Output snippet:
+```text
+==> run_all: complete
+[protocol-gate] PASS: no protocol drift
+✅ miner verified | confidence=low | rrset_hash=6e67410e6afe26b14efb77a483bf6d70ccc6808a1f89c67d2d9cc6f4aa4a1689
+VERIFY_EXIT=0
+[wrangler:info] Ready on http://localhost:8787
+[wrangler:info] GET /resolve 200 OK
+```

@@ -47,6 +47,14 @@ npm run miner:cf:deploy</pre>
   </div>
 
   <div class="card">
+    <h2>Verify Command</h2>
+    <pre id="verifyCmd">cd /Users/root1/DECENTRALIZED-DNS-
+bash scripts/miner_cf_verify.sh --url "&lt;WORKER_URL&gt;" --name "netflix.com" --type "A"</pre>
+    <button id="copyVerifyBtn" type="button">Copy verify command</button>
+    <p class="muted">Use <code>--insecure</code> only for local self-signed HTTPS testing.</p>
+  </div>
+
+  <div class="card">
     <h2>Second Canonical Call-to-Action</h2>
     <p><strong>Deploy a miner in 3 minutes → earn REP / TOLL (per current network policy).</strong></p>
     <p class="muted">This is policy-governed and can change by MVP controls; verify current policy docs before production expectations.</p>
@@ -84,6 +92,12 @@ bash scripts/miner_cf_verify.sh --url "&lt;WORKER_URL&gt;" --name "netflix.com" 
     await navigator.clipboard.writeText(text);
     document.getElementById("copyBtn").textContent = "Copied";
     setTimeout(() => { document.getElementById("copyBtn").textContent = "Copy deploy command"; }, 1400);
+  });
+  document.getElementById("copyVerifyBtn").addEventListener("click", async () => {
+    const text = document.getElementById("verifyCmd").textContent;
+    await navigator.clipboard.writeText(text);
+    document.getElementById("copyVerifyBtn").textContent = "Copied";
+    setTimeout(() => { document.getElementById("copyVerifyBtn").textContent = "Copy verify command"; }, 1400);
   });
 </script>
 </body>

@@ -121,6 +121,7 @@ Operator/developer proof command (not required for end users): strict funded flo
 ```bash
 npm run miner:cf:dev
 npm run miner:cf:deploy
+bash scripts/miner_cf_verify.sh --url "https://<worker>.workers.dev" --name "netflix.com" --type "A"
 ```
 
 Important: Wrangler cannot create Cloudflare accounts or bypass CAPTCHA/email verification. You must complete browser login once; deploy is automated after that.
