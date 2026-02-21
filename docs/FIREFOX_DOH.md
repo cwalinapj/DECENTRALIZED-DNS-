@@ -31,9 +31,10 @@ Optional helper UI:
 
 ```bash
 bash scripts/firefox_doh_verify.sh
+bash scripts/firefox_doh_verify.sh --url http://127.0.0.1:8054 --name netflix.com --type A
 ```
 
-Expected: script prints parsed `A` answers for `netflix.com` and exits `0`.
+Expected: script prints parsed DoH answers, then a resolve summary with `confidence` and `rrset_hash`, and exits `0`.
 
 ## 4) Browse normally
 
