@@ -1731,3 +1731,60 @@ Manual note:
 ```text
 Firefox browse validation is a manual GUI step: open https://netflix.com after setting TRR prefs in docs/FIREFOX_TRR.md and confirm hostname is preserved.
 ```
+
+## 2026-02-21 — funded strict devnet flow
+
+Command:
+```bash
+bash scripts/devnet_when_funded.sh
+```
+
+Output snippet:
+```text
+{"ok":true,"name":"u-b5wjx4pd.dns","wallet":"B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5","dest":"https://example.com","ttl":300,"dest_hash_hex":"100680ad546ce6a577f42f52df33b4cfdca756859e664b8d7de329b150d09ce9","proof":{"program_id":"EJVVNdwBdZiEpA4QjVaeV79WPsoUpa4zLA4mqpxWxXi5","record_pda":"4VjW
+==> optional witness reward submit/claim skipped (ENABLE_WITNESS_REWARDS=1 to enable)
+==> tx links
+assign_route_tx: https://explorer.solana.com/tx/rL8vdY7fdmPER7k2HNz6vyqJp4gxtbGMpJ9GnMyLHJ4GfHzqDXkDTWHknN6hvgLAZuuSqqoqTbbNjJRjM77btVN?cluster=devnet
+ddns_program_id_used: EJVVNdwBdZiEpA4QjVaeV79WPsoUpa4zLA4mqpxWxXi5
+logs_dir: /var/folders/h5/7f2x98695lz6819tc0k6fbv80000gn/T//ddns-devnet-demo
+
+========== DEMO SUMMARY ==========
+deploy_verify: verified
+name_claimed: claimed_or_exists
+name: u-b5wjx4pd.dns
+route_written: yes
+resolve_result: ok
+resolved_dest: https://example.com
+resolved_ttl: 300
+tx_links:
+- https://explorer.solana.com/tx/rL8vdY7fdmPER7k2HNz6vyqJp4gxtbGMpJ9GnMyLHJ4GfHzqDXkDTWHknN6hvgLAZuuSqqoqTbbNjJRjM77btVN?cluster=devnet
+==================================
+✅ demo complete
+✅ STRICT DEMO COMPLETE (ON-CHAIN)
+```
+
+## 2026-02-21 — PR1 product onboarding funnel (GET_STARTED + README top block)
+
+Commands:
+```bash
+npm test
+npm -C solana ci --include=dev
+npm run mvp:demo:devnet
+PORT=8054 node gateway/dist/server.js
+TLS_PROXY_TARGET=http://127.0.0.1:8054 TLS_PROXY_PORT=8443 bash scripts/firefox_trr_tls_proxy.sh
+bash scripts/firefox_doh_verify.sh --url https://127.0.0.1:8443 --name netflix.com --type A --insecure
+```
+
+Output snippet:
+```text
+==> run_all: complete
+✅ demo complete
+✅ STRICT DEMO COMPLETE (ON-CHAIN)
+assign_route_tx: https://explorer.solana.com/tx/rL8vdY7fdmPER7k2HNz6vyqJp4gxtbGMpJ9GnMyLHJ4GfHzqDXkDTWHknN6hvgLAZuuSqqoqTbbNjJRjM77btVN?cluster=devnet
+DoH answers:
+A:44.240.158.19:ttl=30
+A:52.38.7.83:ttl=30
+A:44.242.13.161:ttl=30
+resolve summary: confidence=low rrset_hash=193fafc674490ac59d35ba1aaa4b73807f404e89592d980ca6310aa70011616c
+✅ firefox DoH verify passed
+```

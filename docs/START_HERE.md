@@ -2,6 +2,9 @@
 
 If you only read one file, read this one.
 
+Quick onboarding funnel:
+- `docs/GET_STARTED.md`
+
 ## User Onboarding (Web2-first)
 
 - No crypto required for users.
