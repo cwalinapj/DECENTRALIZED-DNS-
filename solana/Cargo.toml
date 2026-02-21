@@ -17,6 +17,7 @@ members = [
   "programs/ddns_names",
   "programs/ddns_cache_head",
   "programs/ddns_rep",
+  "programs/ddns_rent_bond",
 ]
 
 [patch.crates-io]

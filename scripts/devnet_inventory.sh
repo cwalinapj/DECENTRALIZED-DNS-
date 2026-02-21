@@ -9,6 +9,7 @@ WALLET_PATH="${WALLET:-${ANCHOR_WALLET:-$HOME/.config/solana/id.json}}"
 DEMO_NAME="${DEMO_NAME:-example.dns}"
 DEMO_EPOCH_ID="${DEMO_EPOCH_ID:-0}"
 DEMO_NAME_NORM="$(printf '%s' "$DEMO_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/\.$//')"
+REQUIRE_ALL="${REQUIRE_ALL:-0}"
 RPC_RETRIES="${RPC_RETRIES:-4}"
 RPC_RETRY_DELAY_S="${RPC_RETRY_DELAY_S:-2}"
 
@@ -470,6 +471,7 @@ echo "- wallet: $(jq -r '.wallet.pubkey' artifacts/devnet_inventory.json)"
 echo "- wallet_balance: $(jq -r '.wallet.balance_line' artifacts/devnet_inventory.json)"
 echo "- demo_name: $(jq -r '.demo_inputs.name' artifacts/devnet_inventory.json)"
 echo "- demo_epoch_id: $(jq -r '.demo_inputs.epoch_id' artifacts/devnet_inventory.json)"
+echo "- require_all: $REQUIRE_ALL"
 echo
 echo "## Program Inventory (Anchor.toml [programs.devnet])"
 echo
@@ -507,6 +509,12 @@ echo "- recommended_wallet_topup_sol: $(jq -r '.summary.recommended_wallet_topup
 if (( required_fail > 0 )); then
   echo
   echo "required_failures: $(jq -r '.summary.missing_required + .summary.nonexec_required | unique | join(", ")' artifacts/devnet_inventory.json)" >&2
+  exit 1
+fi
+
+if [[ "$REQUIRE_ALL" == "1" ]] && (( optional_fail > 0 )); then
+  echo
+  echo "optional_failures(require_all=1): $(jq -r '.summary.missing_optional + .summary.nonexec_optional | unique | join(", ")' artifacts/devnet_inventory.json)" >&2
   exit 1
 fi
 
