@@ -41,6 +41,7 @@ This index is intentionally short and categorized.
 
 ## Adapters / Integrations
 - `docs/ADAPTERS.md` (ENS/SNS/PKDNS/IPFS)
+- `docs/FIREFOX_DOH.md` (Firefox DoH setup against local gateway `/dns-query`)
 
 ## Tokenomics / Settlement (Background)
 - `docs/05-tokenomics.md`
