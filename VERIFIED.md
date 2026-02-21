@@ -1788,3 +1788,31 @@ A:44.242.13.161:ttl=30
 resolve summary: confidence=low rrset_hash=193fafc674490ac59d35ba1aaa4b73807f404e89592d980ca6310aa70011616c
 ✅ firefox DoH verify passed
 ```
+
+## 2026-02-21 — PR2 product API surface (OpenAPI + verify script + examples)
+
+Commands:
+```bash
+npm test
+bash scripts/openapi_verify.sh
+PORT=8054 npm -C gateway run start
+npx tsx examples/node-resolve.ts
+npx tsx examples/node-doh.ts
+npx tsx examples/worker-resolve.ts
+```
+
+Output snippet:
+```text
+==> run_all: complete
+openapi_verify: PASS
+resolve.name=netflix.com resolve.confidence=low
+site.error=not_hosting_target
+name=netflix.com type=A
+confidence=low
+rrset_hash=6e67410e6afe26b14efb77a483bf6d70ccc6808a1f89c67d2d9cc6f4aa4a1689
+upstreams_used=2
+name=netflix.com type=A answers=3
+A:44.237.234.25:ttl=6
+A:44.242.60.85:ttl=6
+A:44.234.232.238:ttl=6
+```

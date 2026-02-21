@@ -34,6 +34,92 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ResolveResponse'
+  /dns-query:
+    get:
+      summary: RFC8484 DoH wireformat query (GET)
+      parameters:
+        - in: query
+          name: dns
+          required: true
+          schema:
+            type: string
+            description: Base64URL-encoded DNS wireformat query bytes
+      responses:
+        '200':
+          description: DNS wireformat response
+          content:
+            application/dns-message:
+              schema:
+                type: string
+                format: binary
+    post:
+      summary: RFC8484 DoH wireformat query (POST)
+      requestBody:
+        required: true
+        content:
+          application/dns-message:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '200':
+          description: DNS wireformat response
+          content:
+            application/dns-message:
+              schema:
+                type: string
+                format: binary
+  /v1/site:
+    get:
+      summary: Serve static bytes for hosting targets resolved from ENS/SNS (.eth/.sol)
+      parameters:
+        - in: query
+          name: name
+          required: true
+          schema: { type: string }
+        - in: query
+          name: path
+          required: false
+          schema: { type: string, default: "/" }
+      responses:
+        '200':
+          description: Site bytes for content-addressed target
+          content:
+            text/html:
+              schema:
+                type: string
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Name resolved but is not a hosting target (ipfs:// or ar://)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HostingErrorResponse'
+  /resolve:
+    get:
+      summary: Cloudflare miner worker resolve API (documented schema)
+      description: Worker endpoint shape used by gateway quorum/miner verification.
+      parameters:
+        - in: query
+          name: name
+          required: true
+          schema: { type: string }
+        - in: query
+          name: type
+          required: false
+          schema:
+            type: string
+            enum: [A, AAAA]
+      responses:
+        '200':
+          description: Miner resolve response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MinerResolveResponse'
   /healthz:
     get:
       summary: Gateway health
@@ -424,7 +510,54 @@ components:
         confidence:
           type: string
           enum: [high, medium, low]
+        upstreams_used:
+          type: array
+          items:
+            $ref: '#/components/schemas/UpstreamUsed'
+        chosen_upstream:
+          type: object
+          properties:
+            url: { type: string }
+            rtt_ms: { type: number }
         rrset_hash: { type: string }
+    UpstreamUsed:
+      type: object
+      properties:
+        url: { type: string }
+        rtt_ms: { type: number }
+        status: { type: string }
+        answers_count: { type: integer }
+    MinerResolveResponse:
+      type: object
+      properties:
+        name: { type: string }
+        type: { type: string }
+        answers:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResolveAnswer'
+        ttl_s: { type: integer }
+        confidence:
+          type: string
+          enum: [high, medium, low]
+        rrset_hash: { type: string }
+        upstreams_used:
+          type: array
+          items:
+            $ref: '#/components/schemas/UpstreamUsed'
+        chosen_upstream:
+          type: object
+          properties:
+            url: { type: string }
+            rtt_ms: { type: number }
+    HostingErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          enum: [not_hosting_target, invalid_name, fetch_failed, body_too_large]
+        name: { type: string }
+        dest: { type: string, nullable: true }
     RegistrarDomainStatus:
       type: string
       enum: [active, expiring, expired, redemption, pending_transfer, unknown]

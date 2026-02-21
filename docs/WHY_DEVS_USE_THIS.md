@@ -13,13 +13,14 @@ MVP note: monetization and incentive distribution are policy-scoped and may be p
 Node:
 
 ```bash
-npx tsx packages/sdk/examples/node.ts
+npx tsx examples/node-resolve.ts
+npx tsx examples/node-doh.ts
 ```
 
 Worker:
 
 ```bash
-npx tsx packages/sdk/worker/example.ts
+npx tsx examples/worker-resolve.ts
 ```
 
 Both examples read and print:
