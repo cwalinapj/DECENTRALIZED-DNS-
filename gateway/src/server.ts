@@ -3,6 +3,7 @@ import dnsPacket from "dns-packet";
 import path from "node:path";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
+import { isIP } from "node:net";
 import { verifyVoucherHeader } from "./voucher.js";
 import { buildMerkleRoot, buildProof, loadSnapshot, normalizeName, verifyProof } from "./registry.js";
 import { resolveEns, supportsEns } from "./adapters/ens.js";
@@ -15,6 +16,7 @@ import {
   createRecursiveAdapter,
   createSnsAdapter
 } from "./adapters/index.js";
+import { normalizeNameForHash } from "./adapters/types.js";
 import { fetchArweaveSite } from "./hosting/arweave.js";
 import { fetchIpfsSite } from "./hosting/ipfs.js";
 import { parseHostingTarget } from "./hosting/targets.js";
@@ -632,6 +634,40 @@ async function resolveVia(url: string, queryBytes: Buffer): Promise<Uint8Array> 
   } finally {
     clearTimeout(timer);
   }
+}
+
+function normalizeDnsQtype(value: unknown): "A" | "AAAA" | null {
+  if (typeof value === "number") {
+    if (value === 1) return "A";
+    if (value === 28) return "AAAA";
+    return null;
+  }
+  if (typeof value === "string") {
+    const upper = value.toUpperCase();
+    if (upper === "A" || upper === "AAAA") return upper;
+  }
+  return null;
+}
+
+function decodeBase64UrlToBuffer(input: string): Buffer {
+  const normalized = input.replace(/-/g, "+").replace(/_/g, "/");
+  const padding = normalized.length % 4 === 0 ? "" : "=".repeat(4 - (normalized.length % 4));
+  return Buffer.from(`${normalized}${padding}`, "base64");
+}
+
+function encodeDnsWireResponse(
+  id: number,
+  questions: Array<{ type: any; name: string; class?: any }>,
+  rcode: number,
+  answers: Array<{ type: "A" | "AAAA"; name: string; class: "IN"; ttl: number; data: string }>
+) {
+  return dnsPacket.encode({
+    type: "response",
+    id,
+    flags: dnsPacket.RECURSION_DESIRED | dnsPacket.RECURSION_AVAILABLE | (rcode & 0x0f),
+    questions,
+    answers
+  });
 }
 
 export function createApp(overrides?: { adapterRegistry?: { resolveAuto: typeof adapterRegistry.resolveAuto } }) {
@@ -1692,99 +1728,122 @@ export function createApp(overrides?: { adapterRegistry?: { resolveAuto: typeof 
     }
   });
 
+  async function resolveDohAnswers(qnameInput: string, qtype: "A" | "AAAA") {
+    const qname = normalizeNameForHash(qnameInput);
+    if (qname.endsWith(".dns")) {
+      try {
+        const route = await activeAdapterRegistry.resolveAuto({
+          name: qname,
+          nowUnix: Math.floor(Date.now() / 1000),
+          network: "gateway",
+          opts: {
+            timeoutMs: REQUEST_TIMEOUT_MS,
+            qtype
+          }
+        });
+        const dest = String(route?.dest || "");
+        const ipKind = isIP(dest);
+        if ((qtype === "A" && ipKind === 4) || (qtype === "AAAA" && ipKind === 6)) {
+          return {
+            rcode: 0,
+            answers: [{ type: qtype, name: qname, class: "IN" as const, ttl: Number(route.ttlS || 60), data: dest }]
+          };
+        }
+        return { rcode: 3, answers: [] };
+      } catch {
+        return { rcode: 3, answers: [] };
+      }
+    }
+
+    const out = await recursiveAdapter.resolveRecursive(qname, qtype);
+    if (out.status === "NXDOMAIN") {
+      return { rcode: 3, answers: [] };
+    }
+    const answers = out.answers
+      .filter((answer) => answer.type === qtype && ((qtype === "A" && isIP(answer.data) === 4) || (qtype === "AAAA" && isIP(answer.data) === 6)))
+      .map((answer) => ({
+        type: qtype,
+        name: answer.name,
+        class: "IN" as const,
+        ttl: Math.max(1, Math.min(Number(answer.ttl || out.ttlS || 60), Number(out.ttlS || 60))),
+        data: answer.data
+      }));
+    return { rcode: answers.length ? 0 : 3, answers };
+  }
+
+  async function handleDohWireQuery(queryBuffer: Buffer) {
+    const decoded = dnsPacket.decode(queryBuffer) as any;
+    const question = Array.isArray(decoded?.questions) ? decoded.questions[0] : null;
+    const qname = question?.name ? String(question.name) : "";
+    const qtype = normalizeDnsQtype(question?.type);
+    const id = Number(decoded?.id || 0);
+    const questions = Array.isArray(decoded?.questions) ? decoded.questions : [];
+
+    if (!qname || !qtype) {
+      const response = encodeDnsWireResponse(id, questions, 4, []);
+      return { wire: Buffer.from(response), rcode: 4, answers: [] };
+    }
+
+    try {
+      const resolved = await resolveDohAnswers(qname, qtype);
+      const response = encodeDnsWireResponse(id, questions, resolved.rcode, resolved.answers);
+      return { wire: Buffer.from(response), rcode: resolved.rcode, answers: resolved.answers };
+    } catch {
+      const response = encodeDnsWireResponse(id, questions, 2, []);
+      return { wire: Buffer.from(response), rcode: 2, answers: [] };
+    }
+  }
+
   app.get("/dns-query", async (req, res) => {
     try {
-      const host = typeof req.headers.host === "string" ? req.headers.host : "";
-      const identity = parseIdentityFromHost(host);
-      if (!identity) {
-        return res.status(400).json({ ok: false, error: "invalid_identity_host" });
-      }
-      if (!(await mintExists(identity))) {
-        return res.status(400).json({ ok: false, error: "mint_not_found" });
-      }
       const accept = typeof req.headers.accept === "string" ? req.headers.accept : "";
-      const name = typeof req.query.name === "string" ? req.query.name : "";
-      const rrtype = typeof req.query.type === "string" ? req.query.type.toUpperCase() : "A";
-      if (!name) return res.status(400).json({ ok: false, error: "missing_name" });
-      const cacheKey = `${identity}:${name.toLowerCase()}:${rrtype}`;
-      const idCache = mintCaches.get(identity);
-      const hit = idCache?.get(cacheKey);
-      if (hit && hit.expiresAt > Date.now()) {
-        const answers = [{ name, type: rrtype, TTL: hit.ttl, data: hit.value }];
-        if (accept.includes("application/dns-message")) {
-          const response = dnsPacket.encode({
-            type: "response",
-            id: Math.floor(Math.random() * 65535),
-            flags: dnsPacket.RECURSION_DESIRED,
-            questions: [{ type: rrtype as any, name, class: "IN" }],
-            answers: [{ type: rrtype as any, name, class: "IN", ttl: hit.ttl, data: hit.value }] as any
-          });
-          return res.set("content-type", "application/dns-message").send(Buffer.from(response));
+      const dnsParam = typeof req.query.dns === "string" ? req.query.dns : "";
+
+      let wireQuery: Buffer | null = null;
+      if (dnsParam) {
+        wireQuery = decodeBase64UrlToBuffer(dnsParam);
+      } else {
+        const name = typeof req.query.name === "string" ? req.query.name : "";
+        const qtype = typeof req.query.type === "string" ? req.query.type.toUpperCase() : "A";
+        const normalizedQtype = normalizeDnsQtype(qtype);
+        if (!name || !normalizedQtype) {
+          return res.status(400).json({ error: "missing_or_invalid_query" });
         }
-        return res.json({ Status: 0, Answer: answers });
-      }
-      if (name.toLowerCase().endsWith(".dns")) {
-        return res.json({ Status: 3, Answer: [] });
-      }
-      const { records, ttl } = await resolveViaDoh(name);
-      const answers = records.map((r) => ({ name, type: r.type, TTL: r.ttl ?? ttl, data: r.value }));
-      if (accept.includes("application/dns-message")) {
-        const response = dnsPacket.encode({
-          type: "response",
+        wireQuery = Buffer.from(dnsPacket.encode({
+          type: "query",
           id: Math.floor(Math.random() * 65535),
           flags: dnsPacket.RECURSION_DESIRED,
-          questions: [{ type: rrtype as any, name, class: "IN" }],
-          answers: answers.map((a) => ({ type: a.type as any, name: a.name, class: "IN", ttl: a.TTL, data: a.data })) as any
-        });
-        return res.set("content-type", "application/dns-message").send(Buffer.from(response));
+          questions: [{ type: normalizedQtype, name, class: "IN" }]
+        }));
       }
-      return res.json({ Status: 0, Answer: answers });
+
+      const out = await handleDohWireQuery(wireQuery);
+      if (!dnsParam && !accept.includes("application/dns-message")) {
+        return res.json({
+          Status: out.rcode,
+          Answer: out.answers.map((answer) => ({
+            name: answer.name,
+            type: answer.type,
+            TTL: answer.ttl,
+            data: answer.data
+          }))
+        });
+      }
+
+      return res.set("content-type", "application/dns-message").status(200).send(out.wire);
     } catch (err: any) {
-      return res.status(500).json({ ok: false, error: String(err?.message || err) });
+      return res.status(400).json({ error: String(err?.message || "invalid_dns_query") });
     }
   });
 
   app.post("/dns-query", async (req, res) => {
     try {
-      const host = typeof req.headers.host === "string" ? req.headers.host : "";
-      const identity = parseIdentityFromHost(host);
-      if (!identity) {
-        return res.status(400).json({ ok: false, error: "invalid_identity_host" });
-      }
-      if (!(await mintExists(identity))) {
-        return res.status(400).json({ ok: false, error: "mint_not_found" });
-      }
-      const body = req.body instanceof Buffer ? req.body : Buffer.from(req.body);
-      const decoded = dnsPacket.decode(body);
-      const qname = decoded?.questions?.[0]?.name || "";
-      const qtype = decoded?.questions?.[0]?.type || "A";
-      const cacheKey = `${identity}:${qname.toLowerCase()}:${qtype}`;
-      const idCache = mintCaches.get(identity);
-      const hit = idCache?.get(cacheKey);
-      if (hit && hit.expiresAt > Date.now()) {
-        const response = dnsPacket.encode({
-          type: "response",
-          id: decoded.id,
-          flags: dnsPacket.RECURSION_DESIRED,
-          questions: decoded.questions,
-          answers: [{ type: qtype as any, name: qname, class: "IN", ttl: hit.ttl, data: hit.value }] as any
-        });
-        return res.set("content-type", "application/dns-message").send(Buffer.from(response));
-      }
-      if (qname.toLowerCase().endsWith(".dns")) {
-        const response = dnsPacket.encode({
-          type: "response",
-          id: decoded.id,
-          flags: dnsPacket.RECURSION_DESIRED,
-          questions: decoded.questions,
-          answers: []
-        });
-        return res.set("content-type", "application/dns-message").send(Buffer.from(response));
-      }
-      const responseBytes = await resolveVia(UPSTREAM_DOH_URL, body);
-      return res.set("content-type", "application/dns-message").send(Buffer.from(responseBytes));
+      const body = req.body instanceof Buffer ? req.body : Buffer.from(req.body || []);
+      if (!body.length) return res.status(400).json({ error: "empty_dns_query" });
+      const out = await handleDohWireQuery(body);
+      return res.set("content-type", "application/dns-message").status(200).send(out.wire);
     } catch (err: any) {
-      return res.status(500).json({ ok: false, error: String(err?.message || err) });
+      return res.status(400).json({ error: String(err?.message || "invalid_dns_query") });
     }
   });
 

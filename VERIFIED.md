@@ -1586,3 +1586,31 @@ PENDING_STATUS=pending
 PAID_STATUS=paid
 FINAL_STATUS=paid
 ```
+
+## 2026-02-21 — RFC8484 DoH endpoint for Firefox TRR (`/dns-query`)
+
+Commands:
+```bash
+npm -C gateway test && npm -C gateway run build
+npm test
+PORT=18054 node gateway/dist/server.js
+node --input-type=module <<'NODE'
+import dnsPacket from './gateway/node_modules/dns-packet/index.js';
+const query = dnsPacket.encode({ type: 'query', id: 4242, flags: dnsPacket.RECURSION_DESIRED, questions: [{ type: 'A', name: 'netflix.com', class: 'IN' }] });
+const res = await fetch('http://127.0.0.1:18054/dns-query', { method: 'POST', headers: { 'content-type': 'application/dns-message', 'accept': 'application/dns-message' }, body: Buffer.from(query) });
+const buf = Buffer.from(await res.arrayBuffer());
+const decoded = dnsPacket.decode(buf);
+console.log(`DOH_STATUS=${res.status}`);
+console.log(`DOH_ANSWER_COUNT=${(decoded.answers || []).length}`);
+console.log(`DOH_FIRST=${decoded.answers?.[0]?.type}:${decoded.answers?.[0]?.data}:ttl=${decoded.answers?.[0]?.ttl}`);
+NODE
+```
+
+Output snippet:
+```text
+gateway vitest: 16 files passed, 54 tests passed
+==> run_all: complete
+DOH_STATUS=200
+DOH_ANSWER_COUNT=3
+DOH_FIRST=A:44.234.232.238:ttl=30
+```
