@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "TollDNS DoH Helper",
+  "version": "0.1.0",
+  "description": "Copy/paste helper for configuring Firefox TRR DoH endpoint to a TollDNS gateway.",
+  "action": {
+    "default_title": "TollDNS DoH Helper",
+    "default_popup": "popup.html"
+  },
+  "permissions": [
+    "clipboardWrite"
+  ]
+}

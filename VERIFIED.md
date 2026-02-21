@@ -1614,3 +1614,22 @@ DOH_STATUS=200
 DOH_ANSWER_COUNT=3
 DOH_FIRST=A:44.234.232.238:ttl=30
 ```
+
+## 2026-02-21 — Firefox DoH helper extension UX
+
+Commands:
+```bash
+npm test
+ls -la plugins/firefox-ddns
+```
+
+Output snippet:
+```text
+==> run_all: complete
+
+plugins/firefox-ddns:
+manifest.json
+popup.html
+popup.js
+README.md
+```
