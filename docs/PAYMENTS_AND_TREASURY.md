@@ -14,22 +14,32 @@
 
 - Crypto checkout uses a short-lived quote lock (typically 60-120 seconds).
 - This limits price drift during payment authorization.
+- If a quote expires before payment confirmation, checkout returns a new quote and refreshed payment amount in crypto units while USD price remains unchanged.
+- Expired quotes are never auto-charged.
 
 ## Settlement model
 
 - Crypto payments settle to USDC (default) or USD treasury balances.
 - Treasury policy avoids relying on long-duration volatile holdings for user commitments.
+- Treasury target is to neutralize volatility risk quickly after payment confirmation, with stable settlement as the default path.
 
 ## Hedge posture (MVP-safe)
 
 - Reserve posture targets mostly stable balances (USDC/USD equivalent).
 - Keep a SOL hot buffer for operational chain costs.
-- Rebalance periodically to maintain runway targets.
+- Baseline runway target: maintain at least 30 days of projected SOL operational spend in hot reserves.
+- Rebalance on a fixed cadence (for example daily/weekly policy windows) and on threshold breaches (for example hot buffer below target).
 
 ## Refunds and chargebacks
 
 - Refunds are calculated in USD terms.
 - Crypto refunds may be issued as stablecoin-equivalent value based on policy at refund time.
+
+## Fraud and abuse controls
+
+- Rate limits apply to payment-sensitive and subsidy-sensitive endpoints.
+- Resource-heavy hosting tiers are escrow/bond gated; there is no unlimited free resource tier.
+- High-risk abuse signals (spam/malware/churn) can suspend subsidy eligibility under policy controls.
 
 ## Continuity + failed payment
 

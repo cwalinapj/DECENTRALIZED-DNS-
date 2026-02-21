@@ -22,6 +22,8 @@ Dashboard: `docs/dashboard/index.html` (read-only, safe when empty; optional Pag
 - Users can pay in USD (recommended) or crypto; TollDNS handles volatility and settlement behind the scenes.
 - No crypto is required for user onboarding.
 
+Pay in USD is the default product path; crypto checkout is optional and quote-locked, with treasury-side settlement and hedging hidden from users.
+
 See:
 - `docs/WEB2_PRICING_MODEL.md`
 - `docs/PAYMENTS_AND_TREASURY.md`
