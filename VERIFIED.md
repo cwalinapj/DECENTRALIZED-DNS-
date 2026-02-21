@@ -1418,3 +1418,41 @@ SITE_HEADERS {
   "cache_control": "public, max-age=31536000, immutable"
 }
 ```
+
+## 2026-02-21 — devnet deploy wave `DEPLOY_ALL=1` support
+
+Commands:
+```bash
+DRY_RUN=1 bash scripts/devnet_deploy_wave.sh
+DEPLOY_ALL=1 DRY_RUN=1 bash scripts/devnet_deploy_wave.sh
+bash scripts/devnet_inventory.sh
+npm test
+```
+
+Output snippet:
+```text
+# default mode (DEPLOY_ALL=0)
+- deploy_all: 0
+- missing_required_count: 0
+- missing_optional_count: 8
+- scheduled_count: 0
+action: no programs scheduled for deployment
+reason: no missing REQUIRED programs (optional may still be missing: 8)
+
+# deploy-all mode
+- deploy_all: 1
+- missing_required_count: 0
+- missing_optional_count: 8
+- scheduled_count: 8
+planned_deploy_order: ddns_domain_rewards ddns_rewards ddns_operators ddns_miner_score ddns_names ddns_cache_head ddns_rep ddns_witness_rewards
+
+# inventory summary
+- required_fail: 0
+- optional_missing: 8
+- optional_nonexec: 0
+- optional_fail: 8
+
+# harness
+[protocol-gate] PASS: no protocol drift
+==> run_all: complete
+```

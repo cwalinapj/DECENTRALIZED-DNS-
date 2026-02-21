@@ -8,6 +8,7 @@ INVENTORY_SCRIPT="$ROOT_DIR/scripts/devnet_inventory.sh"
 RPC_URL="${SOLANA_RPC_URL:-https://api.devnet.solana.com}"
 WALLET_PATH="${WALLET:-${ANCHOR_WALLET:-$HOME/.config/solana/id.json}}"
 DRY_RUN="${DRY_RUN:-1}"
+DEPLOY_ALL="${DEPLOY_ALL:-0}"
 APPEND_VERIFIED="${APPEND_VERIFIED:-0}"
 RPC_RETRIES="${RPC_RETRIES:-4}"
 RPC_RETRY_DELAY_S="${RPC_RETRY_DELAY_S:-2}"
@@ -132,23 +133,41 @@ echo "WALLET_SOL=$wallet_sol"
 run_inventory || true
 
 missing_required=()
+missing_optional=()
 while read -r p; do
   [[ -n "$p" ]] && missing_required+=("$p")
-done < <(jq -r '.summary.missing_required[]?, .summary.nonexec_required[]?' "$ROOT_DIR/artifacts/devnet_inventory.json" | sort -u)
+done < <(jq -r '.programs[] | select(.tier == "REQUIRED" and ((.exists | not) or (.executable | not))) | .name' "$ROOT_DIR/artifacts/devnet_inventory.json")
+while read -r p; do
+  [[ -n "$p" ]] && missing_optional+=("$p")
+done < <(jq -r '.programs[] | select(.tier == "OPTIONAL" and ((.exists | not) or (.executable | not))) | .name' "$ROOT_DIR/artifacts/devnet_inventory.json")
 
-ordered_missing=()
+missing_required_count="${#missing_required[@]}"
+missing_optional_count="${#missing_optional[@]}"
+missing_total_count=$((missing_required_count + missing_optional_count))
+
+ordered_required=()
 for p in "${DEMO_CRITICAL_REQUIRED[@]}"; do
   for m in "${missing_required[@]:-}"; do
     if [[ "$p" == "$m" ]]; then
-      ordered_missing+=("$p")
+      ordered_required+=("$p")
       break
     fi
   done
 done
 
+ordered_optional=()
+while read -r p; do
+  [[ -n "$p" ]] && ordered_optional+=("$p")
+done < <(jq -r '.programs[] | select(.tier == "OPTIONAL" and ((.exists | not) or (.executable | not))) | .name' "$ROOT_DIR/artifacts/devnet_inventory.json")
+
+deploy_targets=("${ordered_required[@]}")
+if [[ "$DEPLOY_ALL" == "1" ]]; then
+  deploy_targets+=("${ordered_optional[@]}")
+fi
+
 est_total_lamports=0
 plan_rows=()
-for prog in "${ordered_missing[@]:-}"; do
+for prog in "${deploy_targets[@]}"; do
   so_path="$SOLANA_DIR/target/deploy/${prog}.so"
   keypair_path="$SOLANA_DIR/target/deploy/${prog}-keypair.json"
   program_id="$(extract_devnet_program_id "$prog")"
@@ -167,18 +186,24 @@ plan_file="$ROOT_DIR/artifacts/devnet_deploy_wave_plan.md"
   echo "- rpc: $RPC_URL"
   echo "- wallet: $wallet_pubkey"
   echo "- wallet_sol: $wallet_sol"
-  echo "- missing_required_count: ${#ordered_missing[@]}"
+  echo "- deploy_all: $DEPLOY_ALL"
+  echo "- missing_required_count: $missing_required_count"
+  echo "- missing_optional_count: $missing_optional_count"
+  echo "- missing_total_count: $missing_total_count"
+  echo "- scheduled_count: ${#deploy_targets[@]}"
   echo "- estimated_buffer_lamports_total: $est_total_lamports"
   echo "- estimated_buffer_sol_total: $est_total_sol"
   echo
-  echo "| Program | Program ID (Anchor.toml) | .so path | keypair path | Est. buffer lamports |"
-  echo "|---|---|---|---|---:|"
-  if [[ ${#plan_rows[@]} -eq 0 ]]; then
-    echo "| (none) | - | - | - | 0 |"
-  else
+  echo "| Program | Tier | Program ID (Anchor.toml) | .so path | keypair path | Est. buffer lamports |"
+  echo "|---|---|---|---|---|---:|"
+  if [[ ${#plan_rows[@]} -gt 0 ]]; then
     for row in "${plan_rows[@]}"; do
-      IFS='|' read -r prog pid so keypair est <<< "$row"
-      echo "| $prog | \`$pid\` | \`$so\` | \`$keypair\` | $est |"
+      IFS='|' read -r prog pid so keypair est <<<"$row"
+      tier="OPTIONAL"
+      if is_required "$prog"; then
+        tier="REQUIRED"
+      fi
+      echo "| $prog | $tier | \`$pid\` | \`$so\` | \`$keypair\` | $est |"
     done
   fi
 } > "$plan_file"
@@ -195,10 +220,15 @@ echo "TOP_UP_TARGET_SOL=$top_up_target_sol"
 if [[ "$DRY_RUN" == "1" ]]; then
   echo
   echo "dry_run: true"
-  if [[ ${#ordered_missing[@]} -eq 0 ]]; then
-    echo "action: no missing REQUIRED programs"
+  if [[ ${#deploy_targets[@]} -eq 0 ]]; then
+    echo "action: no programs scheduled for deployment"
+    if [[ "$DEPLOY_ALL" == "1" ]]; then
+      echo "reason: no missing programs in [programs.devnet]"
+    else
+      echo "reason: no missing REQUIRED programs (optional may still be missing: $missing_optional_count)"
+    fi
   else
-    echo "planned_deploy_order: ${ordered_missing[*]}"
+    echo "planned_deploy_order: ${deploy_targets[*]}"
     if (( wallet_lamports < est_total_lamports )); then
       shortfall=$((est_total_lamports - wallet_lamports))
       shortfall_sol="$(echo "scale=9; $shortfall / 1000000000" | bc -l)"
@@ -208,13 +238,17 @@ if [[ "$DRY_RUN" == "1" ]]; then
   exit 0
 fi
 
-if [[ ${#ordered_missing[@]} -eq 0 ]]; then
-  echo "no_missing_required_programs"
+if [[ ${#deploy_targets[@]} -eq 0 ]]; then
+  if [[ "$DEPLOY_ALL" == "1" ]]; then
+    echo "no_missing_programs"
+  else
+    echo "no_missing_required_programs"
+  fi
 else
   deploy_log="$ROOT_DIR/artifacts/devnet_deploy_wave.log"
   : > "$deploy_log"
 
-  for prog in "${ordered_missing[@]}"; do
+  for prog in "${deploy_targets[@]}"; do
     echo "==> deploying: $prog"
     (
       cd "$SOLANA_DIR"
