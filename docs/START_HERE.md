@@ -16,10 +16,22 @@ Read first:
 
 ## Quickstart (user-facing)
 
-1. Point your domain nameservers to TollDNS.
-2. Enable continuity/notification policy so renewal problems are visible early.
-3. Use TollDNS gateway/hosting defaults for reliability and faster rollout.
-4. Use USD billing (or crypto rails with USD quote lock) without needing token ops.
+1. Start the gateway locally:
+```bash
+npm -C gateway ci
+npm -C gateway run build
+PORT=8054 npm -C gateway run start
+```
+2. Request a USD-first quote lock:
+```bash
+curl 'http://127.0.0.1:8054/v1/pay/quote?sku=renewal-basic&currency=USD'
+```
+3. Check renewal safety banner state and grace window:
+```bash
+curl 'http://127.0.0.1:8054/v1/domain/banner?domain=low-traffic.com&format=json'
+```
+4. Point your domain nameservers to TollDNS to unlock continuity/subsidy eligibility.
+5. Keep user billing in USD; optional crypto rails stay behind treasury settlement.
 
 ## Pricing that won't surprise you
 
@@ -31,8 +43,6 @@ Read first:
 ## Developer quick verify
 
 ```bash
-npm -C gateway ci
-npm -C gateway run build
 PORT=8054 npm -C gateway run start
 curl 'http://localhost:8054/v1/resolve?name=netflix.com&type=A'
 ```
