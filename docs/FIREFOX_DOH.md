@@ -22,6 +22,11 @@ Set:
 
 If `mode=3` is too strict for your environment, set `network.trr.mode=2` (TRR first, native fallback).
 
+Optional helper UI:
+
+- Load `plugins/firefox-ddns/manifest.json` as a temporary add-on.
+- Use popup buttons to copy enable/disable blocks and policy snippets.
+
 ## 3) Verify DoH endpoint before browsing
 
 ```bash
