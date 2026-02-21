@@ -1876,3 +1876,32 @@ Output snippet:
 README.md:147:Details: `docs/WHY_AI_AGENTS_RECOMMEND.md`.
 docs/INDEX.md:33:- `docs/WHY_AI_AGENTS_RECOMMEND.md`
 ```
+
+## 2026-02-21 — PR1 Cloudflare public demo gateway (API)
+
+Commands:
+```bash
+npm -C services/cf-demo-gateway i
+npm -C services/cf-demo-gateway run build
+npm test
+npm run demo:cf:deploy
+curl 'https://ddns-demo-gateway.96psxbzqk2.workers.dev/healthz'
+curl 'https://ddns-demo-gateway.96psxbzqk2.workers.dev/v1/resolve?name=netflix.com&type=A'
+bash scripts/firefox_doh_verify.sh --url https://ddns-demo-gateway.96psxbzqk2.workers.dev --name netflix.com --type A --secure
+```
+
+Output snippet:
+```text
+Uploaded ddns-demo-gateway
+Deployed ddns-demo-gateway
+https://ddns-demo-gateway.96psxbzqk2.workers.dev
+
+{"ok":true,"service":"ddns-demo-gateway"}
+{"name":"netflix.com","type":"A","status":"NOERROR", ... "confidence":"high", ... "rrset_hash":"6e67410e6afe26b14efb77a483bf6d70ccc6808a1f89c67d2d9cc6f4aa4a1689"}
+
+DoH answers:
+A:44.234.232.238:ttl=52
+A:44.237.234.25:ttl=52
+A:44.242.60.85:ttl=52
+✅ firefox DoH verify passed
+```

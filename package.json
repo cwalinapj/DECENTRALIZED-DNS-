@@ -16,6 +16,8 @@
     "rent:bond:keepalive": "tsx scripts/rent_bond_keepalive.ts",
     "miner:cf:deploy": "cd services/cf-worker-miner && npm i && npx wrangler deploy",
     "miner:cf:dev": "cd services/cf-worker-miner && npm i && npx wrangler dev",
+    "demo:cf:deploy": "cd services/cf-demo-gateway && npm i && npx wrangler deploy",
+    "demo:cf:dev": "cd services/cf-demo-gateway && npm i && npx wrangler dev --local --port 8788",
     "openapi:verify": "bash scripts/openapi_verify.sh"
   },
   "dependencies": {
