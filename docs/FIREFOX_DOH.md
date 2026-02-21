@@ -1,8 +1,8 @@
-# Firefox DoH (RFC8484) via Local TollDNS Gateway
+# Firefox DoH Local Test (RFC8484)
 
-Use Firefox TRR with the gateway DoH endpoint so hostnames stay intact and TLS certificates remain valid.
+Use this for local DoH sanity checks against the gateway. For the full Firefox TRR walkthrough, use `docs/FIREFOX_TRR.md`.
 
-## 1) Start the gateway
+## Start gateway + local TLS proxy
 
 ```bash
 npm -C gateway ci
@@ -10,37 +10,27 @@ npm -C gateway run build
 PORT=8054 node gateway/dist/server.js
 ```
 
-## 2) Configure Firefox (`about:config`)
-
-Set:
-
-- `network.trr.mode` = `3` (TRR only)
-- `network.trr.uri` = `http://127.0.0.1:8054/dns-query`
-- `network.trr.custom_uri` = `http://127.0.0.1:8054/dns-query`
-- `network.trr.allow-rfc1918` = `true`
-- `network.trr.bootstrapAddress` = `127.0.0.1`
-
-If `mode=3` is too strict for your environment, set `network.trr.mode=2` (TRR first, native fallback).
-
-Optional helper UI:
-
-- Load `plugins/firefox-ddns/manifest.json` as a temporary add-on.
-- Use popup buttons to copy enable/disable blocks and policy snippets.
-
-## 3) Verify DoH endpoint before browsing
+In a second terminal:
 
 ```bash
-bash scripts/firefox_doh_verify.sh
-bash scripts/firefox_doh_verify.sh --url http://127.0.0.1:8054 --name netflix.com --type A
+bash scripts/firefox_trr_tls_proxy.sh
 ```
 
-Expected: script prints parsed DoH answers, then a resolve summary with `confidence` and `rrset_hash`, and exits `0`.
+The DoH URL is:
 
-## 4) Browse normally
+```text
+https://127.0.0.1:8443/dns-query
+```
 
-Open `https://netflix.com` in Firefox. Navigation must remain by hostname, not raw IP.
+## Verify with wireformat DoH
 
-## Notes
+```bash
+bash scripts/firefox_doh_verify.sh --url https://127.0.0.1:8443 --name netflix.com --type A --insecure
+```
 
-- Endpoint is RFC8484 wireformat at `GET/POST /dns-query` with `application/dns-message`.
-- `.dns` names are resolved through PKDNS path when available; unresolved names return DNS `NXDOMAIN`.
+Expected:
+- HTTP 200 from `/dns-query`
+- parsed A answers printed
+- resolve summary includes `confidence` and `rrset_hash`
+- script exits `0`
+

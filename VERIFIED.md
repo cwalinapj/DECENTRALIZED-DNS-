@@ -1703,3 +1703,31 @@ Output snippet:
 quote.usd_price=12 quote.disclaimer="Quote expires; refresh on expiry"
 banner.domain=low-traffic.com banner.banner_state=renewal_due grace_seconds_remaining=3023999
 ```
+
+## 2026-02-21 — Firefox TRR HTTPS local test (`/dns-query`)
+
+Commands:
+```bash
+npm -C gateway test && npm -C gateway run build
+npm test
+PORT=18054 node gateway/dist/server.js
+TLS_PROXY_TARGET=http://127.0.0.1:18054 TLS_PROXY_PORT=18443 bash scripts/firefox_trr_tls_proxy.sh
+bash scripts/firefox_doh_verify.sh --url https://127.0.0.1:18443 --name netflix.com --type A --insecure
+```
+
+Output snippet:
+```text
+gateway vitest: 17 files passed, 57 tests passed
+==> run_all: complete
+DoH answers:
+A:44.242.13.161:ttl=9
+A:52.38.7.83:ttl=9
+A:44.240.158.19:ttl=9
+resolve summary: confidence=low rrset_hash=193fafc674490ac59d35ba1aaa4b73807f404e89592d980ca6310aa70011616c
+✅ firefox DoH verify passed
+```
+
+Manual note:
+```text
+Firefox browse validation is a manual GUI step: open https://netflix.com after setting TRR prefs in docs/FIREFOX_TRR.md and confirm hostname is preserved.
+```
