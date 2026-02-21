@@ -42,6 +42,7 @@ import {
 import { createDomainStatusStore } from "./lib/domain_status_store.js";
 import { createCreditsLedger } from "./lib/credits_ledger.js";
 import { createRegistrarProvider, parseRegistrarProvider } from "./lib/registrar_provider.js";
+import { createMockPaymentsProvider, type PaymentRail } from "@ddns/payments";
 
 const PORT = Number(process.env.PORT || "8054");
 const HOST = process.env.HOST || "0.0.0.0";
@@ -108,6 +109,8 @@ const CREDITS_LEDGER_STORE_PATH = process.env.CREDITS_LEDGER_STORE_PATH || "gate
 const DOMAIN_CREDITS_ADMIN_TOKEN = process.env.DOMAIN_CREDITS_ADMIN_TOKEN || "mvp-local-admin";
 const REGISTRAR_ENABLED = process.env.REGISTRAR_ENABLED === "1";
 const REGISTRAR_PROVIDER = parseRegistrarProvider(process.env.REGISTRAR_PROVIDER || "mock");
+const PAYMENTS_PROVIDER = process.env.PAYMENTS_PROVIDER || "mock";
+const PAYMENTS_MOCK_ENABLED = process.env.PAYMENTS_MOCK_ENABLED === "1";
 const PORKBUN_API_KEY = process.env.PORKBUN_API_KEY || "";
 const PORKBUN_SECRET_API_KEY = process.env.PORKBUN_SECRET_API_KEY || "";
 const PORKBUN_ENDPOINT = process.env.PORKBUN_ENDPOINT || "https://api.porkbun.com/api/json/v3";
@@ -429,10 +432,17 @@ const registrarRuntime = createRegistrarProvider({
 });
 const registrarAdapter = registrarRuntime.adapter;
 const creditsLedger = createCreditsLedger(CREDITS_LEDGER_STORE_PATH);
+const paymentsProvider = createMockPaymentsProvider();
+const PAYMENT_RAILS: PaymentRail[] = ["card", "ach", "usdc", "sol", "eth", "btc", "other"];
 
 function isAdminStubAuthorized(req: express.Request): boolean {
   const token = req.header("X-Admin-Token") || req.header("x-admin-token") || "";
   return token === DOMAIN_CREDITS_ADMIN_TOKEN;
+}
+
+function parsePaymentRail(value: unknown): PaymentRail | null {
+  if (typeof value !== "string") return null;
+  return PAYMENT_RAILS.includes(value as PaymentRail) ? (value as PaymentRail) : null;
 }
 
 const cache = new Map<string, { expiresAt: number; payload: ResolveResponse }>();
@@ -631,6 +641,81 @@ export function createApp(overrides?: { adapterRegistry?: { resolveAuto: typeof 
   app.use("/dns-query", express.raw({ type: ["application/dns-message"], limit: "512kb" }));
 
   app.get("/healthz", (_req, res) => res.json({ status: "ok" }));
+
+  app.post("/v1/payments/quote", express.json(), async (req, res) => {
+    if (!PAYMENTS_MOCK_ENABLED || PAYMENTS_PROVIDER !== "mock") {
+      return res.status(404).json({ error: "payments_disabled" });
+    }
+    const sku = typeof req.body?.sku === "string" ? req.body.sku.trim() : "";
+    const amountCents = Number(req.body?.money?.amountCents);
+    const currency = req.body?.money?.currency;
+    const customerHint = typeof req.body?.customerHint === "string" ? req.body.customerHint : undefined;
+    const railsInput = Array.isArray(req.body?.rails) ? (req.body.rails as unknown[]) : [];
+    const rails = railsInput
+      .map(parsePaymentRail)
+      .filter((value: PaymentRail | null): value is PaymentRail => value !== null);
+    if (!sku) return res.status(400).json({ error: "missing_sku" });
+    if (!Number.isFinite(amountCents) || amountCents <= 0) return res.status(400).json({ error: "invalid_amount" });
+    if (currency !== "USD") return res.status(400).json({ error: "unsupported_currency" });
+    if (rails.length === 0) return res.status(400).json({ error: "invalid_rails" });
+    try {
+      const quote = await paymentsProvider.createQuote({
+        sku,
+        money: { amountCents, currency: "USD" },
+        rails,
+        customerHint
+      });
+      return res.json({
+        provider: "mock",
+        ...quote
+      });
+    } catch (err: any) {
+      return res.status(400).json({ error: String(err?.message || "quote_failed") });
+    }
+  });
+
+  app.post("/v1/payments/checkout", express.json(), async (req, res) => {
+    if (!PAYMENTS_MOCK_ENABLED || PAYMENTS_PROVIDER !== "mock") {
+      return res.status(404).json({ error: "payments_disabled" });
+    }
+    const quoteId = typeof req.body?.quoteId === "string" ? req.body.quoteId : "";
+    const rail = parsePaymentRail(req.body?.rail);
+    const returnUrl = typeof req.body?.returnUrl === "string" ? req.body.returnUrl : "";
+    if (!quoteId) return res.status(400).json({ error: "missing_quote_id" });
+    if (!rail) return res.status(400).json({ error: "invalid_rail" });
+    if (!returnUrl) return res.status(400).json({ error: "missing_return_url" });
+    try {
+      const checkout = await paymentsProvider.createCheckout({ quoteId, rail, returnUrl });
+      return res.json({
+        provider: "mock",
+        ...checkout
+      });
+    } catch (err: any) {
+      return res.status(400).json({ error: String(err?.message || "checkout_failed") });
+    }
+  });
+
+  app.get("/v1/payments/status", async (req, res) => {
+    if (!PAYMENTS_MOCK_ENABLED || PAYMENTS_PROVIDER !== "mock") {
+      return res.status(404).json({ error: "payments_disabled" });
+    }
+    const id = typeof req.query.id === "string" ? req.query.id : "";
+    if (!id) return res.status(400).json({ error: "missing_id" });
+    const status = await paymentsProvider.getStatus(id);
+    return res.json({ id, status, provider: "mock" });
+  });
+
+  app.post("/mock-pay/mark-paid", async (req, res) => {
+    if (!PAYMENTS_MOCK_ENABLED || PAYMENTS_PROVIDER !== "mock") {
+      return res.status(404).json({ error: "payments_disabled" });
+    }
+    const id = typeof req.query.id === "string" ? req.query.id : "";
+    if (!id) return res.status(400).json({ error: "missing_id" });
+    const marked = paymentsProvider.markPaid(id);
+    if (!marked) return res.status(404).json({ error: "checkout_not_found_or_expired" });
+    const status = await paymentsProvider.getStatus(id);
+    return res.json({ id, status, provider: "mock" });
+  });
 
   app.get("/v1/registrar/domain", async (req, res) => {
     try {
