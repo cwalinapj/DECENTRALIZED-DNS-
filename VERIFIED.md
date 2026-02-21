@@ -1633,3 +1633,24 @@ popup.html
 popup.js
 README.md
 ```
+
+## 2026-02-21 — Firefox DoH proof script (`scripts/firefox_doh_verify.sh`)
+
+Commands:
+```bash
+npm test
+PORT=18054 node gateway/dist/server.js
+bash scripts/firefox_doh_verify.sh --url http://127.0.0.1:18054 --name netflix.com --type A
+```
+
+Output snippet:
+```text
+==> run_all: complete
+DoH answers:
+A:44.240.158.19:ttl=30
+A:44.242.13.161:ttl=30
+A:52.38.7.83:ttl=30
+resolve summary: confidence=low rrset_hash=193fafc674490ac59d35ba1aaa4b73807f404e89592d980ca6310aa70011616c
+✅ firefox DoH verify passed
+FIREFOX_DOH_VERIFY_EXIT=0
+```
