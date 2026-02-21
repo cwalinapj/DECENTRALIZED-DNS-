@@ -1555,3 +1555,34 @@ docs/START_HERE.md:13:- `docs/WEB2_PRICING_MODEL.md`
 docs/START_HERE.md:14:- `docs/PAYMENTS_AND_TREASURY.md`
 docs/WEB2_PRICING_MODEL.md:8:- Pay in USD is the default experience; crypto is optional and handled behind the scenes.
 ```
+
+## 2026-02-21 — Payment provider abstraction + mock checkout flow
+
+Commands:
+```bash
+npm ci && npm test
+npm -C gateway test && npm -C gateway run build
+npm -C packages/payments test
+PAYMENTS_MOCK_ENABLED=1 PAYMENTS_PROVIDER=mock PORT=18082 node gateway/dist/server.js
+curl -s -X POST 'http://127.0.0.1:18082/v1/payments/quote' -H 'content-type: application/json' -d '{"sku":"renewal-basic","money":{"amountCents":2500,"currency":"USD"},"rails":["card","usdc"]}'
+curl -s -X POST 'http://127.0.0.1:18082/v1/payments/checkout' -H 'content-type: application/json' -d '{"quoteId":"<QUOTE_ID>","rail":"card","returnUrl":"https://example.com/return"}'
+curl -s 'http://127.0.0.1:18082/v1/payments/status?id=<CHECKOUT_ID>'
+curl -s -X POST 'http://127.0.0.1:18082/mock-pay/mark-paid?id=<CHECKOUT_ID>'
+curl -s 'http://127.0.0.1:18082/v1/payments/status?id=<CHECKOUT_ID>'
+```
+
+Output snippet:
+```text
+==> gate: no protocol drift (solana/programs/**)
+[protocol-gate] PASS: no protocol drift
+==> run_all: complete
+
+gateway vitest: 15 files passed, 52 tests passed
+payments vitest: 2 files passed, 6 tests passed
+
+QUOTE_ID=quote_8bea115f-a5aa-4155-bb78-53e131a2850b
+CHECKOUT_ID=checkout_fe13e466-780e-4db9-9c4f-5048500e9d63
+PENDING_STATUS=pending
+PAID_STATUS=paid
+FINAL_STATUS=paid
+```

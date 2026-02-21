@@ -10,6 +10,13 @@
 - Supported rails: cards/ACH and crypto (BTC/ETH/SOL/USDC and other supported assets).
 - Recommendation: USD/card checkout for least friction.
 
+## Provider adapter (MVP mock now, real processors later)
+
+- The codebase uses a `PaymentsProvider` adapter contract so checkout integrations are pluggable.
+- Current MVP implementation is `mock` only, behind `PAYMENTS_MOCK_ENABLED=1` for local/dev testing.
+- Planned real adapters include Stripe (card/ACH) and a crypto processor, both wired to the same quote/checkout/status contract.
+- No live payment keys are required for MVP flows in this repository.
+
 ## Quote lock (crypto checkout)
 
 - Crypto checkout uses a short-lived quote lock (typically 60-120 seconds).
