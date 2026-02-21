@@ -1654,3 +1654,19 @@ resolve summary: confidence=low rrset_hash=193fafc674490ac59d35ba1aaa4b73807f404
 ✅ firefox DoH verify passed
 FIREFOX_DOH_VERIFY_EXIT=0
 ```
+
+## 2026-02-21 — PR1 USD-first quote endpoint (`GET /v1/pay/quote`)
+
+Commands:
+```bash
+npm test
+npm -C gateway test && npm -C gateway run build
+```
+
+Output snippet:
+```text
+✓ tests/pay_quote_endpoint.test.ts (2 tests)
+Test Files 17 passed (17)
+Tests 56 passed (56)
+==> run_all: complete
+```

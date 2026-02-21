@@ -113,6 +113,8 @@ const REGISTRAR_ENABLED = process.env.REGISTRAR_ENABLED === "1";
 const REGISTRAR_PROVIDER = parseRegistrarProvider(process.env.REGISTRAR_PROVIDER || "mock");
 const PAYMENTS_PROVIDER = process.env.PAYMENTS_PROVIDER || "mock";
 const PAYMENTS_MOCK_ENABLED = process.env.PAYMENTS_MOCK_ENABLED === "1";
+const PAY_QUOTE_LOCK_SECONDS = Math.max(60, Math.min(120, Number(process.env.PAY_QUOTE_LOCK_SECONDS || "120")));
+const PAY_QUOTE_PRICING_PATH_ENV = process.env.PAY_QUOTE_PRICING_PATH || "";
 const PORKBUN_API_KEY = process.env.PORKBUN_API_KEY || "";
 const PORKBUN_SECRET_API_KEY = process.env.PORKBUN_SECRET_API_KEY || "";
 const PORKBUN_ENDPOINT = process.env.PORKBUN_ENDPOINT || "https://api.porkbun.com/api/json/v3";
@@ -436,6 +438,17 @@ const registrarAdapter = registrarRuntime.adapter;
 const creditsLedger = createCreditsLedger(CREDITS_LEDGER_STORE_PATH);
 const paymentsProvider = createMockPaymentsProvider();
 const PAYMENT_RAILS: PaymentRail[] = ["card", "ach", "usdc", "sol", "eth", "btc", "other"];
+const PAY_QUOTE_CURRENCIES = ["USD", "USDC", "SOL", "ETH", "BTC"] as const;
+type PayQuoteCurrency = (typeof PAY_QUOTE_CURRENCIES)[number];
+
+type PayQuoteSkuConfig = {
+  usd_price: number;
+  pay_rails: PaymentRail[];
+};
+
+type PayQuotePricingConfig = {
+  skus: Record<string, PayQuoteSkuConfig>;
+};
 
 function isAdminStubAuthorized(req: express.Request): boolean {
   const token = req.header("X-Admin-Token") || req.header("x-admin-token") || "";
@@ -446,6 +459,63 @@ function parsePaymentRail(value: unknown): PaymentRail | null {
   if (typeof value !== "string") return null;
   return PAYMENT_RAILS.includes(value as PaymentRail) ? (value as PaymentRail) : null;
 }
+
+function parsePayQuoteCurrency(value: unknown): PayQuoteCurrency | null {
+  if (typeof value !== "string") return null;
+  const upper = value.toUpperCase();
+  return PAY_QUOTE_CURRENCIES.includes(upper as PayQuoteCurrency) ? (upper as PayQuoteCurrency) : null;
+}
+
+function defaultPayQuotePricingConfig(): PayQuotePricingConfig {
+  return {
+    skus: {
+      "renewal-basic": {
+        usd_price: 12,
+        pay_rails: ["card", "ach", "usdc", "sol", "eth", "btc"]
+      },
+      "hosting-basic": {
+        usd_price: 5,
+        pay_rails: ["card", "ach", "usdc", "sol", "eth", "btc"]
+      }
+    }
+  };
+}
+
+function loadPayQuotePricingConfig(): PayQuotePricingConfig {
+  const fallback = defaultPayQuotePricingConfig();
+  const candidates = PAY_QUOTE_PRICING_PATH_ENV
+    ? [PAY_QUOTE_PRICING_PATH_ENV]
+    : [
+        path.resolve(process.cwd(), "config/pay_quote_pricing.json"),
+        path.resolve(process.cwd(), "../config/pay_quote_pricing.json")
+      ];
+
+  for (const candidate of candidates) {
+    try {
+      if (!fs.existsSync(candidate)) continue;
+      const raw = fs.readFileSync(candidate, "utf8");
+      const parsed = JSON.parse(raw) as PayQuotePricingConfig;
+      if (!parsed || typeof parsed !== "object" || typeof parsed.skus !== "object") continue;
+      const skus: Record<string, PayQuoteSkuConfig> = {};
+      for (const [sku, cfg] of Object.entries(parsed.skus || {})) {
+        const usdPrice = Number((cfg as any)?.usd_price);
+        const railsRaw = Array.isArray((cfg as any)?.pay_rails) ? ((cfg as any).pay_rails as unknown[]) : [];
+        const rails = railsRaw
+          .map(parsePaymentRail)
+          .filter((value: PaymentRail | null): value is PaymentRail => value !== null);
+        if (!Number.isFinite(usdPrice) || usdPrice <= 0 || rails.length === 0) continue;
+        skus[sku] = { usd_price: Number(usdPrice.toFixed(2)), pay_rails: rails };
+      }
+      if (Object.keys(skus).length > 0) {
+        return { skus };
+      }
+    } catch {}
+  }
+
+  return fallback;
+}
+
+const payQuotePricing = loadPayQuotePricingConfig();
 
 const cache = new Map<string, { expiresAt: number; payload: ResolveResponse }>();
 const mintCaches = new Map<string, Map<string, { rrtype: string; value: string; ttl: number; expiresAt: number; wallet_pubkey: string }>>();
@@ -677,6 +747,25 @@ export function createApp(overrides?: { adapterRegistry?: { resolveAuto: typeof 
   app.use("/dns-query", express.raw({ type: ["application/dns-message"], limit: "512kb" }));
 
   app.get("/healthz", (_req, res) => res.json({ status: "ok" }));
+
+  app.get("/v1/pay/quote", async (req, res) => {
+    const sku = typeof req.query.sku === "string" ? req.query.sku.trim() : "";
+    const currency = parsePayQuoteCurrency(req.query.currency || "USD");
+    if (!sku) return res.status(400).json({ error: "missing_sku" });
+    if (!currency) return res.status(400).json({ error: "invalid_currency" });
+    const config = payQuotePricing.skus[sku];
+    if (!config) return res.status(404).json({ error: "sku_not_found" });
+
+    return res.json({
+      sku,
+      currency,
+      usd_price: Number(config.usd_price.toFixed(2)),
+      quote_id: `quote_${crypto.randomUUID()}`,
+      expires_at: new Date(Date.now() + PAY_QUOTE_LOCK_SECONDS * 1000).toISOString(),
+      pay_rails: config.pay_rails,
+      disclaimer: "Quote expires; refresh on expiry"
+    });
+  });
 
   app.post("/v1/payments/quote", express.json(), async (req, res) => {
     if (!PAYMENTS_MOCK_ENABLED || PAYMENTS_PROVIDER !== "mock") {

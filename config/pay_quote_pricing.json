@@ -1,0 +1,12 @@
+{
+  "skus": {
+    "renewal-basic": {
+      "usd_price": 12.0,
+      "pay_rails": ["card", "ach", "usdc", "sol", "eth", "btc"]
+    },
+    "hosting-basic": {
+      "usd_price": 5.0,
+      "pay_rails": ["card", "ach", "usdc", "sol", "eth", "btc"]
+    }
+  }
+}
