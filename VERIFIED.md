@@ -1323,3 +1323,41 @@ Output snippet:
 ✅ miner verified | confidence=high | rrset_hash=abc123
 rc=0
 ```
+
+## 2026-02-20 — safe audit fixes + dependency hygiene (MVP)
+
+Commands:
+```bash
+# baseline (pre/post)
+npm ci && npm test
+npm -C gateway ci && npm -C gateway run lint && npm -C gateway run build && npm -C gateway test
+npm -C core ci && npm -C core run build && npm -C core test
+npm -C coordinator ci && npm -C coordinator test
+npm -C packages/attack-mode ci && npm -C packages/attack-mode run build && npm -C packages/attack-mode test
+
+# audit (safe-only)
+npm audit --json > artifacts/audit_root_after.json
+npm -C gateway audit --json > artifacts/audit_gateway_after.json || true
+npm -C core audit --json > artifacts/audit_core_after.json || true
+npm -C coordinator audit --json > artifacts/audit_coordinator_after.json || true
+npm -C packages/attack-mode audit --json > artifacts/audit_packages_attack-mode_after.json || true
+```
+
+Output snippet:
+```text
+[protocol-gate] PASS: no protocol drift
+Test Files 12 passed (gateway)
+Test Files 9 passed (core)
+credits coordinator tests passed
+Test Files 1 passed (attack-mode)
+
+vulnerability count before -> after
+root: 0 -> 0
+gateway: 5 -> 4
+core: 5 -> 5
+coordinator: 0 -> 0
+packages/attack-mode: 5 -> 5
+
+lockfile change: gateway/package-lock.json
+bn.js: 5.2.2 -> 5.2.3
+```
