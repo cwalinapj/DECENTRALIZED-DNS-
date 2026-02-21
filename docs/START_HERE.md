@@ -7,6 +7,7 @@ If you only read one file, read this one.
 - No crypto required for users.
 - Pricing is fixed in USD.
 - You can pay in USD (recommended) or crypto; TollDNS handles settlement/volatility in treasury rails.
+- User-facing checkout stays USD-first with stable pricing; crypto is optional and abstracted behind treasury settlement.
 
 Read first:
 - `docs/WEB2_PRICING_MODEL.md`

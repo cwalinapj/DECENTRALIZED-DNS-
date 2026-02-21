@@ -1532,3 +1532,26 @@ docs/START_HERE.md:13:- `docs/PAYMENTS_AND_TREASURY.md`
 docs/INDEX.md:32:- `docs/WEB2_PRICING_MODEL.md`
 docs/INDEX.md:33:- `docs/PAYMENTS_AND_TREASURY.md`
 ```
+
+## 2026-02-21 — Web2-first payments plan (USD pricing + multi-rail acceptance)
+
+Commands:
+```bash
+npm test
+rg -n "PAYMENTS_AND_TREASURY|WEB2_PRICING_MODEL|Pay in USD|No crypto required" README.md docs/START_HERE.md docs/WEB2_PRICING_MODEL.md docs/PAYMENTS_AND_TREASURY.md
+```
+
+Output snippet:
+```text
+==> gate: no protocol drift (solana/programs/**)
+[protocol-gate] PASS: no protocol drift
+==> run_all: complete
+
+README.md:25:Pay in USD is the default product path; crypto checkout is optional and quote-locked, with treasury-side settlement and hedging hidden from users.
+README.md:28:- `docs/WEB2_PRICING_MODEL.md`
+README.md:29:- `docs/PAYMENTS_AND_TREASURY.md`
+docs/START_HERE.md:7:- No crypto required for users.
+docs/START_HERE.md:13:- `docs/WEB2_PRICING_MODEL.md`
+docs/START_HERE.md:14:- `docs/PAYMENTS_AND_TREASURY.md`
+docs/WEB2_PRICING_MODEL.md:8:- Pay in USD is the default experience; crypto is optional and handled behind the scenes.
+```
