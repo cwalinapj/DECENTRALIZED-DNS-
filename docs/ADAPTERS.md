@@ -65,7 +65,7 @@ Where:
 
 MVP verification:
 - reads ENS resolver via `eth_call`
-- returns `contenthash` preferred, then `text("url")`, then `addr()`
+- returns hosting target from `contenthash` first, then text records (`content`, `ipfs`, `arweave`, `url`), then `addr()`
 
 Limitations:
 - No light client proofs in MVP. Upstream RPC trust is explicit.
@@ -77,7 +77,27 @@ Where:
 
 MVP verification:
 - reads the SNS name account on Solana via RPC
-- returns URL-like text from registry data if present, otherwise owner reference
+- reads text-like values from registry data (`content`, `ipfs`, `arweave`, `url`) when present
+- normalizes raw CID and raw Arweave tx values to `ipfs://...` / `ar://...`
+- falls back to owner reference when no hosting pointer is present
+
+## Hosting Targets (`/v1/site`)
+
+The gateway can serve bytes from ENS/SNS hosting pointers:
+
+- `GET /v1/site?name=<wallet-domain>[&path=/...]`
+- Supported target schemes:
+  - `ipfs://<CID>`
+  - `ar://<TX_ID>`
+
+Behavior:
+- Uses adapter route answer `dest` as source of truth.
+- Fetches from `IPFS_GATEWAY_BASE` (default `https://ipfs.io/ipfs`) or `ARWEAVE_GATEWAY_BASE` (default `https://arweave.net`).
+- Enforces timeout and max-size limits.
+- Returns safe static-hosting headers (`CSP`, `nosniff`, immutable cache control).
+- Returns `400` `not_hosting_target` for non-IPFS/non-Arweave routes.
+
+See `docs/HOSTING_FROM_WALLET_DOMAINS.md`.
 
 ## End-State (Planned / Stubs)
 

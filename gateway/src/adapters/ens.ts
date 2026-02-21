@@ -1,5 +1,9 @@
 import { Interface, namehash } from "ethers";
 import type { ResolveRecord } from "../server.js";
+import {
+  decodeEnsContenthash,
+  selectPreferredTextRecord
+} from "../hosting/targets.js";
 import type { Adapter } from "./shim.js";
 import type { RouteAnswer } from "./types.js";
 import { destHashHex, nameHashHex } from "./types.js";
@@ -9,6 +13,7 @@ const resolverIface = new Interface(["function resolver(bytes32 node) view retur
 const addrIface = new Interface(["function addr(bytes32 node) view returns (address)"]);
 const contentIface = new Interface(["function contenthash(bytes32 node) view returns (bytes)"]);
 const textIface = new Interface(["function text(bytes32 node, string key) view returns (string)"]);
+const ENS_TEXT_KEYS = ["content", "ipfs", "arweave", "url"] as const;
 
 export type EnsConfig = {
   rpcUrl: string;
@@ -23,7 +28,9 @@ export async function resolveEns(name: string, config: EnsConfig): Promise<Resol
   if (!config.rpcUrl) throw new Error("ENS_RPC_MISSING");
   const node = namehash(name.toLowerCase());
   const resolverData = resolverIface.encodeFunctionData("resolver", [node]);
-  const resolverAddress = await callRpc(config, ENS_REGISTRY, resolverData);
+  const resolverEncoded = await callRpc(config, ENS_REGISTRY, resolverData);
+  const [resolverAddressRaw] = resolverIface.decodeFunctionResult("resolver", resolverEncoded);
+  const resolverAddress = String(resolverAddressRaw);
   if (!resolverAddress || resolverAddress === "0x0000000000000000000000000000000000000000") {
     return [];
   }
@@ -31,26 +38,32 @@ export async function resolveEns(name: string, config: EnsConfig): Promise<Resol
   const records: ResolveRecord[] = [];
 
   const addrData = addrIface.encodeFunctionData("addr", [node]);
-  const addr = await callRpc(config, resolverAddress, addrData);
+  const addrEncoded = await callRpc(config, resolverAddress, addrData);
+  const [addrRaw] = addrIface.decodeFunctionResult("addr", addrEncoded);
+  const addr = String(addrRaw);
   if (addr && addr !== "0x0000000000000000000000000000000000000000") {
     records.push({ type: "ADDR", value: addr });
   }
 
   const contentData = contentIface.encodeFunctionData("contenthash", [node]);
-  const content = await callRpc(config, resolverAddress, contentData);
-  if (content && content !== "0x") {
-    records.push({ type: "CONTENTHASH", value: content });
+  const contentEncoded = await callRpc(config, resolverAddress, contentData);
+  const [contentRaw] = contentIface.decodeFunctionResult("contenthash", contentEncoded);
+  const content = String(contentRaw);
+  if (content && content !== "0x" && content !== "0X") {
+    records.push({ type: "CONTENTHASH", value: content.toLowerCase() });
   }
 
-  // MVP: optional text("url") fallback.
-  try {
-    const textData = textIface.encodeFunctionData("text", [node, "url"]);
-    const textResult = await callRpc(config, resolverAddress, textData);
-    const decoded = textIface.decodeFunctionResult("text", textResult);
-    const url = decoded?.[0] ? String(decoded[0]) : "";
-    if (url) records.push({ type: "TEXT_URL", value: url });
-  } catch {
-    // ignore
+  for (const key of ENS_TEXT_KEYS) {
+    try {
+      const textData = textIface.encodeFunctionData("text", [node, key]);
+      const textResult = await callRpc(config, resolverAddress, textData);
+      const decoded = textIface.decodeFunctionResult("text", textResult);
+      const value = decoded?.[0] ? String(decoded[0]).trim() : "";
+      if (!value) continue;
+      records.push({ type: "TEXT", value: { key, value } });
+    } catch {
+      // ignore optional text keys
+    }
   }
 
   return records;
@@ -84,15 +97,48 @@ export function createEnsAdapter(params: { rpcUrl: string; chainId?: number }): 
       if (!records.length) return null;
 
       const content = records.find((r) => r.type === "CONTENTHASH");
-      const textUrl = records.find((r) => r.type === "TEXT_URL");
+      const textEntries = records
+        .map((record) => {
+          if (record.type !== "TEXT" || typeof record.value === "string") return null;
+          return { key: String(record.value.key || ""), value: String(record.value.value || "") };
+        })
+        .filter((entry): entry is { key: string; value: string } => !!entry);
+      const selectedText = selectPreferredTextRecord(textEntries);
+      const textTarget = selectedText?.parsed || null;
       const addr = records.find((r) => r.type === "ADDR");
-      const dest = content
-        ? `ens:contenthash:${String(content.value)}`
-        : textUrl
-          ? String(textUrl.value)
-          : addr
-            ? `eip155:${params.chainId ?? input?.opts?.chainId ?? 1}:${String(addr.value)}`
-            : `ens:records`;
+      const contentTarget = content ? decodeEnsContenthash(String(content.value)) : null;
+      const target = contentTarget || textTarget;
+      const dest = target
+        ? target.normalizedDest
+        : selectedText
+          ? selectedText.rawValue
+        : addr
+          ? `eip155:${params.chainId ?? input?.opts?.chainId ?? 1}:${String(addr.value)}`
+          : `ens:records`;
+
+      const proofPayload: Record<string, unknown> = {
+        adapter: "ens",
+        chainId: params.chainId ?? input?.opts?.chainId ?? 1,
+        rpc: "<configured>",
+        records
+      };
+
+      if (contentTarget && content) {
+        proofPayload.record_source = "contenthash";
+        proofPayload.raw_value = String(content.value);
+        proofPayload.parsed_target = { scheme: contentTarget.scheme, value: contentTarget.value };
+      } else if (selectedText) {
+        proofPayload.record_source = "text";
+        proofPayload.record_key = selectedText.key;
+        proofPayload.raw_value = selectedText.rawValue;
+        proofPayload.parsed_target = textTarget
+          ? { scheme: textTarget.scheme, value: textTarget.value }
+          : null;
+      } else {
+        proofPayload.record_source = null;
+        proofPayload.raw_value = null;
+        proofPayload.parsed_target = null;
+      }
 
       return {
         name: name.toLowerCase(),
@@ -103,11 +149,7 @@ export function createEnsAdapter(params: { rpcUrl: string; chainId?: number }): 
         source: { kind: "ens", ref: "eth_call", confidenceBps: 8000 },
         proof: {
           type: "onchain",
-          payload: {
-            chainId: params.chainId ?? input?.opts?.chainId ?? 1,
-            rpc: "<configured>",
-            records
-          }
+          payload: proofPayload
         }
       };
     }

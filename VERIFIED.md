@@ -1380,3 +1380,41 @@ Output snippet:
 ==> run_all: complete
 <title>TollDNS Repo Health Dashboard</title>
 ```
+
+## 2026-02-21 — ENS/SNS hosting targets via /v1/site
+
+Commands:
+```bash
+npm -C gateway test
+npm -C gateway run build
+node --input-type=module <<'NODE'
+import { createApp } from './gateway/dist/server.js';
+// mocked adapterRegistry + fetch for deterministic proof
+NODE
+```
+
+Output snippet:
+```text
+ROUTE_IPFS {
+  "dest": "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi",
+  "proof": {
+    "adapter": "ens",
+    "record_source": "contenthash",
+    "parsed_target": { "scheme": "ipfs", "value": "bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi" }
+  }
+}
+ROUTE_AR {
+  "dest": "ar://oB9jQ4g3yRi2sPvq4QTYuQdRrYWw4s7P1mXLfTzT3m4",
+  "proof": {
+    "adapter": "sns",
+    "record_source": "text",
+    "record_key": "content",
+    "parsed_target": { "scheme": "ar", "value": "oB9jQ4g3yRi2sPvq4QTYuQdRrYWw4s7P1mXLfTzT3m4" }
+  }
+}
+SITE_HEADERS {
+  "status": 200,
+  "content_type": "text/html",
+  "cache_control": "public, max-age=31536000, immutable"
+}
+```
