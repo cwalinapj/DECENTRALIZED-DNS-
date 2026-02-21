@@ -1,0 +1,44 @@
+{
+  "timestamp_utc": "2026-02-21T01:01:39Z",
+  "git_sha": "fc0473281dfdbc931bbf50ea56426505c736d244",
+  "branch": "codex/pr-upgrade-dashboard",
+  "commands": [
+    "npm ci && npm test",
+    "bash scripts/check_program_id_sync.sh",
+    "npm run mvp:demo:devnet",
+    "bash scripts/devnet_inventory.sh"
+  ],
+  "results": [
+    {
+      "name": "root_tests",
+      "status": "seen",
+      "detail": "Observed from VERIFIED.md markers"
+    },
+    {
+      "name": "program_id_sync",
+      "status": "pass-marker-seen",
+      "detail": "Observed from VERIFIED.md markers"
+    },
+    {
+      "name": "devnet_inventory",
+      "status": "missing",
+      "detail": "inventory file missing"
+    },
+    {
+      "name": "status_doc",
+      "status": "unknown",
+      "detail": "Observed from docs/STATUS.md"
+    }
+  ],
+  "demo_ok": true,
+  "tx_links": [
+    "https://explorer.solana.com/tx/QVumYeF8JbZpg1NyJLpt4TVadeiYcxYyhskf12ZxJ3GKtBNLJ8H5P5zUTVF5xnS1yDopgQjPaYpcooDPXfqG1wq?cluster=devnet"
+  ],
+  "notes": [
+    "Read-only dashboard report generated from existing repository outputs.",
+    "No dependency updates or automatic PR creation are performed by this script.",
+    "demo source: docs/PROOF.md",
+    "inventory source: missing",
+    "verification source: VERIFIED.md"
+  ]
+}

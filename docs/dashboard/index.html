@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TollDNS Repo Health Dashboard</title>
+    <style>
+      :root {
+        --bg: #f7f9fc;
+        --panel: #ffffff;
+        --border: #d7deea;
+        --text: #20283a;
+        --muted: #56627a;
+        --ok: #1e8e5a;
+        --warn: #9b6b08;
+        --bad: #b83535;
+      }
+      body {
+        margin: 0;
+        background: radial-gradient(circle at 20% 0%, #ffffff, var(--bg));
+        color: var(--text);
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      }
+      main {
+        max-width: 1100px;
+        margin: 24px auto;
+        padding: 0 16px;
+      }
+      h1 { margin-bottom: 6px; }
+      .sub { color: var(--muted); margin-top: 0; }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 12px;
+        margin: 14px 0 18px;
+      }
+      .card {
+        border: 1px solid var(--border);
+        background: var(--panel);
+        border-radius: 12px;
+        padding: 12px;
+      }
+      .label {
+        font-size: 12px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .value {
+        margin-top: 8px;
+        font-size: 20px;
+        font-weight: 700;
+      }
+      .ok { color: var(--ok); }
+      .warn { color: var(--warn); }
+      .bad { color: var(--bad); }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      th, td {
+        padding: 10px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+        text-align: left;
+      }
+      th {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+      }
+      pre {
+        white-space: pre-wrap;
+        margin: 0;
+        background: #f4f6fb;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 8px;
+      }
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+      a { color: #235ccf; }
+      .empty {
+        border: 1px dashed var(--border);
+        background: #fbfcff;
+        border-radius: 10px;
+        padding: 12px;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Repo Health Dashboard</h1>
+      <p class="sub">Read-only view of latest repo audit outputs (tests/devnet demo/inventory). Safe when empty.</p>
+
+      <div class="grid" id="tiles"></div>
+
+      <h2>Latest Run</h2>
+      <div id="latest"></div>
+
+      <h2>Checks</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Check</th>
+            <th>Status</th>
+            <th>Detail</th>
+          </tr>
+        </thead>
+        <tbody id="results"></tbody>
+      </table>
+
+      <h2>Transaction Links</h2>
+      <ul id="tx-links"></ul>
+
+      <h2>Notes</h2>
+      <pre id="notes"></pre>
+    </main>
+    <script src="./dashboard.js"></script>
+  </body>
+</html>

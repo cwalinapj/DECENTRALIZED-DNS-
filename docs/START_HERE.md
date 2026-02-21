@@ -8,6 +8,7 @@ If you only read one file, read this one.
 This runs the funded deploy-wave check, inventory, and strict on-chain demo end-to-end.
 
 Latest successful proof snapshot: `/Users/root1/DECENTRALIZED-DNS-/docs/PROOF.md`
+Dashboard: `/Users/root1/DECENTRALIZED-DNS-/docs/dashboard/index.html` (read-only, safe when empty; optional Pages path `/docs/dashboard/index.html`)
 
 ## What this repo is
 TollDNS is a DNS + gateway MVP with:
