@@ -1670,3 +1670,19 @@ Test Files 17 passed (17)
 Tests 56 passed (56)
 ==> run_all: complete
 ```
+
+## 2026-02-21 — PR2 renewal safety banner state + ack flow
+
+Commands:
+```bash
+npm -C gateway ci && npm -C gateway test && npm -C gateway run build
+npm test
+```
+
+Output snippet:
+```text
+✓ tests/domain_notice_endpoints.test.ts (9 tests)
+Test Files 17 passed (17)
+Tests 57 passed (57)
+==> run_all: complete
+```

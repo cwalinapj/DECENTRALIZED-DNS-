@@ -6,6 +6,7 @@ import type { DomainContinuityPhase } from "./notice_token.js";
 
 export type StoredDomainStatus = {
   domain: string;
+  banner_ack_at?: string;
   challenge?: {
     txt_record_name: string;
     txt_record_value: string;
