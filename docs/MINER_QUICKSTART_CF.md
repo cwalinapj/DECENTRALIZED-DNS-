@@ -40,7 +40,7 @@ npm run miner:cf:deploy
 ```bash
 curl "<WORKER_URL>/v1/health"
 curl "<WORKER_URL>/resolve?name=netflix.com&type=A"
-bash scripts/miner_cf_verify.sh "<WORKER_URL>"
+bash scripts/miner_cf_verify.sh --url "<WORKER_URL>" --name "netflix.com" --type "A"
 ```
 
 Expected resolve payload fields:

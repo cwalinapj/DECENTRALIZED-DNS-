@@ -1229,3 +1229,154 @@ strict_demo_failed
   "error": "strict_demo_failed"
 }
 ```
+
+## 2026-02-20 — funded strict devnet flow
+
+Command:
+```bash
+bash scripts/devnet_when_funded.sh
+```
+
+Output snippet:
+```text
+{"ok":true,"name":"u-b5wjx4pd.dns","wallet":"B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5","dest":"https://example.com","ttl":300,"dest_hash_hex":"100680ad546ce6a577f42f52df33b4cfdca756859e664b8d7de329b150d09ce9","proof":{"program_id":"EJVVNdwBdZiEpA4QjVaeV79WPsoUpa4zLA4mqpxWxXi5","record_pda":"4VjW
+==> optional witness reward submit/claim skipped (ENABLE_WITNESS_REWARDS=1 to enable)
+==> tx links
+assign_route_tx: https://explorer.solana.com/tx/QVumYeF8JbZpg1NyJLpt4TVadeiYcxYyhskf12ZxJ3GKtBNLJ8H5P5zUTVF5xnS1yDopgQjPaYpcooDPXfqG1wq?cluster=devnet
+ddns_program_id_used: EJVVNdwBdZiEpA4QjVaeV79WPsoUpa4zLA4mqpxWxXi5
+logs_dir: /var/folders/h5/7f2x98695lz6819tc0k6fbv80000gn/T//ddns-devnet-demo
+
+========== DEMO SUMMARY ==========
+deploy_verify: verified
+name_claimed: claimed_or_exists
+name: u-b5wjx4pd.dns
+route_written: yes
+resolve_result: ok
+resolved_dest: https://example.com
+resolved_ttl: 300
+tx_links:
+- https://explorer.solana.com/tx/QVumYeF8JbZpg1NyJLpt4TVadeiYcxYyhskf12ZxJ3GKtBNLJ8H5P5zUTVF5xnS1yDopgQjPaYpcooDPXfqG1wq?cluster=devnet
+==================================
+✅ demo complete
+✅ STRICT DEMO COMPLETE (ON-CHAIN)
+```
+
+## 2026-02-20 — PR2 PROOF.md auto-refresh on strict success
+
+Commands:
+```bash
+npm test
+npm -C solana ci --include=dev
+npm run mvp:demo:devnet
+sed -n '1,30p' docs/PROOF.md
+```
+
+Output snippet:
+```text
+✅ demo complete
+✅ STRICT DEMO COMPLETE (ON-CHAIN)
+proof_bundle: artifacts/proof_devnet_20260220T223614Z.md
+
+# PROOF
+- canonical_command: `npm run mvp:demo:devnet`
+- name: `u-b5wjx4pd.dns`
+- dest: `https://example.com`
+- https://explorer.solana.com/tx/QVumYeF8JbZpg1NyJLpt4TVadeiYcxYyhskf12ZxJ3GKtBNLJ8H5P5zUTVF5xnS1yDopgQjPaYpcooDPXfqG1wq?cluster=devnet
+```
+
+## 2026-02-20 — PR3 SDK helpers + examples
+
+Commands:
+```bash
+npm test
+npm -C packages/sdk ci
+npm -C packages/sdk run build
+PORT=8054 npm -C gateway run start
+DDNS_GATEWAY_URL=http://127.0.0.1:8054 npx tsx packages/sdk/examples/node.ts
+DDNS_GATEWAY_URL=http://127.0.0.1:8054 npx tsx packages/sdk/worker/example.ts
+```
+
+Output snippet:
+```text
+[protocol-gate] PASS: no protocol drift
+==> run_all: complete
+{
+  "name": "netflix.com",
+  "confidence": "low",
+  "rrset_hash": "193fafc674490ac59d35ba1aaa4b73807f404e89592d980ca6310aa70011616c",
+  "upstreams_used": [ ... ]
+}
+```
+
+## 2026-02-20 — PR4 miner verify CLI flags + strict assertions
+
+Commands:
+```bash
+npm test
+bash scripts/miner_cf_verify.sh --url http://127.0.0.1:9999 --name netflix.com --type A
+```
+
+Output snippet:
+```text
+[protocol-gate] PASS: no protocol drift
+==> run_all: complete
+✅ miner verified | confidence=high | rrset_hash=abc123
+rc=0
+```
+
+## 2026-02-20 — safe audit fixes + dependency hygiene (MVP)
+
+Commands:
+```bash
+# baseline (pre/post)
+npm ci && npm test
+npm -C gateway ci && npm -C gateway run lint && npm -C gateway run build && npm -C gateway test
+npm -C core ci && npm -C core run build && npm -C core test
+npm -C coordinator ci && npm -C coordinator test
+npm -C packages/attack-mode ci && npm -C packages/attack-mode run build && npm -C packages/attack-mode test
+
+# audit (safe-only)
+npm audit --json > artifacts/audit_root_after.json
+npm -C gateway audit --json > artifacts/audit_gateway_after.json || true
+npm -C core audit --json > artifacts/audit_core_after.json || true
+npm -C coordinator audit --json > artifacts/audit_coordinator_after.json || true
+npm -C packages/attack-mode audit --json > artifacts/audit_packages_attack-mode_after.json || true
+```
+
+Output snippet:
+```text
+[protocol-gate] PASS: no protocol drift
+Test Files 12 passed (gateway)
+Test Files 9 passed (core)
+credits coordinator tests passed
+Test Files 1 passed (attack-mode)
+
+vulnerability count before -> after
+root: 0 -> 0
+gateway: 5 -> 4
+core: 5 -> 5
+coordinator: 0 -> 0
+packages/attack-mode: 5 -> 5
+
+lockfile change: gateway/package-lock.json
+bn.js: 5.2.2 -> 5.2.3
+```
+
+## 2026-02-21 — Repo Health Dashboard (read-only)
+
+Commands:
+```bash
+bash scripts/generate_dashboard_report.sh
+sed -n '1,20p' reports/latest.json
+npm test
+python3 -m http.server 8080
+curl -s http://127.0.0.1:8080/docs/dashboard/index.html | sed -n '1,24p'
+```
+
+Output snippet:
+```text
+[dashboard-report] wrote /tmp/ddns-pr-upgrade-dashboard/reports/latest.json
+{"timestamp_utc":"2026-02-21T01:01:39Z","git_sha":"fc0473281dfdbc931bbf50ea56426505c736d244","demo_ok":true,...}
+==> run_all: complete
+<title>TollDNS Repo Health Dashboard</title>
+```
