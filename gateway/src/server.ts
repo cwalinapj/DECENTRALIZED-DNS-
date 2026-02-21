@@ -545,6 +545,74 @@ const payQuotePricing = loadPayQuotePricingConfig();
 
 const cache = new Map<string, { expiresAt: number; payload: ResolveResponse }>();
 const mintCaches = new Map<string, Map<string, { rrtype: string; value: string; ttl: number; expiresAt: number; wallet_pubkey: string }>>();
+const appStartedAtMs = Date.now();
+
+type UpstreamHealthSnapshot = {
+  ok_count: number;
+  error_count: number;
+  last_rtt_ms: number | null;
+  last_status: string | null;
+  last_answers_count: number | null;
+  last_seen_at: string;
+};
+
+type GatewayStatusCounters = {
+  resolve_requests: number;
+  resolve_icann_requests: number;
+  resolve_dns_requests: number;
+  cache_hits: number;
+  cache_misses: number;
+  stale_served: number;
+};
+
+const gatewayStatusCounters: GatewayStatusCounters = {
+  resolve_requests: 0,
+  resolve_icann_requests: 0,
+  resolve_dns_requests: 0,
+  cache_hits: 0,
+  cache_misses: 0,
+  stale_served: 0
+};
+
+const recursiveUpstreamHealth = new Map<string, UpstreamHealthSnapshot>();
+
+function noteResolveCounters(source?: string) {
+  gatewayStatusCounters.resolve_requests += 1;
+  gatewayStatusCounters.resolve_icann_requests += 1;
+  if (source === "cache") gatewayStatusCounters.cache_hits += 1;
+  if (source === "upstream") gatewayStatusCounters.cache_misses += 1;
+  if (source === "stale") gatewayStatusCounters.stale_served += 1;
+}
+
+function noteUpstreamHealth(upstreams: Array<{ url?: string; rttMs?: number; rtt_ms?: number; status?: string; answersCount?: number; answers_count?: number }>) {
+  const nowIso = new Date().toISOString();
+  for (const upstream of upstreams) {
+    const url = String(upstream?.url || "").trim();
+    if (!url) continue;
+    const prev = recursiveUpstreamHealth.get(url) || {
+      ok_count: 0,
+      error_count: 0,
+      last_rtt_ms: null,
+      last_status: null,
+      last_answers_count: null,
+      last_seen_at: nowIso
+    };
+
+    const status = String(upstream?.status || "UNKNOWN").toUpperCase();
+    if (status === "NOERROR" || status === "OK") {
+      prev.ok_count += 1;
+    } else {
+      prev.error_count += 1;
+    }
+    const rttMs = Number(upstream?.rttMs ?? upstream?.rtt_ms);
+    const answersCount = Number(upstream?.answersCount ?? upstream?.answers_count);
+    prev.last_rtt_ms = Number.isFinite(rttMs) ? rttMs : null;
+    prev.last_answers_count = Number.isFinite(answersCount) ? answersCount : null;
+    prev.last_status = status;
+    prev.last_seen_at = nowIso;
+    recursiveUpstreamHealth.set(url, prev);
+  }
+}
 
 export type ResolveRecord = { type: string; value: string | { key: string; value: string }; ttl?: number };
 export type ResolveResponse = {
@@ -773,6 +841,50 @@ export function createApp(overrides?: { adapterRegistry?: { resolveAuto: typeof 
   app.use("/dns-query", express.raw({ type: ["application/dns-message"], limit: "512kb" }));
 
   app.get("/healthz", (_req, res) => res.json({ status: "ok" }));
+
+  app.get("/v1/status", (_req, res) => {
+    const cacheTotal = gatewayStatusCounters.cache_hits + gatewayStatusCounters.cache_misses;
+    const hitRate = cacheTotal > 0 ? Number((gatewayStatusCounters.cache_hits / cacheTotal).toFixed(4)) : null;
+    const upstreams = Array.from(recursiveUpstreamHealth.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([url, snapshot]) => ({
+        url,
+        ...snapshot
+      }));
+
+    return res.json({
+      ok: true,
+      service: "gateway",
+      now_utc: new Date().toISOString(),
+      uptime_s: Math.max(0, Math.floor((Date.now() - appStartedAtMs) / 1000)),
+      recursive_upstreams: upstreams,
+      cache: {
+        entries_in_memory: cache.size,
+        hits: gatewayStatusCounters.cache_hits,
+        misses: gatewayStatusCounters.cache_misses,
+        stale_served: gatewayStatusCounters.stale_served,
+        hit_rate: hitRate
+      },
+      resolve: {
+        total_requests: gatewayStatusCounters.resolve_requests,
+        icann_requests: gatewayStatusCounters.resolve_icann_requests,
+        dns_requests: gatewayStatusCounters.resolve_dns_requests
+      },
+      attack_mode: {
+        endpoint: "/v1/attack-mode",
+        enabled: ATTACK_MODE_ENABLED,
+        mode: attackMode,
+        decision: attackDecision,
+        window: {
+          secs: ATTACK_WINDOW_SECS,
+          totalReq: attackCounters.totalReq,
+          gatewayErr: attackCounters.gatewayErr,
+          rpcTotal: attackCounters.rpcTotal,
+          rpcErr: attackCounters.rpcErr
+        }
+      }
+    });
+  });
 
   app.get("/v1/pay/quote", async (req, res) => {
     const sku = typeof req.query.sku === "string" ? req.query.sku.trim() : "";
@@ -1582,10 +1694,18 @@ export function createApp(overrides?: { adapterRegistry?: { resolveAuto: typeof 
             });
           }
         }
+        gatewayStatusCounters.resolve_requests += 1;
+        gatewayStatusCounters.resolve_dns_requests += 1;
         return res.json(ans);
       }
 
       const out = await recursiveAdapter.resolveRecursive(name, type);
+      noteResolveCounters(out.source);
+      noteUpstreamHealth(
+        Array.isArray(out.upstreamsUsed)
+          ? (out.upstreamsUsed as Array<{ url?: string; rttMs?: number; status?: string; answersCount?: number }>)
+          : []
+      );
       if (cacheLogger.enabled && out?.answers?.length) {
         const rrsetHashHex = computeRrsetHashFromAnswers(out.name, out.type, out.answers);
         await cacheLogger.logEntry({
@@ -1878,6 +1998,8 @@ export function createApp(overrides?: { adapterRegistry?: { resolveAuto: typeof 
   async function resolveDohAnswers(qnameInput: string, qtype: "A" | "AAAA") {
     const qname = normalizeNameForHash(qnameInput);
     if (qname.endsWith(".dns")) {
+      gatewayStatusCounters.resolve_requests += 1;
+      gatewayStatusCounters.resolve_dns_requests += 1;
       try {
         const route = await activeAdapterRegistry.resolveAuto({
           name: qname,
@@ -1903,6 +2025,12 @@ export function createApp(overrides?: { adapterRegistry?: { resolveAuto: typeof 
     }
 
     const out = await recursiveAdapter.resolveRecursive(qname, qtype);
+    noteResolveCounters(out.source);
+    noteUpstreamHealth(
+      Array.isArray(out.upstreamsUsed)
+        ? (out.upstreamsUsed as Array<{ url?: string; rttMs?: number; status?: string; answersCount?: number }>)
+        : []
+    );
     if (out.status === "NXDOMAIN") {
       return { rcode: 3, answers: [] };
     }

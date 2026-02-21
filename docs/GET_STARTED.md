@@ -46,8 +46,16 @@ Then:
 ```bash
 curl 'http://127.0.0.1:8054/v1/resolve?name=netflix.com&type=A'
 curl 'http://127.0.0.1:8054/v1/resolve?name=example.dns&type=A'
+bash scripts/gateway_smoke.sh
 bash scripts/firefox_doh_verify.sh --url https://127.0.0.1:8443 --name netflix.com --type A --insecure
 ```
+
+## What happens when upstreams disagree?
+
+- `confidence` reports how strong upstream agreement is (`high`, `medium`, `low`).
+- TTL is clamped conservatively when confidence is lower.
+- If upstreams fail after a good answer was cached, stale answers can be served briefly (`stale-if-error`) instead of hard-failing every lookup.
+- Use `GET /v1/status` for live upstream/cache health and `GET /v1/attack-mode` for degradation policy state.
 
 ## Track 3: Become a miner (Cloudflare Worker)
 

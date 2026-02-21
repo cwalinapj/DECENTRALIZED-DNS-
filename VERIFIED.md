@@ -1816,3 +1816,23 @@ A:44.237.234.25:ttl=6
 A:44.242.60.85:ttl=6
 A:44.234.232.238:ttl=6
 ```
+
+## 2026-02-21 — PR3 no-surprises reliability (/v1/status + gateway smoke)
+
+Commands:
+```bash
+npm -C gateway test && npm -C gateway run build
+bash scripts/gateway_smoke.sh
+```
+
+Output snippet:
+```text
+Test Files  18 passed (18)
+Tests  58 passed (58)
+
+healthz=ok
+status.upstreams=2 cache.hit_rate=0
+resolve.icann confidence=low rrset_hash=6e67410e6afe26b14efb77a483bf6d70ccc6808a1f89c67d2d9cc6f4aa4a1689
+resolve.dns name=alice.dns records=5
+✅ gateway smoke passed
+```
