@@ -1905,3 +1905,47 @@ A:44.237.234.25:ttl=52
 A:44.242.60.85:ttl=52
 ✅ firefox DoH verify passed
 ```
+
+## 2026-02-21 — PR1 DoH completeness polish (RFC8484 GET+POST + verifier hardening)
+
+Commands:
+```bash
+npm -C gateway ci
+npm -C gateway test
+npm -C gateway run build
+PORT=8054 node gateway/dist/server.js
+TLS_PROXY_TARGET=http://127.0.0.1:8054 TLS_PROXY_PORT=8443 bash scripts/firefox_trr_tls_proxy.sh
+bash scripts/firefox_doh_verify.sh --url https://127.0.0.1:8443 --name netflix.com --type A --insecure
+bash scripts/firefox_doh_verify.sh --url https://127.0.0.1:8443 --name netflix.com --type AAAA --insecure
+make fmt
+make lint
+make test
+make e2e
+```
+
+Output snippet:
+```text
+Test Files  18 passed (18)
+Tests  58 passed (58)
+
+DoH POST answers:
+A:44.242.60.85:ttl=30
+A:44.234.232.238:ttl=30
+A:44.237.234.25:ttl=30
+DoH GET answers:
+A:44.242.60.85:ttl=30
+A:44.234.232.238:ttl=30
+A:44.237.234.25:ttl=30
+resolve summary: confidence=low rrset_hash=6e67410e6afe26b14efb77a483bf6d70ccc6808a1f89c67d2d9cc6f4aa4a1689
+✅ firefox DoH verify passed
+
+DoH POST answers:
+AAAA:2600:1f14:62a:de82:822d:a423:9e4c:da8d:ttl=30
+DoH GET answers:
+AAAA:2600:1f14:62a:de82:822d:a423:9e4c:da8d:ttl=30
+resolve summary: confidence=low rrset_hash=1eb606392b416acee3576085e567f54b3a331891bd207a534fe9f3f39f0caeeb
+✅ firefox DoH verify passed
+
+==> run_all: complete
+[compat] docker-compose.validation.yml not found; skipping compat validation (MVP).
+```

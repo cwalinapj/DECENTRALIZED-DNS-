@@ -800,6 +800,8 @@ async function resolveVia(url: string, queryBytes: Buffer): Promise<Uint8Array> 
   }
 }
 
+type DnsTimingMetric = { name: string; durMs: number; desc?: string };
+
 function normalizeDnsQtype(value: unknown): "A" | "AAAA" | null {
   if (typeof value === "number") {
     if (value === 1) return "A";
@@ -832,6 +834,17 @@ function encodeDnsWireResponse(
     questions,
     answers
   });
+}
+
+function serverTimingHeader(metrics: DnsTimingMetric[]): string {
+  const entries: string[] = [];
+  for (const metric of metrics) {
+    if (!Number.isFinite(metric.durMs) || metric.durMs < 0) continue;
+    const dur = Number(metric.durMs.toFixed(2));
+    const desc = metric.desc ? `;desc="${metric.desc.replace(/"/g, "'")}"` : "";
+    entries.push(`${metric.name};dur=${dur}${desc}`);
+  }
+  return entries.join(", ");
 }
 
 export function createApp(overrides?: { adapterRegistry?: { resolveAuto: typeof adapterRegistry.resolveAuto } }) {
@@ -1996,6 +2009,8 @@ export function createApp(overrides?: { adapterRegistry?: { resolveAuto: typeof 
   });
 
   async function resolveDohAnswers(qnameInput: string, qtype: "A" | "AAAA") {
+    const startedAtMs = Date.now();
+    const timing: DnsTimingMetric[] = [];
     const qname = normalizeNameForHash(qnameInput);
     if (qname.endsWith(".dns")) {
       gatewayStatusCounters.resolve_requests += 1;
@@ -2013,26 +2028,42 @@ export function createApp(overrides?: { adapterRegistry?: { resolveAuto: typeof 
         const dest = String(route?.dest || "");
         const ipKind = isIP(dest);
         if ((qtype === "A" && ipKind === 4) || (qtype === "AAAA" && ipKind === 6)) {
+          timing.push({ name: "pkdns", durMs: Date.now() - startedAtMs, desc: "onchain" });
           return {
             rcode: 0,
-            answers: [{ type: qtype, name: qname, class: "IN" as const, ttl: Number(route.ttlS || 60), data: dest }]
+            answers: [{ type: qtype, name: qname, class: "IN" as const, ttl: Number(route.ttlS || 60), data: dest }],
+            timing
           };
         }
-        return { rcode: 3, answers: [] };
+        timing.push({ name: "pkdns", durMs: Date.now() - startedAtMs, desc: "onchain" });
+        return { rcode: 3, answers: [], timing };
       } catch {
-        return { rcode: 3, answers: [] };
+        timing.push({ name: "pkdns", durMs: Date.now() - startedAtMs, desc: "error" });
+        return { rcode: 2, answers: [], timing };
       }
     }
 
     const out = await recursiveAdapter.resolveRecursive(qname, qtype);
+    const upstreams = Array.isArray(out.upstreamsUsed)
+      ? (out.upstreamsUsed as Array<{ url?: string; rttMs?: number; rtt_ms?: number; status?: string; answersCount?: number }>)
+      : [];
+    for (let i = 0; i < upstreams.length; i += 1) {
+      const upstream = upstreams[i];
+      const rawUrl = String(upstream?.url || "");
+      const host = rawUrl ? (() => {
+        try {
+          return new URL(rawUrl).host;
+        } catch {
+          return rawUrl;
+        }
+      })() : `upstream-${i}`;
+      const dur = Number(upstream?.rttMs ?? upstream?.rtt_ms ?? 0);
+      timing.push({ name: `up${i}`, durMs: Number.isFinite(dur) ? dur : 0, desc: host });
+    }
     noteResolveCounters(out.source);
-    noteUpstreamHealth(
-      Array.isArray(out.upstreamsUsed)
-        ? (out.upstreamsUsed as Array<{ url?: string; rttMs?: number; status?: string; answersCount?: number }>)
-        : []
-    );
+    noteUpstreamHealth(upstreams);
     if (out.status === "NXDOMAIN") {
-      return { rcode: 3, answers: [] };
+      return { rcode: 3, answers: [], timing };
     }
     const answers = out.answers
       .filter((answer) => answer.type === qtype && ((qtype === "A" && isIP(answer.data) === 4) || (qtype === "AAAA" && isIP(answer.data) === 6)))
@@ -2043,10 +2074,11 @@ export function createApp(overrides?: { adapterRegistry?: { resolveAuto: typeof 
         ttl: Math.max(1, Math.min(Number(answer.ttl || out.ttlS || 60), Number(out.ttlS || 60))),
         data: answer.data
       }));
-    return { rcode: answers.length ? 0 : 3, answers };
+    return { rcode: answers.length ? 0 : 3, answers, timing };
   }
 
   async function handleDohWireQuery(queryBuffer: Buffer) {
+    const startedAtMs = Date.now();
     const decoded = dnsPacket.decode(queryBuffer) as any;
     const question = Array.isArray(decoded?.questions) ? decoded.questions[0] : null;
     const qname = question?.name ? String(question.name) : "";
@@ -2056,16 +2088,41 @@ export function createApp(overrides?: { adapterRegistry?: { resolveAuto: typeof 
 
     if (!qname || !qtype) {
       const response = encodeDnsWireResponse(id, questions, 4, []);
-      return { wire: Buffer.from(response), rcode: 4, answers: [] };
+      return {
+        wire: Buffer.from(response),
+        rcode: 4,
+        answers: [],
+        ttlS: 0,
+        cacheControl: "no-store",
+        serverTiming: serverTimingHeader([{ name: "total", durMs: Date.now() - startedAtMs }])
+      };
     }
 
     try {
       const resolved = await resolveDohAnswers(qname, qtype);
       const response = encodeDnsWireResponse(id, questions, resolved.rcode, resolved.answers);
-      return { wire: Buffer.from(response), rcode: resolved.rcode, answers: resolved.answers };
+      const ttlS = resolved.answers.length > 0
+        ? Math.max(1, Math.min(...resolved.answers.map((answer) => Math.max(1, Number(answer.ttl || 60)))))
+        : 0;
+      const metrics = [...resolved.timing, { name: "total", durMs: Date.now() - startedAtMs }];
+      return {
+        wire: Buffer.from(response),
+        rcode: resolved.rcode,
+        answers: resolved.answers,
+        ttlS,
+        cacheControl: resolved.rcode === 0 && ttlS > 0 ? `public, max-age=${ttlS}` : "no-store",
+        serverTiming: serverTimingHeader(metrics)
+      };
     } catch {
       const response = encodeDnsWireResponse(id, questions, 2, []);
-      return { wire: Buffer.from(response), rcode: 2, answers: [] };
+      return {
+        wire: Buffer.from(response),
+        rcode: 2,
+        answers: [],
+        ttlS: 0,
+        cacheControl: "no-store",
+        serverTiming: serverTimingHeader([{ name: "total", durMs: Date.now() - startedAtMs }])
+      };
     }
   }
 
@@ -2105,7 +2162,12 @@ export function createApp(overrides?: { adapterRegistry?: { resolveAuto: typeof 
         });
       }
 
-      return res.set("content-type", "application/dns-message").status(200).send(out.wire);
+      return res
+        .set("content-type", "application/dns-message")
+        .set("cache-control", out.cacheControl)
+        .set("server-timing", out.serverTiming || "")
+        .status(200)
+        .send(out.wire);
     } catch (err: any) {
       return res.status(400).json({ error: String(err?.message || "invalid_dns_query") });
     }
@@ -2116,7 +2178,12 @@ export function createApp(overrides?: { adapterRegistry?: { resolveAuto: typeof 
       const body = req.body instanceof Buffer ? req.body : Buffer.from(req.body || []);
       if (!body.length) return res.status(400).json({ error: "empty_dns_query" });
       const out = await handleDohWireQuery(body);
-      return res.set("content-type", "application/dns-message").status(200).send(out.wire);
+      return res
+        .set("content-type", "application/dns-message")
+        .set("cache-control", out.cacheControl)
+        .set("server-timing", out.serverTiming || "")
+        .status(200)
+        .send(out.wire);
     } catch (err: any) {
       return res.status(400).json({ error: String(err?.message || "invalid_dns_query") });
     }
