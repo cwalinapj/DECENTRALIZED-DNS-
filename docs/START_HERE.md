@@ -63,3 +63,6 @@ Latest proof snapshot:
 ## Miner onboarding
 - Quickstart: `docs/MINER_QUICKSTART_CF.md`
 - Onboarding UI: `docs/miner-onboard/index.html`
+
+## Firefox TRR local test
+- `docs/FIREFOX_TRR.md`

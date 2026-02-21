@@ -47,6 +47,7 @@ See:
 - Security model: `docs/THREAT_MODEL.md`
 - Attack-mode behavior: `docs/ATTACK_MODE.md`
 - Local resolver testing: `docs/LOCAL_TEST.md`
+- Firefox TRR local test: `docs/FIREFOX_TRR.md`
 - Canonical docs index: `docs/INDEX.md`
 
 ## 5 Minute Sanity Checks
