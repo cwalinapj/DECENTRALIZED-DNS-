@@ -2,6 +2,11 @@
 
 This index is intentionally short and categorized.
 
+## Overview (Start Here)
+
+- `docs/OVERVIEW.md` — **main functions and purposes of this repo** (components, endpoints, flow)
+- `docs/START_HERE.md` — canonical MVP run instructions
+
 ## MVP (What Works / How To Run)
 - `docs/MVP.md`
 - `docs/PROTOCOL_CACHE_WITNESS.md`
