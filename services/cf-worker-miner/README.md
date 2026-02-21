@@ -51,9 +51,14 @@ npx wrangler dev
 ```bash
 curl "https://<worker>.workers.dev/v1/health"
 curl "https://<worker>.workers.dev/resolve?name=netflix.com&type=A"
+bash ../../scripts/miner_cf_verify.sh --url "https://<worker>.workers.dev" --name "netflix.com" --type "A"
 ```
 
 Expected fields:
 - `name`, `type`, `answers`, `ttl_s`
 - `confidence`, `rrset_hash`
 - `upstreams_used`, `chosen_upstream`
+
+Common failures:
+- `verify: FAIL resolve status=...`: wrong worker URL or worker is not deployed.
+- `verify: FAIL schema mismatch`: worker response shape does not match gateway quorum format.

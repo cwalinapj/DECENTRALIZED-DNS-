@@ -43,6 +43,12 @@ curl "<WORKER_URL>/resolve?name=netflix.com&type=A"
 bash scripts/miner_cf_verify.sh --url "<WORKER_URL>" --name "netflix.com" --type "A"
 ```
 
+For self-signed local HTTPS during testing, add `--insecure`:
+
+```bash
+bash scripts/miner_cf_verify.sh --url "https://127.0.0.1:8443" --name "netflix.com" --type "A" --insecure
+```
+
 Expected resolve payload fields:
 - `confidence`
 - `upstreams_used`
@@ -82,6 +88,10 @@ npm run miner:cf:dev
   - run `npx wrangler login`.
 - Worker URL not shown:
   - run `npx wrangler deployments list` and copy the workers.dev URL.
+- `verify: FAIL resolve status=...`:
+  - confirm your worker URL has no trailing path (must be base URL only).
+- `verify: FAIL schema mismatch`:
+  - confirm your worker returns `rrset_hash`, `confidence`, `upstreams_used`, `chosen_upstream`, `ttl_s`.
 
 ## UI onboarding page
 

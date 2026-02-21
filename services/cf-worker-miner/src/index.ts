@@ -121,7 +121,7 @@ export default {
       .map((v) => v.trim())
       .filter(Boolean);
     const timeoutMs = Number(env.TIMEOUT_MS || "2000");
-    const overlapRatio = Number(env.OVERLAP_RATIO || "0.34");
+    const overlapThreshold = Number(env.OVERLAP_RATIO || "0.34");
 
     const hits = await Promise.all(upstreams.map((u) => queryOne(u, name, qtype, timeoutMs)));
     const ok = hits.filter((h) => h.status === "NOERROR" && h.ips.length > 0);
@@ -140,7 +140,7 @@ export default {
         const a = ok[0];
         const b = ok[1];
         const ratio = overlapRatio(a.ips, b.ips);
-        if (ratio >= overlapRatio) confidence = "medium";
+        if (ratio >= overlapThreshold) confidence = "medium";
       }
     }
 
