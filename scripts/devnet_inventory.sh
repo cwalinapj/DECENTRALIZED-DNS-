@@ -139,8 +139,12 @@ required_total=0
 required_ok=0
 required_fail=0
 optional_missing=0
+optional_nonexec=0
+optional_fail=0
 missing_required_names=()
 nonexec_required_names=()
+missing_optional_names=()
+nonexec_optional_names=()
 
 total_program_lamports=0
 biggest_program_lamports=0
@@ -174,6 +178,8 @@ while read -r name program_id; do
       missing_required_names+=("$name")
     else
       optional_missing=$((optional_missing + 1))
+      optional_fail=$((optional_fail + 1))
+      missing_optional_names+=("$name")
     fi
   else
     exists="true"
@@ -213,6 +219,10 @@ while read -r name program_id; do
       if [[ "$tier" == "REQUIRED" ]]; then
         required_fail=$((required_fail + 1))
         nonexec_required_names+=("$name")
+      else
+        optional_nonexec=$((optional_nonexec + 1))
+        optional_fail=$((optional_fail + 1))
+        nonexec_optional_names+=("$name")
       fi
     fi
 
@@ -365,6 +375,16 @@ if ((${#nonexec_required_names[@]})); then
 else
   nonexec_required_json='[]'
 fi
+if ((${#missing_optional_names[@]})); then
+  missing_optional_json="$(printf '%s\n' "${missing_optional_names[@]}" | jq -Rsc 'split("\n")[:-1]')"
+else
+  missing_optional_json='[]'
+fi
+if ((${#nonexec_optional_names[@]})); then
+  nonexec_optional_json="$(printf '%s\n' "${nonexec_optional_names[@]}" | jq -Rsc 'split("\n")[:-1]')"
+else
+  nonexec_optional_json='[]'
+fi
 
 total_program_sol="$(to_sol "$total_program_lamports")"
 recommended_reserve_lamports=$(( (2 * biggest_program_lamports + 1000000000) > 5000000000 ? (2 * biggest_program_lamports + 1000000000) : 5000000000 ))
@@ -390,6 +410,8 @@ jq -n \
   --arg required_ok "$required_ok" \
   --arg required_fail "$required_fail" \
   --arg optional_missing "$optional_missing" \
+  --arg optional_nonexec "$optional_nonexec" \
+  --arg optional_fail "$optional_fail" \
   --arg total_program_lamports "$total_program_lamports" \
   --arg total_program_sol "$total_program_sol" \
   --arg recommended_reserve_lamports "$recommended_reserve_lamports" \
@@ -400,6 +422,8 @@ jq -n \
   --arg pda_json "$pda_json" \
   --arg missing_required_json "$missing_required_json" \
   --arg nonexec_required_json "$nonexec_required_json" \
+  --arg missing_optional_json "$missing_optional_json" \
+  --arg nonexec_optional_json "$nonexec_optional_json" \
   '{
     timestamp_utc:$timestamp_utc,
     rpc:$rpc,
@@ -421,6 +445,8 @@ jq -n \
       required_ok:($required_ok|tonumber),
       required_fail:($required_fail|tonumber),
       optional_missing:($optional_missing|tonumber),
+      optional_nonexec:($optional_nonexec|tonumber),
+      optional_fail:($optional_fail|tonumber),
       total_program_lamports:($total_program_lamports|tonumber),
       total_program_sol:$total_program_sol,
       recommended_reserve_lamports:($recommended_reserve_lamports|tonumber),
@@ -428,7 +454,9 @@ jq -n \
       recommended_wallet_topup_lamports:($recommended_wallet_topup_lamports|tonumber),
       recommended_wallet_topup_sol:$recommended_wallet_topup_sol,
       missing_required:($missing_required_json|fromjson),
-      nonexec_required:($nonexec_required_json|fromjson)
+      nonexec_required:($nonexec_required_json|fromjson),
+      missing_optional:($missing_optional_json|fromjson),
+      nonexec_optional:($nonexec_optional_json|fromjson)
     }
   }' > artifacts/devnet_inventory.json
 
@@ -469,6 +497,8 @@ echo "- required_total: $(jq -r '.summary.required_total' artifacts/devnet_inven
 echo "- required_ok: $(jq -r '.summary.required_ok' artifacts/devnet_inventory.json)"
 echo "- required_fail: $(jq -r '.summary.required_fail' artifacts/devnet_inventory.json)"
 echo "- optional_missing: $(jq -r '.summary.optional_missing' artifacts/devnet_inventory.json)"
+echo "- optional_nonexec: $(jq -r '.summary.optional_nonexec' artifacts/devnet_inventory.json)"
+echo "- optional_fail: $(jq -r '.summary.optional_fail' artifacts/devnet_inventory.json)"
 echo "- total_program_sol: $(jq -r '.summary.total_program_sol' artifacts/devnet_inventory.json)"
 echo "- recommended_reserve_sol: $(jq -r '.summary.recommended_reserve_sol' artifacts/devnet_inventory.json)"
 echo "- recommended_wallet_topup_sol: $(jq -r '.summary.recommended_wallet_topup_sol' artifacts/devnet_inventory.json)"

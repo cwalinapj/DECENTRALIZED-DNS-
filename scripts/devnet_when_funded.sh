@@ -8,6 +8,7 @@ RPC_URL="${SOLANA_RPC_URL:-https://api.devnet.solana.com}"
 WALLET_PATH="${WALLET:-${ANCHOR_WALLET:-$HOME/.config/solana/id.json}}"
 APPEND_VERIFIED="${APPEND_VERIFIED:-1}"
 DEMO_JSON="${DEMO_JSON:-0}"
+DEPLOY_ALL="${DEPLOY_ALL:-0}"
 
 if [[ ! -f "$WALLET_PATH" ]]; then
   echo "wallet_not_found: $WALLET_PATH" >&2
@@ -30,6 +31,7 @@ wallet_sol="$(solana balance -u "$RPC_URL" "$wallet_pubkey" | awk '{print $1}')"
 echo "SOLANA_RPC_URL=$RPC_URL"
 echo "WALLET_PUBKEY=$wallet_pubkey"
 echo "WALLET_SOL=$wallet_sol"
+echo "DEPLOY_ALL=$DEPLOY_ALL"
 
 {
   echo "# Devnet funded flow proof"
@@ -42,7 +44,7 @@ echo "WALLET_SOL=$wallet_sol"
 } > "$log_file"
 
 echo "==> preflight plan (dry run)"
-DRY_OUT="$(DRY_RUN=1 bash scripts/devnet_deploy_wave.sh | tee "$run_log")"
+DRY_OUT="$(DEPLOY_ALL="$DEPLOY_ALL" DRY_RUN=1 bash scripts/devnet_deploy_wave.sh | tee "$run_log")"
 TOP_UP_TARGET_SOL="$(printf '%s\n' "$DRY_OUT" | sed -n 's/^TOP_UP_TARGET_SOL=//p' | tail -n 1)"
 
 if [[ -z "$TOP_UP_TARGET_SOL" ]]; then
@@ -84,7 +86,7 @@ if [[ "$shortfall_positive" == "1" ]]; then
 fi
 
 echo "==> deploy missing demo-critical programs"
-DRY_RUN=0 APPEND_VERIFIED=0 bash scripts/devnet_deploy_wave.sh | tee -a "$run_log"
+DEPLOY_ALL="$DEPLOY_ALL" DRY_RUN=0 APPEND_VERIFIED=0 bash scripts/devnet_deploy_wave.sh | tee -a "$run_log"
 
 echo "==> inventory after deploy"
 bash scripts/devnet_inventory.sh | tee -a "$run_log"
