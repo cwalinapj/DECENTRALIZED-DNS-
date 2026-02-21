@@ -29,6 +29,8 @@ This index is intentionally short and categorized.
 ## Product / Developer Positioning
 - `docs/DEVELOPER_API.md`
 - `docs/WHY_DEVS_USE_THIS.md`
+- `docs/WEB2_PRICING_MODEL.md`
+- `docs/PAYMENTS_AND_TREASURY.md`
 - `docs/RENT_BOND.md`
 - `docs/DOMAIN_CONTINUITY.md`
 - `docs/DOMAIN_CONTINUITY_UI.md`

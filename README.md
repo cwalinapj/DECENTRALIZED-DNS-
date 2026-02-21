@@ -16,12 +16,29 @@ For a concise summary of all main functions and purposes: `docs/OVERVIEW.md`.
 Latest proof snapshot: `docs/PROOF.md`.
 Dashboard: `docs/dashboard/index.html` (read-only, safe when empty; optional Pages path `/docs/dashboard/index.html`).
 
+## Web2 Pricing (No Crypto UX)
+
+- User pricing is fixed in USD.
+- Users can pay in USD (recommended) or crypto; TollDNS handles volatility and settlement behind the scenes.
+- No crypto is required for user onboarding.
+
+See:
+- `docs/WEB2_PRICING_MODEL.md`
+- `docs/PAYMENTS_AND_TREASURY.md`
+
+## Pricing that won't surprise you
+
+- renewals should not fail silently
+- if payment fails, continuity warning/banner flows activate first (policy-gated)
+- eligible domains can remain reachable in safe degraded mode while renewal is handled
+- domain continuity is bounded by registrar/registry policy windows
+
 ## Start Here (MVP)
 
+- User onboarding (Web2-first): `docs/START_HERE.md`
 - MVP scope and current behavior: `docs/MVP.md`
 - Definition-of-done checklist: `docs/MVP_DOD.md`
 - Current verified status: `docs/STATUS.md`
-- Devnet runbook: `DEVNET_RUNBOOK.md`
 - Devnet audit snapshot: `docs/DEVNET_STATUS.md`
 - Mass adoption roadmap: `docs/MASS_ADOPTION_ROADMAP.md`
 - Adapter overview: `docs/ADAPTERS.md`
@@ -34,7 +51,6 @@ Dashboard: `docs/dashboard/index.html` (read-only, safe when empty; optional Pag
 
 ```bash
 npm ci && npm test
-npm run mvp:demo:devnet
 ```
 
 Optional gateway spot checks:
@@ -83,7 +99,7 @@ Expected:
 npm run mvp:demo:devnet
 ```
 
-This is the strict funded flow (`scripts/devnet_when_funded.sh`): deploy-wave check, inventory, and strict `.dns` on-chain demo. It exits non-zero on strict failure.
+Operator/developer proof command (not required for end users): strict funded flow with deploy-wave check, inventory, and strict `.dns` on-chain verification. It exits non-zero on strict failure.
 
 ## Become a Miner (Cloudflare Worker)
 
@@ -119,6 +135,8 @@ See `docs/DOMAIN_CONTINUITY.md`.
 Domain Continuity UI: `docs/DOMAIN_CONTINUITY_UI.md`.
 Notice tokens: `docs/NOTICE_TOKENS.md`.
 Banner/interstitial integration: `docs/DOMAIN_BANNER_INTEGRATION.md`.
+Pricing model: `docs/WEB2_PRICING_MODEL.md`.
+Payments + treasury policy: `docs/PAYMENTS_AND_TREASURY.md`.
 Real registrar adapter flags: `REGISTRAR_ENABLED`, `REGISTRAR_PROVIDER`, `REGISTRAR_DRY_RUN` (off by default).
 
 ## Domain-owner earnings wedge (MVP accuracy)
@@ -133,3 +151,10 @@ Roadmap items below are planned unless stated as MVP in linked docs:
 - load balancing + automatic Kubernetes deployment tiers (`docs/END_STATE.md`)
 - AI guardrail workers for checks/backups/attestations (`docs/MASS_ADOPTION_ROADMAP.md`)
 - registrar incentives and renewal-discount pathways (`docs/MASS_ADOPTION_ROADMAP.md`)
+
+## Operator / Treasury / Maintenance (advanced)
+
+These are not part of user onboarding:
+- program deployment, devnet proof, and inventory: `DEVNET_RUNBOOK.md`, `docs/DEVNET_STATUS.md`
+- reserve planning + rent bond accounting: `docs/RENT_BOND.md`
+- strict demo proofs and artifacts: `docs/PROOF.md`, `VERIFIED.md`, `artifacts/devnet_inventory.json`
