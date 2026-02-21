@@ -66,8 +66,10 @@ Optional gateway spot checks:
 
 ```bash
 PORT=8054 npm -C gateway run start
+curl 'http://localhost:8054/v1/status'
 curl 'http://localhost:8054/v1/resolve?name=netflix.com&type=A'
 curl 'http://localhost:8054/v1/resolve?name=example.dns&type=A'
+bash scripts/gateway_smoke.sh
 ```
 
 ## Quick Verify (Devnet)

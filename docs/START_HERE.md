@@ -47,7 +47,9 @@ curl 'http://127.0.0.1:8054/v1/domain/banner?domain=low-traffic.com&format=json'
 
 ```bash
 PORT=8054 npm -C gateway run start
+curl 'http://localhost:8054/v1/status'
 curl 'http://localhost:8054/v1/resolve?name=netflix.com&type=A'
+bash scripts/gateway_smoke.sh
 ```
 
 ## Operator/Developer Proof (advanced)

@@ -132,6 +132,16 @@ paths:
                 type: object
                 properties:
                   status: { type: string }
+  /v1/status:
+    get:
+      summary: Gateway runtime status (upstreams, cache, attack mode)
+      responses:
+        '200':
+          description: Runtime health snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GatewayStatusResponse'
   /v1/attack-mode:
     get:
       summary: Gateway status (attack mode policy)
@@ -489,6 +499,54 @@ paths:
                 type: string
 components:
   schemas:
+    GatewayUpstreamHealth:
+      type: object
+      properties:
+        url: { type: string }
+        ok_count: { type: integer }
+        error_count: { type: integer }
+        last_rtt_ms: { type: number, nullable: true }
+        last_status: { type: string, nullable: true }
+        last_answers_count: { type: integer, nullable: true }
+        last_seen_at: { type: string, format: date-time }
+    GatewayStatusResponse:
+      type: object
+      properties:
+        ok: { type: boolean }
+        service: { type: string }
+        now_utc: { type: string, format: date-time }
+        uptime_s: { type: integer }
+        recursive_upstreams:
+          type: array
+          items:
+            $ref: '#/components/schemas/GatewayUpstreamHealth'
+        cache:
+          type: object
+          properties:
+            entries_in_memory: { type: integer }
+            hits: { type: integer }
+            misses: { type: integer }
+            stale_served: { type: integer }
+            hit_rate: { type: number, nullable: true }
+        resolve:
+          type: object
+          properties:
+            total_requests: { type: integer }
+            icann_requests: { type: integer }
+            dns_requests: { type: integer }
+        attack_mode:
+          type: object
+          properties:
+            endpoint: { type: string }
+            enabled: { type: boolean }
+            mode: { type: string }
+            decision:
+              type: object
+              properties:
+                score: { type: number }
+                reasons:
+                  type: array
+                  items: { type: string }
     ResolveAnswer:
       type: object
       properties:
