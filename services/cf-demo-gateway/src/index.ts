@@ -34,6 +34,257 @@ type ResolvePayload = {
   cache: { hit: boolean };
 };
 
+const DEMO_PAGE_HTML = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TollDNS Public Demo</title>
+  <style>
+    :root {
+      --bg: #f5f7fa;
+      --card: #ffffff;
+      --ink: #142033;
+      --muted: #5e6b7d;
+      --accent: #0b63ce;
+      --ok: #157347;
+      --warn: #b54708;
+    }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: linear-gradient(180deg, #f9fbff 0%, #eef3f9 100%);
+      color: var(--ink);
+      min-height: 100vh;
+    }
+    .wrap {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 28px 18px 40px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid #dce5f1;
+      border-radius: 14px;
+      padding: 16px;
+      margin-top: 16px;
+      box-shadow: 0 8px 28px rgba(15, 31, 61, 0.08);
+    }
+    h1 { margin: 0; font-size: 1.6rem; }
+    .sub { margin-top: 6px; color: var(--muted); font-size: 0.95rem; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+    input, select, button, textarea {
+      font: inherit;
+      border-radius: 10px;
+      border: 1px solid #cfd8e6;
+      padding: 9px 11px;
+    }
+    input, select { min-width: 160px; }
+    button {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+      cursor: pointer;
+    }
+    button.secondary { background: #f3f7fd; color: #11365f; border-color: #b5c9e4; }
+    textarea {
+      width: 100%;
+      min-height: 54px;
+      resize: vertical;
+      background: #fbfdff;
+      color: #1f3147;
+    }
+    .kpi {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .kpi > div {
+      border: 1px solid #d7e2f1;
+      border-radius: 10px;
+      padding: 10px;
+      background: #f8fbff;
+    }
+    .k { color: var(--muted); font-size: 0.85rem; margin-bottom: 4px; }
+    .v { font-weight: 600; }
+    .status { margin-top: 8px; font-size: 0.95rem; }
+    .status.ok { color: var(--ok); }
+    .status.warn { color: var(--warn); }
+    pre {
+      margin: 10px 0 0;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid #d8e3f2;
+      background: #f7fbff;
+      overflow: auto;
+      max-height: 300px;
+      font-size: 0.84rem;
+    }
+    ul { margin: 8px 0 0; padding-left: 18px; }
+    li { margin: 4px 0; font-size: 0.9rem; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>TollDNS Public Resolver Demo</h1>
+    <div class="sub">Resolve any domain and inspect confidence, rrset hash, chosen upstream, and upstream audit details.</div>
+
+    <div class="card">
+      <div class="row">
+        <input id="name" type="text" value="netflix.com" aria-label="Domain name" />
+        <select id="type" aria-label="Record type">
+          <option value="A">A</option>
+          <option value="AAAA">AAAA</option>
+        </select>
+        <button id="resolve-btn" type="button">Resolve</button>
+      </div>
+      <div class="row">
+        <textarea id="share-link" class="mono" readonly></textarea>
+      </div>
+      <div class="row">
+        <button id="copy-share" type="button" class="secondary">Copy share link</button>
+      </div>
+      <div id="status" class="status"></div>
+    </div>
+
+    <div class="card">
+      <div class="kpi">
+        <div><div class="k">Confidence</div><div class="v" id="k-confidence">-</div></div>
+        <div><div class="k">RRSet Hash</div><div class="v mono" id="k-hash">-</div></div>
+        <div><div class="k">Chosen Upstream</div><div class="v mono" id="k-upstream">-</div></div>
+        <div><div class="k">Cache Hit</div><div class="v" id="k-cache">-</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="k">Answers</div>
+      <ul id="answers"></ul>
+      <div class="k" style="margin-top: 10px;">Upstreams Used</div>
+      <ul id="upstreams"></ul>
+      <div class="k" style="margin-top: 10px;">Raw JSON</div>
+      <pre id="raw-json">{}</pre>
+    </div>
+  </div>
+
+  <script>
+    const nameEl = document.getElementById("name");
+    const typeEl = document.getElementById("type");
+    const resolveBtn = document.getElementById("resolve-btn");
+    const shareEl = document.getElementById("share-link");
+    const copyBtn = document.getElementById("copy-share");
+    const statusEl = document.getElementById("status");
+    const answersEl = document.getElementById("answers");
+    const upstreamsEl = document.getElementById("upstreams");
+    const rawEl = document.getElementById("raw-json");
+    const confEl = document.getElementById("k-confidence");
+    const hashEl = document.getElementById("k-hash");
+    const upEl = document.getElementById("k-upstream");
+    const cacheEl = document.getElementById("k-cache");
+
+    function toShareUrl(name, type) {
+      const u = new URL(window.location.href);
+      u.pathname = "/";
+      u.search = "";
+      u.searchParams.set("name", name);
+      u.searchParams.set("type", type);
+      return u.toString();
+    }
+
+    function updateShare() {
+      const name = (nameEl.value || "").trim();
+      const type = typeEl.value || "A";
+      shareEl.value = name ? toShareUrl(name, type) : "";
+    }
+
+    async function runResolve() {
+      const name = (nameEl.value || "").trim();
+      const type = typeEl.value || "A";
+      if (!name) {
+        statusEl.textContent = "Enter a domain name.";
+        statusEl.className = "status warn";
+        return;
+      }
+      updateShare();
+      statusEl.textContent = "Resolving...";
+      statusEl.className = "status";
+
+      const url = "/v1/resolve?name=" + encodeURIComponent(name) + "&type=" + encodeURIComponent(type);
+      try {
+        const res = await fetch(url);
+        const payload = await res.json();
+        rawEl.textContent = JSON.stringify(payload, null, 2);
+
+        confEl.textContent = payload.confidence || "-";
+        hashEl.textContent = payload.rrset_hash || "-";
+        upEl.textContent = payload.chosen_upstream ? payload.chosen_upstream.url : "-";
+        cacheEl.textContent = payload.cache && typeof payload.cache.hit === "boolean" ? String(payload.cache.hit) : "-";
+
+        answersEl.innerHTML = "";
+        for (const answer of payload.answers || []) {
+          const li = document.createElement("li");
+          li.textContent = answer.data + " (ttl=" + answer.ttl + ")";
+          answersEl.appendChild(li);
+        }
+        if (!answersEl.children.length) {
+          const li = document.createElement("li");
+          li.textContent = "(no answers)";
+          answersEl.appendChild(li);
+        }
+
+        upstreamsEl.innerHTML = "";
+        for (const up of payload.upstreams_used || []) {
+          const li = document.createElement("li");
+          li.textContent = up.url + " | status=" + up.status + " | rtt_ms=" + up.rtt_ms + " | answers_count=" + up.answers_count;
+          upstreamsEl.appendChild(li);
+        }
+        if (!upstreamsEl.children.length) {
+          const li = document.createElement("li");
+          li.textContent = "(no upstream data)";
+          upstreamsEl.appendChild(li);
+        }
+
+        if (res.ok) {
+          statusEl.textContent = "Resolve complete.";
+          statusEl.className = "status ok";
+        } else {
+          statusEl.textContent = "Resolve returned HTTP " + res.status;
+          statusEl.className = "status warn";
+        }
+      } catch (err) {
+        statusEl.textContent = "Resolve failed: " + (err && err.message ? err.message : String(err));
+        statusEl.className = "status warn";
+      }
+    }
+
+    resolveBtn.addEventListener("click", runResolve);
+    nameEl.addEventListener("input", updateShare);
+    typeEl.addEventListener("change", updateShare);
+    copyBtn.addEventListener("click", async () => {
+      updateShare();
+      if (!shareEl.value) return;
+      try {
+        await navigator.clipboard.writeText(shareEl.value);
+        statusEl.textContent = "Share link copied.";
+        statusEl.className = "status ok";
+      } catch {
+        statusEl.textContent = "Could not copy automatically; copy from the text box.";
+        statusEl.className = "status warn";
+      }
+    });
+
+    const params = new URLSearchParams(window.location.search);
+    const initialName = (params.get("name") || "").trim();
+    const initialType = (params.get("type") || "A").toUpperCase() === "AAAA" ? "AAAA" : "A";
+    if (initialName) nameEl.value = initialName;
+    typeEl.value = initialType;
+    updateShare();
+    if (nameEl.value.trim()) runResolve();
+  </script>
+</body>
+</html>`;
+
 type UpstreamHit = {
   url: string;
   rtt_ms: number;
@@ -507,6 +758,16 @@ async function handleDoH(req: Request, env: Env): Promise<Response> {
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     const url = new URL(req.url);
+
+    if (url.pathname === "/" || url.pathname === "/demo") {
+      return new Response(DEMO_PAGE_HTML, {
+        status: 200,
+        headers: {
+          "content-type": "text/html; charset=utf-8",
+          "cache-control": "no-store"
+        }
+      });
+    }
 
     if (url.pathname === "/healthz") {
       return Response.json({ ok: true, service: "ddns-demo-gateway" });

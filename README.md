@@ -16,6 +16,7 @@ This repo delivers a Web2-friendly DNS and gateway stack with verifiable on-chai
 - One command (strict devnet proof): `npm run mvp:demo:devnet`
 - One command (run gateway locally): `PORT=8054 npm -C gateway run start`
 - One link (Web2-first funnel): `docs/GET_STARTED.md`
+- Public Cloudflare demo deploy/share: `docs/PUBLIC_DEMO.md`
 
 If you only read one file first: `docs/START_HERE.md`.
 For a concise summary of all main functions and purposes: `docs/OVERVIEW.md`.

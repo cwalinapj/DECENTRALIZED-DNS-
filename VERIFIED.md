@@ -1974,3 +1974,43 @@ Firefox about:config values:
 ✅ firefox DoH verify passed
 ✅ LOCAL STACK READY
 ```
+
+## 2026-02-21 — PR3 public Cloudflare demo share-link resolver
+
+Commands:
+```bash
+npm -C services/cf-demo-gateway i
+npm test
+npm run demo:cf:dev
+curl 'http://127.0.0.1:8788/v1/resolve?name=netflix.com&type=A'
+```
+
+Output snippet:
+```text
+added 1 package, and audited 126 packages in 449ms
+found 0 vulnerabilities
+
+==> run_all: complete
+
+{
+  "name": "netflix.com",
+  "type": "A",
+  "confidence": "low",
+  "rrset_hash": "6e67410e6afe26b14efb77a483bf6d70ccc6808a1f89c67d2d9cc6f4aa4a1689",
+  "answers_count": 3,
+  "upstreams_used": [
+    {
+      "url": "https://cloudflare-dns.com/dns-query",
+      "rtt_ms": 142,
+      "status": "NOERROR",
+      "answers_count": 3
+    },
+    {
+      "url": "https://dns.google/resolve",
+      "rtt_ms": 202,
+      "status": "NOERROR",
+      "answers_count": 3
+    }
+  ]
+}
+```

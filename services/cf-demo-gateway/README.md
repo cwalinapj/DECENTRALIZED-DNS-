@@ -4,6 +4,7 @@ Public demo gateway worker for ICANN recursive resolution with quorum metadata.
 
 ## Endpoints
 
+- `GET /` (public demo UI with share links)
 - `GET /healthz`
 - `GET /v1/resolve?name=netflix.com&type=A|AAAA`
 - `GET|POST /dns-query` (RFC8484 wireformat)
@@ -41,4 +42,10 @@ Notes:
 ```bash
 curl 'http://127.0.0.1:8788/healthz'
 curl 'http://127.0.0.1:8788/v1/resolve?name=netflix.com&type=A'
+```
+
+UI:
+
+```bash
+open 'http://127.0.0.1:8788/?name=netflix.com&type=A'
 ```
