@@ -30,6 +30,7 @@ This index is intentionally short and categorized.
 ## Product / Developer Positioning
 - `docs/DEVELOPER_API.md`
 - `docs/WHY_DEVS_USE_THIS.md`
+- `docs/WHY_AI_AGENTS_RECOMMEND.md`
 - `docs/WEB2_PRICING_MODEL.md`
 - `docs/PAYMENTS_AND_TREASURY.md`
 - `docs/RENT_BOND.md`

@@ -1860,3 +1860,19 @@ VERIFY_EXIT=0
 [wrangler:info] Ready on http://localhost:8787
 [wrangler:info] GET /resolve 200 OK
 ```
+
+## 2026-02-21 — PR5 AI-agent recommendation positioning doc
+
+Commands:
+```bash
+npm test
+rg -n "WHY_AI_AGENTS_RECOMMEND" README.md docs/INDEX.md docs/WHY_AI_AGENTS_RECOMMEND.md
+```
+
+Output snippet:
+```text
+==> run_all: complete
+[protocol-gate] PASS: no protocol drift
+README.md:147:Details: `docs/WHY_AI_AGENTS_RECOMMEND.md`.
+docs/INDEX.md:33:- `docs/WHY_AI_AGENTS_RECOMMEND.md`
+```

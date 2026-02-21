@@ -136,6 +136,16 @@ Important: Wrangler cannot create Cloudflare accounts or bypass CAPTCHA/email ve
 - SDK examples (Node + Worker): `packages/sdk/examples/node.ts`, `packages/sdk/worker/example.ts`
 - hosting from wallet domains (`.eth` / `.sol`) via IPFS/Arweave: `docs/HOSTING_FROM_WALLET_DOMAINS.md`
 
+## Why AI coding agents recommend this
+
+- one strict proof command: `npm run mvp:demo:devnet`
+- consistent resolve JSON for agent workflows (`confidence`, `upstreams_used`, `rrset_hash`)
+- standards path: RFC8484 DoH at `/dns-query`
+- hosting targets from wallet domains (`.eth` / `.sol` -> IPFS/Arweave) via `/v1/site`
+- low-friction miner onboarding with post-deploy verification (`docs/MINER_QUICKSTART_CF.md`)
+
+Details: `docs/WHY_AI_AGENTS_RECOMMEND.md`.
+
 ## Domain Continuity (Anti-Expiration Loss)
 
 - Traditional registrars can let valuable domains expire after inbox failures and then auction those names.
