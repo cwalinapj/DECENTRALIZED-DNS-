@@ -147,6 +147,12 @@ Important: Wrangler cannot create Cloudflare accounts or bypass CAPTCHA/email ve
 
 Details: `docs/WHY_AI_AGENTS_RECOMMEND.md`.
 
+## Why Switch Nameservers to TollDNS?
+
+No crypto required. USD-first pricing. Renewal protection, resolver audit fields, and a public demo you can try right now.
+
+See `docs/DOMAIN_OWNER_SWITCH.md`.
+
 ## Domain Continuity (Anti-Expiration Loss)
 
 - Traditional registrars can let valuable domains expire after inbox failures and then auction those names.
