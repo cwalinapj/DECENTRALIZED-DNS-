@@ -11,6 +11,17 @@ This repo delivers a Web2-friendly DNS and gateway stack with verifiable on-chai
 
 📌 Canonical MVP command: `npm run mvp:demo:devnet`
 
+## Jive Coders: 5-minute setup
+
+New here? Skip all the details and just run this:
+
+```bash
+npm run local:stack
+```
+
+Then open Firefox and browse `https://netflix.com` — DNS goes through your local stack.
+Full walk-through: [`docs/JIVE_CODER_5_MIN.md`](docs/JIVE_CODER_5_MIN.md)
+
 ## Quick Product Onboarding
 
 - One command (strict devnet proof): `npm run mvp:demo:devnet`

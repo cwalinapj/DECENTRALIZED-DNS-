@@ -2,6 +2,16 @@
 
 If you only read one file, read this one.
 
+## Jive Coders: 5-minute setup
+
+New here? Run one command, browse a site, done:
+
+```bash
+npm run local:stack
+```
+
+Open Firefox → browse `https://netflix.com`. Full guide: [`docs/JIVE_CODER_5_MIN.md`](./JIVE_CODER_5_MIN.md)
+
 Quick onboarding funnel:
 - `docs/GET_STARTED.md`
 
