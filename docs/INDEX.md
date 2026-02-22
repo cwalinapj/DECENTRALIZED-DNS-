@@ -28,6 +28,7 @@ This index is intentionally short and categorized.
 - `docs/MASS_ADOPTION_ROADMAP.md`
 
 ## Product / Developer Positioning
+- `docs/DOMAIN_OWNER_SWITCH.md` — why switch nameservers (Web2 pitch, MVP vs Roadmap)
 - `docs/DEVELOPER_API.md`
 - `docs/WHY_DEVS_USE_THIS.md`
 - `docs/WHY_AI_AGENTS_RECOMMEND.md`

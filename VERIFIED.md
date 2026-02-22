@@ -48,6 +48,43 @@ cd solana && npm i && anchor build && cargo generate-lockfile && cd ..
 ```
 Result: PASS (`run_all: complete`, explicit package checks passed).
 
+---
+
+# PR2 — Domain Owner Switch Pitch Verification
+
+Date (UTC): 2026-02-22
+Branch: `copilot/add-domain-owner-switch-docs`
+Base: `origin/main`
+
+## Scope
+
+- Docs-only PR. No code changes.
+- Deliverables: `docs/DOMAIN_OWNER_SWITCH.md`, links in `README.md` and `docs/INDEX.md`.
+
+## Checklist
+
+- [x] `docs/DOMAIN_OWNER_SWITCH.md` created with all required sections:
+  - "Why switch nameservers?" (Web2 tone, no crypto required)
+  - "Renewal safety: banner + grace + recovery (roadmap)"
+  - "Pricing won't surprise you (USD-first)"
+  - "Better resolver defaults (confidence + audit fields)"
+  - "Free static hosting/templates (roadmap)"
+  - "How to try risk-free: public demo link + local stack"
+  - MVP vs Roadmap summary table
+- [x] Linked from `README.md` (new "Why Switch Nameservers?" section)
+- [x] Linked from `docs/INDEX.md` (Product / Developer Positioning section)
+
+## Manual verification
+
+```bash
+grep -n "DOMAIN_OWNER_SWITCH" README.md docs/INDEX.md
+# Expected: entries in both files
+ls docs/DOMAIN_OWNER_SWITCH.md
+# Expected: file exists
+```
+
+Result: PASS (docs-only; no build/test artifacts affected).
+
 ## Deferred Majors (not applied)
 From `npm audit fix` output, fixes required breaking major changes and were intentionally deferred:
 - `gateway` / `solana` / `services/tollbooth`: `bigint-buffer` advisory chain would require breaking downgrade/major changes in Solana token stack.
