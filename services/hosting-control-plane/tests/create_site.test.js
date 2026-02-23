@@ -50,3 +50,46 @@ test("POST /v1/sites validates mutually exclusive source inputs", async () => {
     server.close();
   }
 });
+
+test("POST /v1/sites returns 400 for missing domain", async () => {
+  const server = await startServer();
+  try {
+    const res = await makeRequest(server, "POST", "/v1/sites", {
+      origin_url: "https://origin.example.com"
+    });
+    assert.equal(res.status, 400);
+    const body = await res.json();
+    assert.match(body.error, /missing_domain/);
+  } finally {
+    server.close();
+  }
+});
+
+test("POST /v1/sites accepts static_dir source", async () => {
+  const server = await startServer();
+  try {
+    const res = await makeRequest(server, "POST", "/v1/sites", {
+      domain: "static.example.com",
+      static_dir: "./public"
+    });
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.domain, "static.example.com");
+    assert.deepEqual(body.source, { static_dir: "./public" });
+    assert.equal(body.edge_provider, "cloudflare");
+  } finally {
+    server.close();
+  }
+});
+
+test("GET /healthz returns ok", async () => {
+  const server = await startServer();
+  try {
+    const res = await makeRequest(server, "GET", "/healthz");
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.ok, true);
+  } finally {
+    server.close();
+  }
+});

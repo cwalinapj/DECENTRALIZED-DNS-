@@ -3,6 +3,7 @@ import http from "node:http";
 const PORT = Number(process.env.PORT || "8092");
 const HOST = process.env.HOST || "0.0.0.0";
 const EDGE_CNAME = process.env.HOSTING_EDGE_CNAME || "edge.tolldns.io";
+const MAX_BODY_BYTES = 64 * 1024;
 
 function sendJson(res, statusCode, payload) {
   const body = JSON.stringify(payload);
@@ -42,8 +43,14 @@ export function createServer() {
     }
     if (req.method === "POST" && req.url === "/v1/sites") {
       let raw = "";
+      let bytes = 0;
       req.setEncoding("utf8");
       req.on("data", (chunk) => {
+        bytes += Buffer.byteLength(chunk);
+        if (bytes > MAX_BODY_BYTES) {
+          req.destroy();
+          return sendJson(res, 413, { error: "request_too_large" });
+        }
         raw += chunk;
       });
       req.on("end", () => {

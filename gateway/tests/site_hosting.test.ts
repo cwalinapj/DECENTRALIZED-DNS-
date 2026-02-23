@@ -237,6 +237,8 @@ describe("/v1/site hosting targets", () => {
     expect(res.text).toContain("Renewal grace mode:");
     expect(res.text).toContain("Complete payment");
     expect(String(res.headers["x-ddns-renewal-banner"] || "")).toBe("grace_mode");
+    expect(String(res.headers["cache-control"] || "")).toContain("no-cache");
+    expect(String(res.headers["cache-control"] || "")).not.toContain("immutable");
     delete process.env.DOMAIN_BANNER_GRACE_MODE_ENABLED;
   });
 });

@@ -1666,6 +1666,7 @@ export function createApp(overrides?: { adapterRegistry?: { resolveAuto: typeof 
           });
 
       let body = fetched.body;
+      let bannerInjected = false;
       if (graceModeBannerEnabled && String(fetched.contentType || "").toLowerCase().includes("text/html")) {
         const existing = domainStatusStore.get(name);
         const registrarDomain = await registrarAdapter.getDomain(name);
@@ -1686,6 +1687,7 @@ export function createApp(overrides?: { adapterRegistry?: { resolveAuto: typeof 
           const overlay = `<aside style="position:fixed;left:0;right:0;bottom:0;z-index:2147483647;background:#111827;color:#f9fafb;padding:12px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;box-shadow:0 -2px 8px rgba(0,0,0,.35)"><strong>Renewal grace mode:</strong> ${escapeHtml(status.domain)} ${escapeHtml(bannerState.grace_countdown)} remaining. <a href="${escapeHtml(paymentUrl)}" style="color:#93c5fd;text-decoration:underline">Complete payment</a></aside>`;
           body = Buffer.from(injectBeforeBodyEnd(fetched.body.toString("utf8"), overlay), "utf8");
           res.setHeader("X-DDNS-Renewal-Banner", "grace_mode");
+          bannerInjected = true;
         }
       }
 
@@ -1693,7 +1695,7 @@ export function createApp(overrides?: { adapterRegistry?: { resolveAuto: typeof 
         res.setHeader("Content-Type", fetched.contentType);
       }
       res.setHeader("X-Content-Type-Options", "nosniff");
-      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      res.setHeader("Cache-Control", bannerInjected ? "no-cache, no-store, must-revalidate" : "public, max-age=31536000, immutable");
       res.setHeader(
         "Content-Security-Policy",
         "default-src 'self'; base-uri 'none'; frame-ancestors 'none'; object-src 'none'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self'"
