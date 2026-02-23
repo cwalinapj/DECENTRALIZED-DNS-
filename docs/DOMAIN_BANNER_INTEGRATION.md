@@ -41,3 +41,9 @@ Example flow:
 - Use interstitial mode for protected continuity phases (`C_SAFE_PARKED`, `D_REGISTRY_FINALIZATION`).
 - Tokens are verifiable and do not include client identifiers.
 - This is MVP-safe: registrar execution is still stubbed.
+
+## Grace-mode policy (MVP)
+
+- Qualifies: verified-business domains and/or domains meeting continuity traffic thresholds.
+- Grace period: domain continues serving while delinquent until `grace_expires_at`.
+- Post-grace behavior: interstitial/continuity page and registrar finalization steps apply per policy window.

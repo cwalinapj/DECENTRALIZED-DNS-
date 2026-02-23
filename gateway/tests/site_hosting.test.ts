@@ -102,6 +102,17 @@ function makeRegistry() {
           proof: { type: "none", payload: { mock: true } }
         };
       }
+      if (name === "low-traffic.com") {
+        return {
+          name,
+          nameHashHex: "0x" + "11".repeat(32),
+          dest: `ipfs://${IPFS_CID}`,
+          destHashHex: "0x" + "22".repeat(32),
+          ttlS: 300,
+          source: { kind: "recursive", ref: "mock", confidenceBps: 1000 },
+          proof: { type: "none", payload: { mock: true } }
+        };
+      }
       return {
         name,
         nameHashHex: "0x" + "11".repeat(32),
@@ -208,5 +219,24 @@ describe("/v1/site hosting targets", () => {
     const res = await request(app).get("/v1/site").query({ name: "oversize.eth" });
     expect(res.status).toBe(413);
     expect(String(res.body.error || "")).toContain("content_too_large");
+  });
+
+  it("injects renewal grace banner overlay when delinquent flag is enabled", async () => {
+    process.env.DOMAIN_BANNER_GRACE_MODE_ENABLED = "1";
+    // @ts-expect-error test mock
+    globalThis.fetch = vi.fn(async () => {
+      return new Response("<html><body><h1>site</h1></body></html>", {
+        status: 200,
+        headers: { "content-type": "text/html", "content-length": "38" }
+      });
+    });
+
+    const app = createApp({ adapterRegistry: makeRegistry() as any });
+    const res = await request(app).get("/v1/site").query({ name: "low-traffic.com" });
+    expect(res.status).toBe(200);
+    expect(res.text).toContain("Renewal grace mode:");
+    expect(res.text).toContain("Complete payment");
+    expect(String(res.headers["x-ddns-renewal-banner"] || "")).toBe("grace_mode");
+    delete process.env.DOMAIN_BANNER_GRACE_MODE_ENABLED;
   });
 });

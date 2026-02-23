@@ -186,6 +186,19 @@ function renderHtmlTemplate(template: string, vars: Record<string, string>): str
   return template.replace(/\{\{([a-zA-Z0-9_]+)\}\}/g, (_, key: string) => escapeHtml(vars[key] || ""));
 }
 
+function injectBeforeBodyEnd(html: string, fragment: string): string {
+  if (/<\/body>/i.test(html)) {
+    return html.replace(/<\/body>/i, `${fragment}</body>`);
+  }
+  return `${html}${fragment}`;
+}
+
+function renewalBannerGraceModeEnabled(req: express.Request): boolean {
+  const queryFlag = typeof req.query.banner_grace_mode === "string" ? req.query.banner_grace_mode : "";
+  if (queryFlag === "1" || queryFlag.toLowerCase() === "true") return true;
+  return process.env.DOMAIN_BANNER_GRACE_MODE_ENABLED === "1";
+}
+
 function actorIpHash(req: express.Request): string {
   const ip = req.ip || req.socket.remoteAddress || "unknown";
   return crypto.createHash("sha256").update(ip).digest("hex").slice(0, 16);
@@ -1621,6 +1634,7 @@ export function createApp(overrides?: { adapterRegistry?: { resolveAuto: typeof 
       const name = typeof req.query.name === "string" ? req.query.name : "";
       const sitePath = typeof req.query.path === "string" ? req.query.path : "/";
       if (!name) return res.status(400).json({ error: "missing_name" });
+      const graceModeBannerEnabled = renewalBannerGraceModeEnabled(req);
 
       const ans = await activeAdapterRegistry.resolveAuto({
         name,
@@ -1651,6 +1665,30 @@ export function createApp(overrides?: { adapterRegistry?: { resolveAuto: typeof 
             maxBytes: SITE_MAX_BYTES
           });
 
+      let body = fetched.body;
+      if (graceModeBannerEnabled && String(fetched.contentType || "").toLowerCase().includes("text/html")) {
+        const existing = domainStatusStore.get(name);
+        const registrarDomain = await registrarAdapter.getDomain(name);
+        const status = await continuityStatusFromSources(name, {
+          nsStatus: existing?.inputs?.ns_status ?? registrarDomain.ns.some((entry) => entry.endsWith("tolldns.io")),
+          verifiedControl: existing?.inputs?.verified_control ?? false,
+          trafficSignal: existing?.inputs?.traffic_signal ?? registrarDomain.traffic_signal ?? "none",
+          renewalDueDate: existing?.inputs?.renewal_due_date || registrarDomain.renewal_due_date || undefined,
+          lastSeenAt: existing?.inputs?.last_seen_at || undefined,
+          abuseFlag: existing?.inputs?.abuse_flag ?? false,
+          claimRequested: existing?.claim_requested ?? false,
+          creditsBalance: creditsLedger.getBalance(name)
+        });
+        const bannerState = buildRenewalBannerState(status, existing?.banner_ack_at);
+        if (bannerState.banner_state === "renewal_due") {
+          const baseUrl = `${req.protocol}://${req.get("host") || "127.0.0.1:8054"}`;
+          const paymentUrl = `${baseUrl}/domain-continuity/index.html?domain=${encodeURIComponent(status.domain)}`;
+          const overlay = `<aside style="position:fixed;left:0;right:0;bottom:0;z-index:2147483647;background:#111827;color:#f9fafb;padding:12px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;box-shadow:0 -2px 8px rgba(0,0,0,.35)"><strong>Renewal grace mode:</strong> ${escapeHtml(status.domain)} ${escapeHtml(bannerState.grace_countdown)} remaining. <a href="${escapeHtml(paymentUrl)}" style="color:#93c5fd;text-decoration:underline">Complete payment</a></aside>`;
+          body = Buffer.from(injectBeforeBodyEnd(fetched.body.toString("utf8"), overlay), "utf8");
+          res.setHeader("X-DDNS-Renewal-Banner", "grace_mode");
+        }
+      }
+
       if (fetched.contentType) {
         res.setHeader("Content-Type", fetched.contentType);
       }
@@ -1661,7 +1699,7 @@ export function createApp(overrides?: { adapterRegistry?: { resolveAuto: typeof 
         "default-src 'self'; base-uri 'none'; frame-ancestors 'none'; object-src 'none'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self'"
       );
       res.setHeader("X-DDNS-Hosting-Source", fetched.sourceUrl);
-      return res.status(200).send(fetched.body);
+      return res.status(200).send(body);
     } catch (err: any) {
       const status = Number(err?.statusCode || 500);
       if (status >= 400 && status <= 599) {
