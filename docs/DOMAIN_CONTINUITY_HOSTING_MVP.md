@@ -95,3 +95,28 @@ Policy (MVP):
 - Qualifies: verified business domains or domains with real traffic signal under continuity policy
 - Grace duration: until `grace_expires_at` (mock policy defaults to 14 days for delinquent sample domain)
 - Post-grace: interstitial/continuity flow can be enforced and registrar finalization policy applies
+
+### Cloudflare Worker expiration check (registrar date source)
+
+To use a Cloudflare Worker as the expiration date source, set:
+
+```bash
+DOMAIN_EXPIRY_WORKER_URL="https://<your-worker>.workers.dev/check"
+DOMAIN_EXPIRY_WORKER_TIMEOUT_MS=2500
+```
+
+Gateway behavior:
+
+- Calls `GET ${DOMAIN_EXPIRY_WORKER_URL}?domain=<domain>`
+- Expects JSON containing `expires_at` (ISO-8601 timestamp)
+- If `expires_at` is in the past, banner state becomes `renewal_due` and grace overlay/banner can trigger
+- If worker is unavailable or returns invalid payload, gateway falls back to registrar adapter data
+
+Example Worker response:
+
+```json
+{
+  "domain": "example.com",
+  "expires_at": "2026-02-10T00:00:00Z"
+}
+```

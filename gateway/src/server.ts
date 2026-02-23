@@ -130,6 +130,8 @@ const INTERSTITIAL_TEMPLATE_PATH =
 const RATE_LIMIT_WINDOW_S = Number(process.env.RATE_LIMIT_WINDOW_S || "60");
 const RATE_LIMIT_MAX_REQUESTS = Number(process.env.RATE_LIMIT_MAX_REQUESTS || "20");
 const AUDIT_LOG_PATH = process.env.AUDIT_LOG_PATH || "gateway/.cache/audit.log.jsonl";
+const DOMAIN_EXPIRY_WORKER_URL = process.env.DOMAIN_EXPIRY_WORKER_URL || "";
+const DOMAIN_EXPIRY_WORKER_TIMEOUT_MS = Number(process.env.DOMAIN_EXPIRY_WORKER_TIMEOUT_MS || "2500");
 const attackThresholds = defaultThresholdsFromEnv(process.env);
 
 ed.etc.sha512Sync = (...m) => sha512(ed.etc.concatBytes(...m));
@@ -381,12 +383,13 @@ async function continuityStatusFromSources(
   const registrarNs = existingRecord.ns || [];
   const registrarNsStatus = registrarNs.some((entry) => entry.endsWith("tolldns.io"));
   const ledgerSubsidy = creditsLedger.estimateRenewalSubsidy(domainRaw);
+  const workerExpiry = await fetchExpiryFromWorker(domainRaw);
 
   const status = continuityStatus(domainRaw, {
     nsStatus: options.nsStatus ?? registrarNsStatus,
     verifiedControl: options.verifiedControl,
     trafficSignal: options.trafficSignal ?? existingRecord.traffic_signal,
-    renewalDueDate: options.renewalDueDate ?? existingRecord.renewal_due_date,
+    renewalDueDate: workerExpiry ?? options.renewalDueDate ?? existingRecord.renewal_due_date,
     lastSeenAt: options.lastSeenAt,
     abuseFlag: options.abuseFlag,
     claimRequested: options.claimRequested,
@@ -395,6 +398,38 @@ async function continuityStatusFromSources(
       options.renewalCostEstimate ?? Math.max(ledgerSubsidy.renewal_cost_estimate, Math.ceil(Number(quote.price_usd || 0) * 10))
   });
   return addEligibilityFlags(status, options.nsStatus ?? registrarNsStatus);
+}
+
+async function fetchExpiryFromWorker(domainRaw: string): Promise<string | undefined> {
+  if (!DOMAIN_EXPIRY_WORKER_URL) return undefined;
+  try {
+    const domain = normalizeDomainInput(domainRaw);
+    if (!domain) return undefined;
+    const endpoint = new URL(DOMAIN_EXPIRY_WORKER_URL);
+    endpoint.searchParams.set("domain", domain);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), DOMAIN_EXPIRY_WORKER_TIMEOUT_MS);
+    try {
+      const res = await fetch(endpoint.toString(), { signal: controller.signal });
+      if (!res.ok) return undefined;
+      let payload: { expires_at?: unknown } | null = null;
+      try {
+        payload = await res.json() as { expires_at?: unknown };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        logInfo(`domain_expiry_worker_invalid_json domain=${domain} error=${msg}`);
+        return undefined;
+      }
+      const expiresAt = typeof payload?.expires_at === "string" ? payload.expires_at : "";
+      const ts = Date.parse(expiresAt);
+      if (!expiresAt || Number.isNaN(ts)) return undefined;
+      return new Date(ts).toISOString();
+    } finally {
+      clearTimeout(timer);
+    }
+  } catch {
+    return undefined;
+  }
 }
 
 function resetAttackWindow(nowUnix: number) {

@@ -97,6 +97,44 @@ describe("domain continuity notice endpoints", () => {
     expect(afterAck.body.acked_at).toBe(ack.body.acked_at);
   });
 
+  it("uses Cloudflare worker expiration date to trigger renewal banner", async () => {
+    resetStores();
+    vi.resetModules();
+    process.env.DOMAIN_STATUS_STORE_PATH = TEST_STORE_PATH;
+    process.env.MOCK_REGISTRAR_STORE_PATH = TEST_REGISTRAR_STORE_PATH;
+    process.env.REGISTRAR_ENABLED = "0";
+    process.env.REGISTRAR_PROVIDER = "mock";
+    process.env.REGISTRAR_DRY_RUN = "1";
+    process.env.DOMAIN_EXPIRY_WORKER_URL = "https://expiry-worker.example.workers.dev/check";
+    // @ts-expect-error test mock
+    globalThis.fetch = vi.fn(async (url: string | URL) => {
+      const target = String(url);
+      if (target.includes("expiry-worker.example.workers.dev") && target.includes("domain=active.com")) {
+        return new Response(
+          JSON.stringify({ domain: "active.com", expires_at: "2020-01-01T00:00:00Z" }),
+          { status: 200, headers: { "content-type": "application/json" } }
+        );
+      }
+      return new Response(JSON.stringify({ expires_at: "2999-01-01T00:00:00Z" }), {
+        status: 200,
+        headers: { "content-type": "application/json" }
+      });
+    });
+    const mod = await import("../src/server.js");
+    const app = mod.createApp();
+
+    const due = await request(app).get("/v1/domain/banner").query({ domain: "active.com", format: "json" });
+    expect(due.status).toBe(200);
+    expect(due.body.domain).toBe("active.com");
+    expect(due.body.banner_state).toBe("renewal_due");
+    expect(String(due.body.banner_message)).toContain("Payment failed or renewal due");
+    expect(String(due.body.renewal_due_date || "")).toContain("2020-01-01");
+    expect(globalThis.fetch).toHaveBeenCalled();
+
+    vi.restoreAllMocks();
+    delete process.env.DOMAIN_EXPIRY_WORKER_URL;
+  });
+
   it("returns status payload with continuity fields", async () => {
     resetStores();
     const app = await loadApp();
