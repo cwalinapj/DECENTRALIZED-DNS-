@@ -53,3 +53,4 @@ labs/solana/target/
 
 # Test cache artifacts
 **/.cache/
+**/.tmp-*
