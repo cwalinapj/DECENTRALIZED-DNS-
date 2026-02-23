@@ -44,16 +44,20 @@ export function createServer() {
     if (req.method === "POST" && req.url === "/v1/sites") {
       let raw = "";
       let bytes = 0;
+      let rejected = false;
       req.setEncoding("utf8");
       req.on("data", (chunk) => {
         bytes += Buffer.byteLength(chunk);
-        if (bytes > MAX_BODY_BYTES) {
+        if (bytes > MAX_BODY_BYTES && !rejected) {
+          rejected = true;
+          sendJson(res, 413, { error: "request_too_large" });
           req.destroy();
-          return sendJson(res, 413, { error: "request_too_large" });
+          return;
         }
-        raw += chunk;
+        if (!rejected) raw += chunk;
       });
       req.on("end", () => {
+        if (rejected) return;
         try {
           const body = raw ? JSON.parse(raw) : {};
           const site = buildSitePlan(body);
