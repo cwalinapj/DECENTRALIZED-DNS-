@@ -31,6 +31,17 @@ Local Traffic Oracle / Eligibility Engine scaffold for TollDNS continuity decisi
 - Scoring uses crawl/health footprint and deterministic tier mapping.
 - Results are cached for 24h by domain unless `refresh=1`.
 
+## End-State notes
+
+- Apify / SEMrush / Ahrefs adapters will be live; scoring will use real traffic and authority data.
+- Tier thresholds and signal weights will be tunable via config without a code deploy.
+- Cache store will migrate from local JSONL to a shared key-value store (e.g. Redis / Cloudflare KV) for multi-instance deployments.
+- `/v1/scan` will be backed by a durable job queue; results will fan out to the gateway renewal flow automatically.
+
+## Security
+
+No authentication, keys, or permissions changes in this service. The service is intended to run as an internal sidecar (loopback-only by default via `HOST=127.0.0.1`) and does not expose any credentials or privileged operations.
+
 ## Run
 
 ```bash
