@@ -383,13 +383,13 @@ async function continuityStatusFromSources(
   const registrarNs = existingRecord.ns || [];
   const registrarNsStatus = registrarNs.some((entry) => entry.endsWith("tolldns.io"));
   const ledgerSubsidy = creditsLedger.estimateRenewalSubsidy(domainRaw);
-  const workerExpiry = await fetchExpiryFromWorker(domainRaw);
+  const workerCompat = await fetchContinuityCompatFromWorker(domainRaw);
 
   const status = continuityStatus(domainRaw, {
     nsStatus: options.nsStatus ?? registrarNsStatus,
     verifiedControl: options.verifiedControl,
-    trafficSignal: options.trafficSignal ?? existingRecord.traffic_signal,
-    renewalDueDate: workerExpiry ?? options.renewalDueDate ?? existingRecord.renewal_due_date,
+    trafficSignal: workerCompat.traffic_signal ?? options.trafficSignal ?? existingRecord.traffic_signal,
+    renewalDueDate: workerCompat.expires_at ?? options.renewalDueDate ?? existingRecord.renewal_due_date,
     lastSeenAt: options.lastSeenAt,
     abuseFlag: options.abuseFlag,
     claimRequested: options.claimRequested,
@@ -397,38 +397,93 @@ async function continuityStatusFromSources(
     renewalCostEstimate:
       options.renewalCostEstimate ?? Math.max(ledgerSubsidy.renewal_cost_estimate, Math.ceil(Number(quote.price_usd || 0) * 10))
   });
-  return addEligibilityFlags(status, options.nsStatus ?? registrarNsStatus);
+  return {
+    ...addEligibilityFlags(status, options.nsStatus ?? registrarNsStatus),
+    treasury_renewal_allowed: workerCompat.treasury_renewal_allowed ?? null
+  };
 }
 
-async function fetchExpiryFromWorker(domainRaw: string): Promise<string | undefined> {
-  if (!DOMAIN_EXPIRY_WORKER_URL) return undefined;
+function normalizeWorkerTrafficSignal(value: unknown): DomainTrafficSignal | undefined {
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "real" || normalized === "low" || normalized === "none") {
+      return normalized as DomainTrafficSignal;
+    }
+    if (normalized === "high" || normalized === "validated" || normalized === "valid") return "real";
+  }
+  if (value === true || value === 1 || value === "1") return "real";
+  if (value === false || value === 0 || value === "0") return "none";
+  return undefined;
+}
+
+function pickWorkerString(payload: WorkerCompatPayload, keys: Array<keyof WorkerCompatPayload>): string | undefined {
+  for (const key of keys) {
+    const value = payload?.[key];
+    if (typeof value === "string" && value.trim()) return value;
+  }
+  return undefined;
+}
+
+function pickWorkerBoolean(payload: WorkerCompatPayload, keys: Array<keyof WorkerCompatPayload>): boolean | undefined {
+  for (const key of keys) {
+    const value = payload?.[key];
+    if (typeof value === "boolean") return value;
+  }
+  return undefined;
+}
+
+type WorkerCompatPayload = {
+  expires_at?: unknown;
+  expiration_date?: unknown;
+  expiresAt?: unknown;
+  traffic_signal?: unknown;
+  traffic_validated?: unknown;
+  traffic_valid?: unknown;
+  renew_with_treasury?: unknown;
+  treasury_renewal_allowed?: unknown;
+  should_renew_with_treasury?: unknown;
+};
+
+async function fetchContinuityCompatFromWorker(
+  domainRaw: string
+): Promise<{ expires_at?: string; traffic_signal?: DomainTrafficSignal; treasury_renewal_allowed?: boolean }> {
+  if (!DOMAIN_EXPIRY_WORKER_URL) return {};
   try {
     const domain = normalizeDomainInput(domainRaw);
-    if (!domain) return undefined;
+    if (!domain) return {};
     const endpoint = new URL(DOMAIN_EXPIRY_WORKER_URL);
     endpoint.searchParams.set("domain", domain);
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), DOMAIN_EXPIRY_WORKER_TIMEOUT_MS);
     try {
       const res = await fetch(endpoint.toString(), { signal: controller.signal });
-      if (!res.ok) return undefined;
-      let payload: { expires_at?: unknown } | null = null;
+      if (!res.ok) return {};
+      let payload: WorkerCompatPayload | null = null;
       try {
-        payload = await res.json() as { expires_at?: unknown };
+        payload = await res.json() as WorkerCompatPayload;
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
         logInfo(`domain_expiry_worker_invalid_json domain=${domain} error=${msg}`);
-        return undefined;
+        return {};
       }
-      const expiresAt = typeof payload?.expires_at === "string" ? payload.expires_at : "";
-      const ts = Date.parse(expiresAt);
-      if (!expiresAt || Number.isNaN(ts)) return undefined;
-      return new Date(ts).toISOString();
+      const rawExpires = pickWorkerString(payload || {}, ["expires_at", "expiration_date", "expiresAt"]);
+      const expiresTs = rawExpires ? Date.parse(rawExpires) : Number.NaN;
+      const expires_at = rawExpires && !Number.isNaN(expiresTs) ? new Date(expiresTs).toISOString() : undefined;
+      const traffic_signal =
+        normalizeWorkerTrafficSignal(payload?.traffic_signal) ??
+        normalizeWorkerTrafficSignal(payload?.traffic_validated) ??
+        normalizeWorkerTrafficSignal(payload?.traffic_valid);
+      const treasury_renewal_allowed = pickWorkerBoolean(payload || {}, [
+        "treasury_renewal_allowed",
+        "renew_with_treasury",
+        "should_renew_with_treasury"
+      ]);
+      return { expires_at, traffic_signal, treasury_renewal_allowed };
     } finally {
       clearTimeout(timer);
     }
   } catch {
-    return undefined;
+    return {};
   }
 }
 
@@ -1300,6 +1355,28 @@ export function createApp(overrides?: { adapterRegistry?: { resolveAuto: typeof 
     }
     const useCredits = req.body?.use_credits !== false;
     const years = Number(req.body?.years || 1);
+    const workerCompat = await fetchContinuityCompatFromWorker(domain);
+    if (useCredits && workerCompat.treasury_renewal_allowed === false) {
+      const blockedStatus = await continuityStatusFromSources(domain, {
+        creditsBalance: creditsLedger.getBalance(domain)
+      });
+      auditEvent(req, { endpoint: "/v1/domain/renew", domain, decision: "blocked" });
+      return res.json({
+        domain: blockedStatus.domain,
+        accepted: false,
+        message: "blocked_by_treasury_policy",
+        reason_codes: ["TREASURY_POLICY_BLOCKED"],
+        credits_applied_estimate: 0,
+        credits_balance: creditsLedger.getBalance(domain),
+        renewal_covered_by_credits: blockedStatus.renewal_covered_by_credits,
+        renewal_due_date: blockedStatus.renewal_due_date,
+        grace_expires_at: blockedStatus.grace_expires_at,
+        auth_required: false,
+        auth_mode: "stub",
+        policy_version: DOMAIN_CONTINUITY_POLICY_VERSION,
+        notice_signature: "mvp-local-policy"
+      });
+    }
     const subsidyBefore = creditsLedger.estimateRenewalSubsidy(domain);
     const creditsToApply = useCredits ? subsidyBefore.covered_amount : 0;
     const renewal = await registrarAdapter.renewDomain(domain, years, {

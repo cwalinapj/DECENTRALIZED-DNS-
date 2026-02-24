@@ -2175,3 +2175,40 @@ Banner toggle verified:
 
 - `DOMAIN_BANNER_GRACE_MODE_ENABLED=1` or `?banner_grace_mode=1` → overlay injected, `X-DDNS-Renewal-Banner: grace_mode`, Cache-Control: no-cache
 - Without flag → normal immutable cache, no overlay
+
+### Compatibility layer check (worker legacy payload -> traffic + treasury renew gate)
+
+```bash
+DOMAIN_EXPIRY_WORKER_URL='http://127.0.0.1:9100/check' PORT=8064 node gateway/dist/server.js
+```
+
+```bash
+curl -sS 'http://127.0.0.1:8064/v1/domain/status?domain=active.com'
+```
+
+Output excerpt:
+
+```json
+{
+  "domain": "active.com",
+  "renewal_due_date": "2020-01-01T00:00:00.000Z",
+  "treasury_renewal_allowed": false,
+  "eligible_for_subsidy": true
+}
+```
+
+```bash
+curl -sS -X POST 'http://127.0.0.1:8064/v1/domain/renew' \
+  -H 'Content-Type: application/json' \
+  -d '{"domain":"active.com","use_credits":true,"years":1}'
+```
+
+Output excerpt:
+
+```json
+{
+  "accepted": false,
+  "message": "blocked_by_treasury_policy",
+  "reason_codes": ["TREASURY_POLICY_BLOCKED"]
+}
+```

@@ -97,7 +97,7 @@ describe("domain continuity notice endpoints", () => {
     expect(afterAck.body.acked_at).toBe(ack.body.acked_at);
   });
 
-  it("uses Cloudflare worker expiration date to trigger renewal banner", async () => {
+  it("uses Cloudflare worker compatibility payload for banner + treasury renew decisions", async () => {
     resetStores();
     vi.resetModules();
     process.env.DOMAIN_STATUS_STORE_PATH = TEST_STORE_PATH;
@@ -111,7 +111,12 @@ describe("domain continuity notice endpoints", () => {
       const target = String(url);
       if (target.includes("expiry-worker.example.workers.dev") && target.includes("domain=active.com")) {
         return new Response(
-          JSON.stringify({ domain: "active.com", expires_at: "2020-01-01T00:00:00Z" }),
+          JSON.stringify({
+            domain: "active.com",
+            expiration_date: "2020-01-01T00:00:00Z",
+            traffic_validated: true,
+            renew_with_treasury: false
+          }),
           { status: 200, headers: { "content-type": "application/json" } }
         );
       }
@@ -129,6 +134,18 @@ describe("domain continuity notice endpoints", () => {
     expect(due.body.banner_state).toBe("renewal_due");
     expect(String(due.body.banner_message)).toContain("Payment failed or renewal due");
     expect(String(due.body.renewal_due_date || "")).toContain("2020-01-01");
+
+    const status = await request(app).get("/v1/domain/status").query({ domain: "active.com" });
+    expect(status.status).toBe(200);
+    expect(status.body.treasury_renewal_allowed).toBe(false);
+
+    const renewBlocked = await request(app).post("/v1/domain/renew").send({ domain: "active.com", use_credits: true, years: 1 });
+    expect(renewBlocked.status).toBe(200);
+    expect(renewBlocked.body.accepted).toBe(false);
+    expect(renewBlocked.body.message).toBe("blocked_by_treasury_policy");
+    expect(Array.isArray(renewBlocked.body.reason_codes)).toBe(true);
+    expect(renewBlocked.body.reason_codes).toContain("TREASURY_POLICY_BLOCKED");
+
     expect(globalThis.fetch).toHaveBeenCalled();
 
     vi.restoreAllMocks();

@@ -109,7 +109,12 @@ Gateway behavior:
 
 - Calls `GET ${DOMAIN_EXPIRY_WORKER_URL}?domain=<domain>`
 - Expects JSON containing `expires_at` (ISO-8601 timestamp)
+- Compatibility layer: also accepts main-branch legacy keys:
+  - `expiration_date` (expiry timestamp alias)
+  - `traffic_validated` / `traffic_signal` (traffic validation signal)
+  - `renew_with_treasury` / `treasury_renewal_allowed` / `should_renew_with_treasury` (treasury renew decision)
 - If `expires_at` is in the past, banner state becomes `renewal_due` and grace overlay/banner can trigger
+- If treasury decision is `false`, `/v1/domain/renew` with `use_credits=true` is blocked with `TREASURY_POLICY_BLOCKED`
 - If worker is unavailable or returns invalid payload, gateway falls back to registrar adapter data
 
 Example Worker response:
