@@ -5,7 +5,12 @@ ZONE="tahoecarspa.com"
 NS1_IP="45.131.65.193"
 NS2_IP="23.95.25.194"
 
-sudo pdnsutil create-zone "$ZONE" "ns1.$ZONE" || true
+if ! CREATE_OUT="$(sudo pdnsutil create-zone "$ZONE" "ns1.$ZONE" 2>&1)"; then
+  if [[ "$CREATE_OUT" != *"already exists"* ]]; then
+    echo "$CREATE_OUT" >&2
+    exit 1
+  fi
+fi
 
 # NS records
 sudo pdnsutil replace-rrset "$ZONE" @ NS 3600 "ns1.$ZONE" "ns2.$ZONE"
@@ -25,5 +30,7 @@ SERIAL="$(date -u +%Y%m%d%H%M)"
 sudo pdnsutil replace-rrset "$ZONE" @ SOA 3600 "ns1.$ZONE hostmaster.$ZONE ${SERIAL} 10800 3600 604800 3600"
 
 sudo pdnsutil check-zone "$ZONE"
-dig @127.0.0.1 "$ZONE" NS +norec +short
-dig @127.0.0.1 ns2."$ZONE" A +norec +short
+NS_RESULTS="$(dig @127.0.0.1 "$ZONE" NS +norec +short)"
+echo "$NS_RESULTS" | grep -Fx "ns1.$ZONE."
+echo "$NS_RESULTS" | grep -Fx "ns2.$ZONE."
+dig @127.0.0.1 ns2."$ZONE" A +norec +short | grep -Fx "$NS2_IP"
