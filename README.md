@@ -13,11 +13,11 @@ This repo delivers a Web2-friendly DNS and gateway stack with verifiable on-chai
 
 ## 5-sentence summary
 
-DECENTRALIZED-DNS- (TollDNS) is a Web2-friendly DNS and gateway stack that combines familiar DNS resolution with verifiable on-chain records and proofs.  
-It is a game changer because teams can keep a normal DNS/API workflow while gaining auditability, anti-abuse economics, and wallet-domain interoperability (`.eth`/`.sol`/`.dns`) without forcing crypto UX on end users.  
-The current MVP is already operational and demonstrable through strict commands like `npm run mvp:demo:devnet`, with documented proof/status artifacts in `docs/STATUS.md`, `docs/DEVNET_STATUS.md`, and `VERIFIED.md`.  
-In completion terms, the project appears close to MVP-complete for core resolver/gateway + devnet proof flows, but it is intentionally not at full end-state decentralization yet.  
-What remains is the roadmap work (for example broader decentralization of quorum/verification, scaling control planes, and later product slices) rather than basic MVP viability.
+DECENTRALIZED-DNS (also referred to as TollDNS in this repo) is a Web2-friendly DNS and gateway stack that combines familiar DNS resolution with verifiable on-chain records and proofs.
+It is a game changer because teams can keep a normal DNS/API workflow while gaining auditability, anti-abuse economics, and wallet-domain interoperability (`.eth`/`.sol`/`.dns`) without forcing crypto UX on end users.
+The current MVP is operational and demonstrable through strict commands like `npm run mvp:demo:devnet`, with proof/status artifacts documented in `docs/STATUS.md`, `docs/DEVNET_STATUS.md`, and `VERIFIED.md`.
+In completion terms, the project has reached MVP completion for core resolver/gateway + devnet proof flows, but it is intentionally not at full end-state decentralization yet.
+What remains is roadmap work such as broader decentralization of quorum/verification, scaling control planes, and later product slices, rather than basic MVP viability.
 
 ## Jive Coders: 5-minute setup
 
