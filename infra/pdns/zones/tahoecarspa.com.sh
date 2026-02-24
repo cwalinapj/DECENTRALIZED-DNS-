@@ -31,6 +31,7 @@ sudo pdnsutil replace-rrset "$ZONE" @ SOA 3600 "ns1.$ZONE hostmaster.$ZONE ${SER
 
 sudo pdnsutil check-zone "$ZONE"
 NS_RESULTS="$(dig @127.0.0.1 "$ZONE" NS +norec +short)"
-echo "$NS_RESULTS" | grep -Fx "ns1.$ZONE."
-echo "$NS_RESULTS" | grep -Fx "ns2.$ZONE."
-dig @127.0.0.1 ns2."$ZONE" A +norec +short | grep -Fx "$NS2_IP"
+echo "$NS_RESULTS" | grep -Fx "ns1.$ZONE." || { echo "ERROR: ns1.$ZONE NS record not found" >&2; exit 1; }
+echo "$NS_RESULTS" | grep -Fx "ns2.$ZONE." || { echo "ERROR: ns2.$ZONE NS record not found" >&2; exit 1; }
+dig @127.0.0.1 ns1."$ZONE" A +norec +short | grep -Fx "$NS1_IP" || { echo "ERROR: ns1.$ZONE A record not found" >&2; exit 1; }
+dig @127.0.0.1 ns2."$ZONE" A +norec +short | grep -Fx "$NS2_IP" || { echo "ERROR: ns2.$ZONE A record not found" >&2; exit 1; }
