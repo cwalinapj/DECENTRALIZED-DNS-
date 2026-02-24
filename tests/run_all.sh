@@ -35,6 +35,7 @@ maybe_run() {
 maybe_run "$root/gateway" "npm ci && npm run lint && npm run build && npm test"
 maybe_run "$root/core" "npm ci && npm run build && npm test"
 maybe_run "$root/coordinator" "npm ci && npm test"
+maybe_run "$root/services/traffic-oracle" "npm ci && npm test"
 maybe_run "$root/services/hosting-control-plane" "npm test"
 
 # Legacy layout (still present in some branches/commits)

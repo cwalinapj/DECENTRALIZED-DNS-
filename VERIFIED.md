@@ -2245,3 +2245,33 @@ Output snippets:
 bash scripts/validate-compat-mvp.sh
 [compat] docker-compose.validation.yml not found; skipping compat validation (MVP).
 ```
+
+### 2026-02-24 — Traffic Oracle / Eligibility Engine scaffold
+
+Branch: `codex/traffic-oracle-20260224044814`  
+Worktree: `/tmp/ddns-pr-traffic-oracle-20260224044814`
+
+Commands run:
+
+```bash
+npm -C services/traffic-oracle test
+npm -C gateway test
+```
+
+Output snippets:
+
+```bash
+> traffic-oracle@0.1.0 test
+✔ /healthz and /v1/check return compat payload
+✔ /v1/scan enqueues and /v1/scan/:id resolves done
+✔ cache works for /v1/check unless refresh=1
+ℹ pass 5
+ℹ fail 0
+```
+
+```bash
+> ddns-resolver@0.1.0 test
+✓ tests/domain_notice_endpoints.test.ts (11 tests)
+Test Files  18 passed (18)
+Tests  61 passed (61)
+```
