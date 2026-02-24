@@ -2245,3 +2245,38 @@ Output snippets:
 bash scripts/validate-compat-mvp.sh
 [compat] docker-compose.validation.yml not found; skipping compat validation (MVP).
 ```
+
+### 2026-02-24T13:47:25Z — Autopilot MVP scaffold + ns-control-plane + jive sandbox flow
+
+Worktree: "/tmp/ddns-pr-autopilot-20260224-052039"  
+Branch: "codex/autopilot-20260224-052039"
+
+Commands run:
+
+```bash
+python3 -m py_compile /Users/root1/agents/jive/jive.py
+npm -C gateway test
+npm -C services/seo-oracle test
+npm -C services/ns-control-plane test
+npm -C solana test
+make fmt
+make lint
+make test
+make e2e
+```
+
+Output snippets:
+
+```text
+gateway: Test Files 18 passed (18), Tests 60 passed (60)
+seo-oracle: tests 3, pass 3, fail 0
+ns-control-plane: tests 4, pass 4, fail 0
+solana: test result: ok (workspace cargo tests passed)
+```
+
+```text
+make fmt: gateway/core TypeScript checks + markdownlint completed
+make lint: gateway lint + core build completed
+make test: tests/run_all.sh complete (program id sync warning is non-fatal in default mode)
+make e2e: scripts/validate-compat-mvp.sh -> compat validation skipped (MVP message)
+```

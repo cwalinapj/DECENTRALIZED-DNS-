@@ -1,0 +1,19 @@
+[Unit]
+Description=Jive watchdog/self-heal checks
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+EnvironmentFile=-/etc/default/jive-watchdog
+ExecStart=/home/zoly55/DECENTRALIZED-DNS-/scripts/jive_watchdog.sh
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths=/root/.jive /tmp
+
+[Install]
+WantedBy=multi-user.target

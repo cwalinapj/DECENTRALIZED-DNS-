@@ -1,5 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import os from "node:os";
 import { createServer } from "../src/index.js";
 
 async function makeRequest(server, method, path, body) {
@@ -13,13 +16,15 @@ async function makeRequest(server, method, path, body) {
 }
 
 async function startServer() {
+  const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), "hosting-cp-test-"));
+  process.env.HOSTING_CONTROL_CACHE_DIR = cacheDir;
   const server = createServer();
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
-  return server;
+  return { server, cacheDir };
 }
 
 test("POST /v1/sites returns cloudflare DNS and TLS status", async () => {
-  const server = await startServer();
+  const { server, cacheDir } = await startServer();
   try {
     const res = await makeRequest(server, "POST", "/v1/sites", {
       domain: "example.com",
@@ -32,11 +37,13 @@ test("POST /v1/sites returns cloudflare DNS and TLS status", async () => {
     assert.equal(body.tls_status.status, "pending_validation");
   } finally {
     server.close();
+    fs.rmSync(cacheDir, { recursive: true, force: true });
+    delete process.env.HOSTING_CONTROL_CACHE_DIR;
   }
 });
 
 test("POST /v1/sites validates mutually exclusive source inputs", async () => {
-  const server = await startServer();
+  const { server, cacheDir } = await startServer();
   try {
     const res = await makeRequest(server, "POST", "/v1/sites", {
       domain: "example.com",
@@ -48,11 +55,13 @@ test("POST /v1/sites validates mutually exclusive source inputs", async () => {
     assert.match(body.error, /provide_exactly_one_origin_url_or_static_dir/);
   } finally {
     server.close();
+    fs.rmSync(cacheDir, { recursive: true, force: true });
+    delete process.env.HOSTING_CONTROL_CACHE_DIR;
   }
 });
 
 test("POST /v1/sites returns 400 for missing domain", async () => {
-  const server = await startServer();
+  const { server, cacheDir } = await startServer();
   try {
     const res = await makeRequest(server, "POST", "/v1/sites", {
       origin_url: "https://origin.example.com"
@@ -62,11 +71,13 @@ test("POST /v1/sites returns 400 for missing domain", async () => {
     assert.match(body.error, /missing_domain/);
   } finally {
     server.close();
+    fs.rmSync(cacheDir, { recursive: true, force: true });
+    delete process.env.HOSTING_CONTROL_CACHE_DIR;
   }
 });
 
 test("POST /v1/sites accepts static_dir source", async () => {
-  const server = await startServer();
+  const { server, cacheDir } = await startServer();
   try {
     const res = await makeRequest(server, "POST", "/v1/sites", {
       domain: "static.example.com",
@@ -79,11 +90,13 @@ test("POST /v1/sites accepts static_dir source", async () => {
     assert.equal(body.edge_provider, "cloudflare");
   } finally {
     server.close();
+    fs.rmSync(cacheDir, { recursive: true, force: true });
+    delete process.env.HOSTING_CONTROL_CACHE_DIR;
   }
 });
 
 test("GET /healthz returns ok", async () => {
-  const server = await startServer();
+  const { server, cacheDir } = await startServer();
   try {
     const res = await makeRequest(server, "GET", "/healthz");
     assert.equal(res.status, 200);
@@ -91,5 +104,31 @@ test("GET /healthz returns ok", async () => {
     assert.equal(body.ok, true);
   } finally {
     server.close();
+    fs.rmSync(cacheDir, { recursive: true, force: true });
+    delete process.env.HOSTING_CONTROL_CACHE_DIR;
+  }
+});
+
+test("POST /v1/deploy/hook logs stub deploy event", async () => {
+  const { server, cacheDir } = await startServer();
+  try {
+    const res = await makeRequest(server, "POST", "/v1/deploy/hook", {
+      sha: "abc123",
+      pr_url: "https://github.com/example/repo/pull/1",
+      environment: "pi",
+      trigger: "autopilot"
+    });
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.ok, true);
+    assert.equal(body.status, "queued_stub");
+    const logPath = path.join(cacheDir, "deploy-hook.jsonl");
+    const log = fs.readFileSync(logPath, "utf8");
+    assert.match(log, /\"sha\":\"abc123\"/);
+    assert.match(log, /\"status\":\"queued_stub\"/);
+  } finally {
+    server.close();
+    fs.rmSync(cacheDir, { recursive: true, force: true });
+    delete process.env.HOSTING_CONTROL_CACHE_DIR;
   }
 });

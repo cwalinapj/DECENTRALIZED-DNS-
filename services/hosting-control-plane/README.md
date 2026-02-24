@@ -8,6 +8,7 @@ Cloudflare is the default edge/CDN delivery layer (boring and reliable).
 
 - `GET /healthz` — readiness probe
 - `POST /v1/sites` — create site plan
+- `POST /v1/deploy/hook` — post-merge deploy trigger (stub)
 
 ### POST /v1/sites
 
@@ -41,6 +42,27 @@ Response:
 }
 ```
 
+### POST /v1/deploy/hook
+
+Request body (JSON, minimal):
+
+```json
+{ "sha": "abc123", "pr_url": "https://github.com/org/repo/pull/1", "environment": "pi", "trigger": "autopilot" }
+```
+
+Response:
+
+```json
+{
+  "ok": true,
+  "status": "queued_stub",
+  "event": {
+    "sha": "abc123",
+    "environment": "pi"
+  }
+}
+```
+
 ## Run
 
 ```bash
@@ -55,3 +77,4 @@ npm start          # listens on PORT (default 8092)
 | `PORT` | `8092` | Listen port |
 | `HOST` | `0.0.0.0` | Bind address |
 | `HOSTING_EDGE_CNAME` | `edge.tolldns.io` | CNAME target for edge delivery |
+| `HOSTING_CONTROL_CACHE_DIR` | `services/hosting-control-plane/.cache` | Local JSONL event cache path |

@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Jive Autopilot every 5 minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+Persistent=true
+Unit=jive-autopilot.service
+
+[Install]
+WantedBy=timers.target

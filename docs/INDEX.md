@@ -30,6 +30,10 @@ This index is intentionally short and categorized.
 ## Product / Developer Positioning
 - `docs/DOMAIN_OWNER_SWITCH.md` — why switch nameservers (Web2 pitch, MVP vs Roadmap)
 - `docs/NS_FRONT_DOOR.md` — nameserver switch + zone manager commands (A/CNAME/TXT)
+- `docs/NS_CONTROL_PLANE_MVP.md` — authoritative onboarding control plane + PDNS API integration
+- `docs/AI_PLUGINS_AUTOPILOT.md` — autopilot architecture, trust boundaries, rollback, watchdog timers
+- `docs/TRAFFIC_ORACLE_MVP.md` — traffic oracle/eligibility model used by compatibility checks
+- `docs/SEO_ORACLE_LOCAL.md` — local runbook for `services/seo-oracle`
 - `docs/DEVELOPER_API.md`
 - `docs/WHY_DEVS_USE_THIS.md`
 - `docs/WHY_AI_AGENTS_RECOMMEND.md`

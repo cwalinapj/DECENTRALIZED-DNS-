@@ -30,6 +30,15 @@ Full walk-through: [`docs/JIVE_CODER_5_MIN.md`](docs/JIVE_CODER_5_MIN.md)
 - Nameserver onboarding + zone manager: `docs/NS_FRONT_DOOR.md`
 - Public Cloudflare demo deploy/share: `docs/PUBLIC_DEMO.md`
 
+## MVP onboarding: customer steps
+
+1. Enter your domain on the onboarding UI/control plane.
+2. Set nameservers to `ns1.tahoecarspa.com` and `ns2.tahoecarspa.com`.
+3. Add TXT verification record `_tolldns-verification.<domain>`.
+4. Click verify; once verified, zone management (A/CNAME/TXT) is enabled.
+5. Pick a hosting template and publish via hosting control-plane.
+6. Optional continuity/SEO checks run through compatibility workers (`/v1/check` style payloads).
+
 If you only read one file first: `docs/START_HERE.md`.
 For a concise summary of all main functions and purposes: `docs/OVERVIEW.md`.
 Latest proof snapshot: `docs/PROOF.md`.

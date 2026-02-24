@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "test": "cargo test --workspace --all-targets",
     "deploy:devnet": "anchor deploy --provider.cluster devnet",
     "apply-metadata": "tsx scripts/apply_metadata.ts",
     "apply-metadata:dry": "tsx scripts/apply_metadata.ts --dry-run",
