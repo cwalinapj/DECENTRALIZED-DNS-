@@ -35,3 +35,4 @@ echo "$NS_RESULTS" | grep -Fx "ns1.$ZONE." || { echo "ERROR: ns1.$ZONE NS record
 echo "$NS_RESULTS" | grep -Fx "ns2.$ZONE." || { echo "ERROR: ns2.$ZONE NS record not found" >&2; exit 1; }
 dig @127.0.0.1 ns1."$ZONE" A +norec +short | grep -Fx "$NS1_IP" || { echo "ERROR: ns1.$ZONE A record not found" >&2; exit 1; }
 dig @127.0.0.1 ns2."$ZONE" A +norec +short | grep -Fx "$NS2_IP" || { echo "ERROR: ns2.$ZONE A record not found" >&2; exit 1; }
+echo "Zone $ZONE provisioned and validated successfully."
