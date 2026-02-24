@@ -2288,3 +2288,18 @@ npm -C gateway test
 traffic-oracle: pass 5, fail 0
 gateway: Test Files 18 passed, Tests 61 passed
 ```
+
+Validation extras:
+
+```bash
+make fmt
+make lint
+make test
+make e2e
+```
+
+```bash
+make fmt -> FAIL (repo baseline in core): "This is not the tsc command you are looking for"
+make test -> PASS (run_all complete; non-fatal program id sync warning)
+make e2e -> PASS (compat validation skipped: docker-compose.validation.yml not found)
+```
