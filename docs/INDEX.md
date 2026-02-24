@@ -37,6 +37,7 @@ This index is intentionally short and categorized.
 - `docs/RENT_BOND.md`
 - `docs/DOMAIN_CONTINUITY.md`
 - `docs/DOMAIN_CONTINUITY_UI.md`
+- `docs/DOMAIN_CONTINUITY_HOSTING_MVP.md` (NS onboarding, whitelabel hosting, IPFS recovery snapshot, grace-mode overlay)
 - `docs/HOSTING_FROM_WALLET_DOMAINS.md`
 - `docs/NOTICE_TOKENS.md`
 - `docs/DOMAIN_BANNER_INTEGRATION.md`

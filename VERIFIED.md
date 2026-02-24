@@ -2051,3 +2051,164 @@ found 0 vulnerabilities
   ]
 }
 ```
+
+---
+
+## Domain Continuity + Whitelabel Hosting + IPFS Snapshot (Web2-first)
+
+Date (UTC): 2026-02-23
+Branch: `copilot/add-authoritative-dns-whitelabel-hosting`
+
+### 1. Authoritative DNS front door
+
+```bash
+$ scripts/ns_front_door.sh example.test
+TollDNS authoritative front door for: example.test
+
+1) Set these nameservers at your registrar:
+   - ns1.tolldns.io
+   - ns2.tolldns.io
+
+2) Seed an initial zone record locally:
+   scripts/zone_manager.sh set --name example.test --type A --value 198.51.100.42 --ttl 300
+
+3) Verify local authoritative zone answers:
+   scripts/zone_manager.sh resolve --name example.test --type A
+```
+
+Zone manager set + resolve:
+
+```bash
+$ scripts/zone_manager.sh set --name example.test --type A --value 198.51.100.42 --ttl 300
+{
+  "name": "example.test",
+  "type": "A",
+  "value": "198.51.100.42",
+  "ttl": 300,
+  "updated_at": "2026-02-23T23:20:30Z"
+}
+
+$ scripts/zone_manager.sh resolve --name example.test --type A
+{
+  "name": "example.test",
+  "type": "A",
+  "value": "198.51.100.42",
+  "ttl": 300,
+  "updated_at": "2026-02-23T23:20:30Z"
+}
+```
+
+### 2. Whitelabel hosting control plane
+
+Tests:
+
+```bash
+$ npm -C services/hosting-control-plane test
+✔ POST /v1/sites returns cloudflare DNS and TLS status
+✔ POST /v1/sites validates mutually exclusive source inputs
+✔ POST /v1/sites returns 400 for missing domain
+✔ POST /v1/sites accepts static_dir source
+✔ GET /healthz returns ok
+# tests 5, pass 5, fail 0
+```
+
+Create site endpoint:
+
+```bash
+$ curl -sS http://127.0.0.1:8092/v1/sites \
+    -H 'Content-Type: application/json' \
+    -d '{"domain":"example.test","origin_url":"https://origin.example.test"}'
+{
+  "domain": "example.test",
+  "edge_provider": "cloudflare",
+  "dns_records": [
+    { "type": "CNAME", "name": "example.test", "value": "edge.tolldns.io", "proxied": true, "ttl": 300 }
+  ],
+  "tls_status": {
+    "status": "pending_validation",
+    "message": "Cloudflare edge certificate provisioning is in progress"
+  }
+}
+```
+
+### 3. IPFS snapshot
+
+```bash
+$ SITE_VERSION=mvp-web2 scripts/site_snapshot_ipfs.sh gateway/public/domain-continuity gateway/.cache/site-snapshots
+snapshot_archive=gateway/.cache/site-snapshots/snapshot-2026-02-23T23-20-39-.tar.gz
+artifact_json=gateway/.cache/site-snapshots/artifact-2026-02-23T23-20-39-.json
+cid=stub-ba68ac55069db84432b290792e7ee7e1a4bca719e4bfa2
+```
+
+Artifact JSON:
+
+```json
+{
+  "cid": "stub-ba68ac55069db84432b290792e7ee7e1a4bca719e4bfa2",
+  "timestamp": "2026-02-23T23:20:39Z",
+  "git_sha": "570d4f1",
+  "site_version": "mvp-web2",
+  "archive_path": "gateway/.cache/site-snapshots/snapshot-2026-02-23T23-20-39-.tar.gz",
+  "pin_mode": "stub"
+}
+```
+
+### 4. Renewal grace-mode banner overlay
+
+Gateway site_hosting tests:
+
+```bash
+$ npm -C gateway test -- tests/site_hosting.test.ts
+✓ tests/site_hosting.test.ts (7 tests)
+  - serves ENS contenthash -> ipfs fixture bytes
+  - serves ENS contenthash -> arweave fixture bytes
+  - normalizes ENS text content raw CID into ipfs destination
+  - serves SNS text content ar target bytes
+  - returns 400 for non-hosting targets
+  - returns 413 when upstream content exceeds max size
+  - injects renewal grace banner overlay when delinquent flag is enabled
+Test Files  1 passed (1)
+Tests  7 passed (7)
+```
+
+Banner toggle verified:
+
+- `DOMAIN_BANNER_GRACE_MODE_ENABLED=1` or `?banner_grace_mode=1` → overlay injected, `X-DDNS-Renewal-Banner: grace_mode`, Cache-Control: no-cache
+- Without flag → normal immutable cache, no overlay
+
+### Compatibility layer check (worker legacy payload -> traffic + treasury renew gate)
+
+```bash
+DOMAIN_EXPIRY_WORKER_URL='http://127.0.0.1:9100/check' PORT=8064 node gateway/dist/server.js
+```
+
+```bash
+curl -sS 'http://127.0.0.1:8064/v1/domain/status?domain=active.com'
+```
+
+Output excerpt:
+
+```json
+{
+  "domain": "active.com",
+  "renewal_due_date": "2020-01-01T00:00:00.000Z",
+  "treasury_renewal_allowed": false,
+  "eligible_for_subsidy": true
+}
+```
+
+```bash
+curl -sS -X POST 'http://127.0.0.1:8064/v1/domain/renew' \
+  -H 'Content-Type: application/json' \
+  -d '{"domain":"active.com","use_credits":true,"years":1}'
+```
+
+Output excerpt:
+
+```json
+{
+  "accepted": false,
+  "message": "blocked_by_treasury_policy",
+  "reason_codes": ["TREASURY_POLICY_BLOCKED"]
+}
+```

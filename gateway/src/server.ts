@@ -130,6 +130,8 @@ const INTERSTITIAL_TEMPLATE_PATH =
 const RATE_LIMIT_WINDOW_S = Number(process.env.RATE_LIMIT_WINDOW_S || "60");
 const RATE_LIMIT_MAX_REQUESTS = Number(process.env.RATE_LIMIT_MAX_REQUESTS || "20");
 const AUDIT_LOG_PATH = process.env.AUDIT_LOG_PATH || "gateway/.cache/audit.log.jsonl";
+const DOMAIN_EXPIRY_WORKER_URL = process.env.DOMAIN_EXPIRY_WORKER_URL || "";
+const DOMAIN_EXPIRY_WORKER_TIMEOUT_MS = Number(process.env.DOMAIN_EXPIRY_WORKER_TIMEOUT_MS || "2500");
 const attackThresholds = defaultThresholdsFromEnv(process.env);
 
 ed.etc.sha512Sync = (...m) => sha512(ed.etc.concatBytes(...m));
@@ -184,6 +186,19 @@ function readTemplate(templatePath: string, fallback: string): string {
 
 function renderHtmlTemplate(template: string, vars: Record<string, string>): string {
   return template.replace(/\{\{([a-zA-Z0-9_]+)\}\}/g, (_, key: string) => escapeHtml(vars[key] || ""));
+}
+
+function injectBeforeBodyEnd(html: string, fragment: string): string {
+  if (/<\/body>/i.test(html)) {
+    return html.replace(/<\/body>/i, `${fragment}</body>`);
+  }
+  return `${html}${fragment}`;
+}
+
+function renewalBannerGraceModeEnabled(req: express.Request): boolean {
+  const queryFlag = typeof req.query.banner_grace_mode === "string" ? req.query.banner_grace_mode : "";
+  if (queryFlag === "1" || queryFlag.toLowerCase() === "true") return true;
+  return process.env.DOMAIN_BANNER_GRACE_MODE_ENABLED === "1";
 }
 
 function actorIpHash(req: express.Request): string {
@@ -368,12 +383,13 @@ async function continuityStatusFromSources(
   const registrarNs = existingRecord.ns || [];
   const registrarNsStatus = registrarNs.some((entry) => entry.endsWith("tolldns.io"));
   const ledgerSubsidy = creditsLedger.estimateRenewalSubsidy(domainRaw);
+  const workerCompat = await fetchContinuityCompatFromWorker(domainRaw);
 
   const status = continuityStatus(domainRaw, {
     nsStatus: options.nsStatus ?? registrarNsStatus,
     verifiedControl: options.verifiedControl,
-    trafficSignal: options.trafficSignal ?? existingRecord.traffic_signal,
-    renewalDueDate: options.renewalDueDate ?? existingRecord.renewal_due_date,
+    trafficSignal: workerCompat.traffic_signal ?? options.trafficSignal ?? existingRecord.traffic_signal,
+    renewalDueDate: workerCompat.expires_at ?? options.renewalDueDate ?? existingRecord.renewal_due_date,
     lastSeenAt: options.lastSeenAt,
     abuseFlag: options.abuseFlag,
     claimRequested: options.claimRequested,
@@ -381,7 +397,94 @@ async function continuityStatusFromSources(
     renewalCostEstimate:
       options.renewalCostEstimate ?? Math.max(ledgerSubsidy.renewal_cost_estimate, Math.ceil(Number(quote.price_usd || 0) * 10))
   });
-  return addEligibilityFlags(status, options.nsStatus ?? registrarNsStatus);
+  return {
+    ...addEligibilityFlags(status, options.nsStatus ?? registrarNsStatus),
+    treasury_renewal_allowed: workerCompat.treasury_renewal_allowed ?? null
+  };
+}
+
+function normalizeWorkerTrafficSignal(value: unknown): DomainTrafficSignal | undefined {
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "real" || normalized === "low" || normalized === "none") {
+      return normalized as DomainTrafficSignal;
+    }
+    if (normalized === "high" || normalized === "validated" || normalized === "valid") return "real";
+  }
+  if (value === true || value === 1 || value === "1") return "real";
+  if (value === false || value === 0 || value === "0") return "none";
+  return undefined;
+}
+
+function pickWorkerString(payload: WorkerCompatPayload, keys: Array<keyof WorkerCompatPayload>): string | undefined {
+  for (const key of keys) {
+    const value = payload?.[key];
+    if (typeof value === "string" && value.trim()) return value;
+  }
+  return undefined;
+}
+
+function pickWorkerBoolean(payload: WorkerCompatPayload, keys: Array<keyof WorkerCompatPayload>): boolean | undefined {
+  for (const key of keys) {
+    const value = payload?.[key];
+    if (typeof value === "boolean") return value;
+  }
+  return undefined;
+}
+
+type WorkerCompatPayload = {
+  expires_at?: unknown;
+  expiration_date?: unknown;
+  expiresAt?: unknown;
+  traffic_signal?: unknown;
+  traffic_validated?: unknown;
+  traffic_valid?: unknown;
+  renew_with_treasury?: unknown;
+  treasury_renewal_allowed?: unknown;
+  should_renew_with_treasury?: unknown;
+};
+
+async function fetchContinuityCompatFromWorker(
+  domainRaw: string
+): Promise<{ expires_at?: string; traffic_signal?: DomainTrafficSignal; treasury_renewal_allowed?: boolean }> {
+  if (!DOMAIN_EXPIRY_WORKER_URL) return {};
+  try {
+    const domain = normalizeDomainInput(domainRaw);
+    if (!domain) return {};
+    const endpoint = new URL(DOMAIN_EXPIRY_WORKER_URL);
+    endpoint.searchParams.set("domain", domain);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), DOMAIN_EXPIRY_WORKER_TIMEOUT_MS);
+    try {
+      const res = await fetch(endpoint.toString(), { signal: controller.signal });
+      if (!res.ok) return {};
+      let payload: WorkerCompatPayload | null = null;
+      try {
+        payload = await res.json() as WorkerCompatPayload;
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        logInfo(`domain_expiry_worker_invalid_json domain=${domain} error=${msg}`);
+        return {};
+      }
+      const rawExpires = pickWorkerString(payload || {}, ["expires_at", "expiration_date", "expiresAt"]);
+      const expiresTs = rawExpires ? Date.parse(rawExpires) : Number.NaN;
+      const expires_at = rawExpires && !Number.isNaN(expiresTs) ? new Date(expiresTs).toISOString() : undefined;
+      const traffic_signal =
+        normalizeWorkerTrafficSignal(payload?.traffic_signal) ??
+        normalizeWorkerTrafficSignal(payload?.traffic_validated) ??
+        normalizeWorkerTrafficSignal(payload?.traffic_valid);
+      const treasury_renewal_allowed = pickWorkerBoolean(payload || {}, [
+        "treasury_renewal_allowed",
+        "renew_with_treasury",
+        "should_renew_with_treasury"
+      ]);
+      return { expires_at, traffic_signal, treasury_renewal_allowed };
+    } finally {
+      clearTimeout(timer);
+    }
+  } catch {
+    return {};
+  }
 }
 
 function resetAttackWindow(nowUnix: number) {
@@ -1252,6 +1355,28 @@ export function createApp(overrides?: { adapterRegistry?: { resolveAuto: typeof 
     }
     const useCredits = req.body?.use_credits !== false;
     const years = Number(req.body?.years || 1);
+    const workerCompat = await fetchContinuityCompatFromWorker(domain);
+    if (useCredits && workerCompat.treasury_renewal_allowed === false) {
+      const blockedStatus = await continuityStatusFromSources(domain, {
+        creditsBalance: creditsLedger.getBalance(domain)
+      });
+      auditEvent(req, { endpoint: "/v1/domain/renew", domain, decision: "blocked" });
+      return res.json({
+        domain: blockedStatus.domain,
+        accepted: false,
+        message: "blocked_by_treasury_policy",
+        reason_codes: ["TREASURY_POLICY_BLOCKED"],
+        credits_applied_estimate: 0,
+        credits_balance: creditsLedger.getBalance(domain),
+        renewal_covered_by_credits: blockedStatus.renewal_covered_by_credits,
+        renewal_due_date: blockedStatus.renewal_due_date,
+        grace_expires_at: blockedStatus.grace_expires_at,
+        auth_required: false,
+        auth_mode: "stub",
+        policy_version: DOMAIN_CONTINUITY_POLICY_VERSION,
+        notice_signature: "mvp-local-policy"
+      });
+    }
     const subsidyBefore = creditsLedger.estimateRenewalSubsidy(domain);
     const creditsToApply = useCredits ? subsidyBefore.covered_amount : 0;
     const renewal = await registrarAdapter.renewDomain(domain, years, {
@@ -1621,6 +1746,7 @@ export function createApp(overrides?: { adapterRegistry?: { resolveAuto: typeof 
       const name = typeof req.query.name === "string" ? req.query.name : "";
       const sitePath = typeof req.query.path === "string" ? req.query.path : "/";
       if (!name) return res.status(400).json({ error: "missing_name" });
+      const graceModeBannerEnabled = renewalBannerGraceModeEnabled(req);
 
       const ans = await activeAdapterRegistry.resolveAuto({
         name,
@@ -1651,17 +1777,43 @@ export function createApp(overrides?: { adapterRegistry?: { resolveAuto: typeof 
             maxBytes: SITE_MAX_BYTES
           });
 
+      let body = fetched.body;
+      let bannerInjected = false;
+      if (graceModeBannerEnabled && String(fetched.contentType || "").toLowerCase().includes("text/html")) {
+        const existing = domainStatusStore.get(name);
+        const registrarDomain = await registrarAdapter.getDomain(name);
+        const status = await continuityStatusFromSources(name, {
+          nsStatus: existing?.inputs?.ns_status ?? registrarDomain.ns.some((entry) => entry.endsWith("tolldns.io")),
+          verifiedControl: existing?.inputs?.verified_control ?? false,
+          trafficSignal: existing?.inputs?.traffic_signal ?? registrarDomain.traffic_signal ?? "none",
+          renewalDueDate: existing?.inputs?.renewal_due_date || registrarDomain.renewal_due_date || undefined,
+          lastSeenAt: existing?.inputs?.last_seen_at || undefined,
+          abuseFlag: existing?.inputs?.abuse_flag ?? false,
+          claimRequested: existing?.claim_requested ?? false,
+          creditsBalance: creditsLedger.getBalance(name)
+        });
+        const bannerState = buildRenewalBannerState(status, existing?.banner_ack_at);
+        if (bannerState.banner_state === "renewal_due") {
+          const baseUrl = `${req.protocol}://${req.get("host") || "127.0.0.1:8054"}`;
+          const paymentUrl = `${baseUrl}/domain-continuity/index.html?domain=${encodeURIComponent(status.domain)}`;
+          const overlay = `<aside style="position:fixed;left:0;right:0;bottom:0;z-index:2147483647;background:#111827;color:#f9fafb;padding:12px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;box-shadow:0 -2px 8px rgba(0,0,0,.35)"><strong>Renewal grace mode:</strong> ${escapeHtml(status.domain)} ${escapeHtml(bannerState.grace_countdown)} remaining. <a href="${escapeHtml(paymentUrl)}" style="color:#93c5fd;text-decoration:underline">Complete payment</a></aside>`;
+          body = Buffer.from(injectBeforeBodyEnd(fetched.body.toString("utf8"), overlay), "utf8");
+          res.setHeader("X-DDNS-Renewal-Banner", "grace_mode");
+          bannerInjected = true;
+        }
+      }
+
       if (fetched.contentType) {
         res.setHeader("Content-Type", fetched.contentType);
       }
       res.setHeader("X-Content-Type-Options", "nosniff");
-      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      res.setHeader("Cache-Control", bannerInjected ? "no-cache, no-store, must-revalidate" : "public, max-age=31536000, immutable");
       res.setHeader(
         "Content-Security-Policy",
         "default-src 'self'; base-uri 'none'; frame-ancestors 'none'; object-src 'none'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self'"
       );
       res.setHeader("X-DDNS-Hosting-Source", fetched.sourceUrl);
-      return res.status(200).send(fetched.body);
+      return res.status(200).send(body);
     } catch (err: any) {
       const status = Number(err?.statusCode || 500);
       if (status >= 400 && status <= 599) {
