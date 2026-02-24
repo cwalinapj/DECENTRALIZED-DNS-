@@ -11,7 +11,7 @@ Cloudflare is the default edge/CDN delivery layer (boring and reliable).
 - `GET /connect-cloudflare` — simple onboarding page (OAuth or API token path)
 - `GET /v1/cloudflare/oauth/start?user_id=...` — build OAuth authorization URL
 - `POST /v1/cloudflare/connect` — create Cloudflare connection record (API token or OAuth token)
-- `GET /v1/cloudflare/zones` — list Cloudflare zones (pass token via `x-cloudflare-token` header or `api_token` query)
+- `GET /v1/cloudflare/zones` — list Cloudflare zones (pass token via `x-cloudflare-token` header)
 - `POST /v1/cloudflare/connections/:id/zone` — select zone for a connection
 - `POST /v1/cloudflare/connections/:id/verify-domain` — produce TXT verification record and mark verification status
 - `POST /v1/cloudflare/connections/:id/actions` — trigger DNS upserts for NS/gateway records and optional worker template

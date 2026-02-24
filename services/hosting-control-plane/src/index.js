@@ -7,7 +7,10 @@ const EDGE_CNAME = process.env.HOSTING_EDGE_CNAME || "edge.tolldns.io";
 const MAX_BODY_BYTES = 64 * 1024;
 const CF_API_BASE = "https://api.cloudflare.com/client/v4";
 const CF_OAUTH_AUTHORIZE_URL = "https://dash.cloudflare.com/oauth2/auth";
+const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
+// MVP in-memory store; replace with persistent storage before production.
 const connections = new Map();
+const oauthStates = new Map();
 
 function sendJson(res, statusCode, payload) {
   const body = JSON.stringify(payload);
@@ -53,7 +56,7 @@ function readJson(req, res, onBody) {
   });
 }
 
-async function cloudflareJson(token, path, init = {}, fetchImpl = globalThis.__ddnsCloudflareFetch || globalThis.fetch) {
+async function cloudflareJson(token, path, init = {}, fetchImpl = globalThis.__cloudflareFetch || globalThis.fetch) {
   const res = await fetchImpl(`${CF_API_BASE}${path}`, {
     ...init,
     headers: {
@@ -68,6 +71,14 @@ async function cloudflareJson(token, path, init = {}, fetchImpl = globalThis.__d
     throw new Error(message);
   }
   return payload;
+}
+
+function pruneOauthStates(nowMs = Date.now()) {
+  for (const [state, entry] of oauthStates.entries()) {
+    if (nowMs - Number(entry?.created_at_ms || 0) > OAUTH_STATE_TTL_MS) {
+      oauthStates.delete(state);
+    }
+  }
 }
 
 function buildSitePlan(body) {
@@ -118,8 +129,11 @@ export function createServer() {
       if (!clientId || !redirectUri || !userId) {
         return sendJson(res, 400, { error: "missing_oauth_configuration_or_user_id" });
       }
-      const authUrl = `${CF_OAUTH_AUTHORIZE_URL}?response_type=code&client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(userId)}`;
-      return sendJson(res, 200, { authorization_url: authUrl });
+      pruneOauthStates();
+      const state = crypto.randomBytes(16).toString("hex");
+      oauthStates.set(state, { user_id: userId, created_at_ms: Date.now() });
+      const authUrl = `${CF_OAUTH_AUTHORIZE_URL}?response_type=code&client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state)}`;
+      return sendJson(res, 200, { authorization_url: authUrl, state });
     }
 
     if (req.method === "POST" && pathname === "/v1/cloudflare/connect") {
@@ -129,7 +143,7 @@ export function createServer() {
         const oauthToken = String(body?.oauth_token || "").trim();
         const scopes = Array.isArray(body?.scopes) ? body.scopes.map((s) => String(s).trim()).filter(Boolean) : [];
         if (!userId) return sendJson(res, 400, { error: "missing_user_id" });
-        if ((apiToken ? 1 : 0) + (oauthToken ? 1 : 0) !== 1) {
+        if ((!apiToken && !oauthToken) || (apiToken && oauthToken)) {
           return sendJson(res, 400, { error: "provide_exactly_one_oauth_token_or_api_token" });
         }
         const token = apiToken || oauthToken;
@@ -151,7 +165,7 @@ export function createServer() {
     }
 
     if (req.method === "GET" && pathname === "/v1/cloudflare/zones") {
-      const token = String(req.headers["x-cloudflare-token"] || url.searchParams.get("api_token") || "").trim();
+      const token = String(req.headers["x-cloudflare-token"] || "").trim();
       if (!token) return sendJson(res, 400, { error: "missing_api_token" });
       cloudflareJson(token, "/zones?per_page=50")
         .then((payload) => {
@@ -186,7 +200,7 @@ export function createServer() {
         const row = connections.get(connectionId);
         if (!row) return sendJson(res, 404, { error: "connection_not_found" });
         const domain = normalizeDomain(body?.domain);
-        const txtValue = String(body?.txt_value || "").trim() || crypto.randomBytes(8).toString("hex");
+        const txtValue = String(body?.txt_value || "").trim() || crypto.randomBytes(16).toString("hex");
         if (!domain) return sendJson(res, 400, { error: "missing_domain" });
         const verified = body?.verified === true;
         const updated = verified ? { ...row, last_verified_at: new Date().toISOString() } : row;
@@ -221,7 +235,7 @@ export function createServer() {
           connection_id: connectionId,
           zone_id: row.zone_id,
           dns_records: [
-            { type: "NS", name: domain, value: nsValue, ttl: 300, action: "upsert" },
+            { type: "NS", name: `_ddns.${domain}`, value: nsValue, ttl: 300, action: "upsert" },
             { type: "CNAME", name: domain, value: gatewayValue, ttl: 300, proxied: true, action: "upsert" }
           ],
           worker_deployment: deployWorker

@@ -2,11 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createServer } from "../src/index.js";
 
-async function makeRequest(server, method, path, body) {
+async function makeRequest(server, method, path, body, headers = {}) {
   const { port } = server.address();
   const res = await fetch(`http://127.0.0.1:${port}${path}`, {
     method,
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...headers },
     body: body ? JSON.stringify(body) : undefined
   });
   return res;
@@ -108,6 +108,26 @@ test("GET /connect-cloudflare serves connect page with OAuth and API token paths
   }
 });
 
+test("GET /v1/cloudflare/oauth/start returns authorization URL with random state", async () => {
+  const originalClientId = process.env.CF_OAUTH_CLIENT_ID;
+  const originalRedirectUri = process.env.CF_OAUTH_REDIRECT_URI;
+  process.env.CF_OAUTH_CLIENT_ID = "cf-client";
+  process.env.CF_OAUTH_REDIRECT_URI = "https://example.com/callback";
+  const server = await startServer();
+  try {
+    const res = await makeRequest(server, "GET", "/v1/cloudflare/oauth/start?user_id=user-1");
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(typeof body.state, "string");
+    assert.notEqual(body.state, "user-1");
+    assert.match(body.authorization_url, /state=/);
+  } finally {
+    process.env.CF_OAUTH_CLIENT_ID = originalClientId;
+    process.env.CF_OAUTH_REDIRECT_URI = originalRedirectUri;
+    server.close();
+  }
+});
+
 test("Cloudflare connect flow stores required fields and supports zone/verify/actions", async () => {
   const server = await startServer();
   try {
@@ -144,6 +164,7 @@ test("Cloudflare connect flow stores required fields and supports zone/verify/ac
     const verifyBody = await verifyRes.json();
     assert.equal(verifyBody.domain, "example.com");
     assert.equal(verifyBody.verification_record.type, "TXT");
+    assert.equal(verifyBody.verification_record.value.length, 32);
     assert.equal(verifyBody.status, "verified");
 
     const actionsRes = await makeRequest(
@@ -156,6 +177,7 @@ test("Cloudflare connect flow stores required fields and supports zone/verify/ac
     const actionsBody = await actionsRes.json();
     assert.equal(actionsBody.zone_id, "zone_abc123");
     assert.equal(actionsBody.dns_records.length, 2);
+    assert.equal(actionsBody.dns_records[0].name, "_ddns.example.com");
     assert.equal(actionsBody.worker_deployment.status, "template_ready");
   } finally {
     server.close();
@@ -164,8 +186,8 @@ test("Cloudflare connect flow stores required fields and supports zone/verify/ac
 
 test("GET /v1/cloudflare/zones lists zones from Cloudflare API", async () => {
   const server = await startServer();
-  const originalFetch = globalThis.__ddnsCloudflareFetch;
-  globalThis.__ddnsCloudflareFetch = async () =>
+  const originalFetch = globalThis.__cloudflareFetch;
+  globalThis.__cloudflareFetch = async () =>
     new Response(
       JSON.stringify({
         success: true,
@@ -177,12 +199,36 @@ test("GET /v1/cloudflare/zones lists zones from Cloudflare API", async () => {
       }
     );
   try {
-    const res = await makeRequest(server, "GET", "/v1/cloudflare/zones?api_token=test-token");
+    const res = await makeRequest(server, "GET", "/v1/cloudflare/zones", undefined, {
+      "x-cloudflare-token": "test-token"
+    });
     assert.equal(res.status, 200);
     const body = await res.json();
     assert.deepEqual(body.zones, [{ id: "z1", name: "example.com", status: "active" }]);
   } finally {
-    globalThis.__ddnsCloudflareFetch = originalFetch;
+    globalThis.__cloudflareFetch = originalFetch;
+    server.close();
+  }
+});
+
+test("verify-domain rejects empty normalized domain", async () => {
+  const server = await startServer();
+  try {
+    const connectRes = await makeRequest(server, "POST", "/v1/cloudflare/connect", {
+      user_id: "user-123",
+      api_token: "cf-token-secret"
+    });
+    const connectBody = await connectRes.json();
+    const verifyRes = await makeRequest(
+      server,
+      "POST",
+      `/v1/cloudflare/connections/${connectBody.connection_id}/verify-domain`,
+      { domain: "...." }
+    );
+    assert.equal(verifyRes.status, 400);
+    const verifyBody = await verifyRes.json();
+    assert.match(verifyBody.error, /missing_domain/);
+  } finally {
     server.close();
   }
 });
