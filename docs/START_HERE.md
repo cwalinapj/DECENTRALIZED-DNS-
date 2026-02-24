@@ -26,6 +26,7 @@ Read first:
 - `docs/WEB2_PRICING_MODEL.md`
 - `docs/PAYMENTS_AND_TREASURY.md`
 - `docs/DOMAIN_CONTINUITY.md`
+- `docs/NS_FRONT_DOOR.md`
 
 ## Quickstart (user-facing)
 

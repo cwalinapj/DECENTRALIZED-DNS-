@@ -2212,3 +2212,36 @@ Output excerpt:
   "reason_codes": ["TREASURY_POLICY_BLOCKED"]
 }
 ```
+
+### 2026-02-24 — NS front-door docs + zone manager hardening
+
+Branch: `codex/pr-ns-frontdoor-zone`  
+Worktree: `/tmp/ddns-pr-ns-frontdoor-zone`
+
+Commands run:
+
+```bash
+make fmt
+make lint
+make test
+make e2e
+```
+
+Output snippets:
+
+```bash
+==> tests/ns-front-door-zone-manager
+✔ zone_manager set/list/resolve works for valid A record
+✔ zone_manager rejects invalid type/ip/ttl
+✔ ns_front_door prints nameserver onboarding instructions
+```
+
+```bash
+==> run_all: complete
+==> warning: program id sync mismatch (STRICT_PROGRAM_ID_SYNC=1 to enforce hard-fail)
+```
+
+```bash
+bash scripts/validate-compat-mvp.sh
+[compat] docker-compose.validation.yml not found; skipping compat validation (MVP).
+```

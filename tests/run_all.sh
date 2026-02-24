@@ -61,6 +61,11 @@ if [ -f "$root/tests/conformance/adapter_contract.test.mjs" ]; then
   (cd "$root" && node tests/conformance/adapter_contract.test.mjs)
 fi
 
+if [ -f "$root/tests/ns_front_door_zone_manager.test.mjs" ]; then
+  echo "==> tests/ns-front-door-zone-manager"
+  (cd "$root" && node --test tests/ns_front_door_zone_manager.test.mjs)
+fi
+
 # Solana (optional)
 if [ -d "$root/solana" ]; then
   echo "==> solana: cargo test"

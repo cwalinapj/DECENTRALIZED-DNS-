@@ -27,6 +27,7 @@ Full walk-through: [`docs/JIVE_CODER_5_MIN.md`](docs/JIVE_CODER_5_MIN.md)
 - One command (strict devnet proof): `npm run mvp:demo:devnet`
 - One command (run gateway locally): `PORT=8054 npm -C gateway run start`
 - One link (Web2-first funnel): `docs/GET_STARTED.md`
+- Nameserver onboarding + zone manager: `docs/NS_FRONT_DOOR.md`
 - Public Cloudflare demo deploy/share: `docs/PUBLIC_DEMO.md`
 
 If you only read one file first: `docs/START_HERE.md`.
