@@ -1,0 +1,23 @@
+FROM node:20-bookworm-slim
+
+WORKDIR /app
+
+# Copy only manifests first for better caching
+COPY package.json package-lock.json ./
+COPY gateway/package.json gateway/package-lock.json gateway/
+COPY packages/attack-mode/package.json packages/attack-mode/package-lock.json packages/attack-mode/
+COPY packages/payments/package.json packages/payments/package-lock.json packages/payments/
+
+# Install deps for the whole repo (monorepo lockfile)
+RUN npm ci
+
+# Now copy the repo
+COPY . .
+
+# Build required internal packages first, then gateway
+RUN npm --prefix packages/attack-mode run build
+RUN npm --prefix packages/payments run build
+RUN npm --prefix gateway run build
+
+EXPOSE 8054
+CMD ["node", "gateway/dist/server.js"]
