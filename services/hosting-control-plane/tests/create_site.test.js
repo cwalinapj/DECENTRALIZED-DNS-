@@ -93,3 +93,96 @@ test("GET /healthz returns ok", async () => {
     server.close();
   }
 });
+
+test("GET /connect-cloudflare serves connect page with OAuth and API token paths", async () => {
+  const server = await startServer();
+  try {
+    const res = await makeRequest(server, "GET", "/connect-cloudflare");
+    assert.equal(res.status, 200);
+    const body = await res.text();
+    assert.match(body, /Connect Cloudflare/i);
+    assert.match(body, /OAuth/i);
+    assert.match(body, /api token/i);
+  } finally {
+    server.close();
+  }
+});
+
+test("Cloudflare connect flow stores required fields and supports zone/verify/actions", async () => {
+  const server = await startServer();
+  try {
+    const connectRes = await makeRequest(server, "POST", "/v1/cloudflare/connect", {
+      user_id: "user-123",
+      api_token: "cf-token-secret",
+      scopes: ["Zone:Read", "DNS:Edit"]
+    });
+    assert.equal(connectRes.status, 200);
+    const connectBody = await connectRes.json();
+    assert.equal(connectBody.user_id, "user-123");
+    assert.equal(connectBody.zone_id, null);
+    assert.ok(connectBody.token_ref.startsWith("cf_tok_"));
+    assert.equal(typeof connectBody.created_at, "string");
+    assert.equal(connectBody.last_verified_at, null);
+
+    const zoneRes = await makeRequest(
+      server,
+      "POST",
+      `/v1/cloudflare/connections/${connectBody.connection_id}/zone`,
+      { zone_id: "zone_abc123" }
+    );
+    assert.equal(zoneRes.status, 200);
+    const zoneBody = await zoneRes.json();
+    assert.equal(zoneBody.zone_id, "zone_abc123");
+
+    const verifyRes = await makeRequest(
+      server,
+      "POST",
+      `/v1/cloudflare/connections/${connectBody.connection_id}/verify-domain`,
+      { domain: "Example.COM.", verified: true }
+    );
+    assert.equal(verifyRes.status, 200);
+    const verifyBody = await verifyRes.json();
+    assert.equal(verifyBody.domain, "example.com");
+    assert.equal(verifyBody.verification_record.type, "TXT");
+    assert.equal(verifyBody.status, "verified");
+
+    const actionsRes = await makeRequest(
+      server,
+      "POST",
+      `/v1/cloudflare/connections/${connectBody.connection_id}/actions`,
+      { domain: "example.com", deploy_worker: true }
+    );
+    assert.equal(actionsRes.status, 200);
+    const actionsBody = await actionsRes.json();
+    assert.equal(actionsBody.zone_id, "zone_abc123");
+    assert.equal(actionsBody.dns_records.length, 2);
+    assert.equal(actionsBody.worker_deployment.status, "template_ready");
+  } finally {
+    server.close();
+  }
+});
+
+test("GET /v1/cloudflare/zones lists zones from Cloudflare API", async () => {
+  const server = await startServer();
+  const originalFetch = globalThis.__ddnsCloudflareFetch;
+  globalThis.__ddnsCloudflareFetch = async () =>
+    new Response(
+      JSON.stringify({
+        success: true,
+        result: [{ id: "z1", name: "example.com", status: "active" }]
+      }),
+      {
+        status: 200,
+        headers: { "content-type": "application/json" }
+      }
+    );
+  try {
+    const res = await makeRequest(server, "GET", "/v1/cloudflare/zones?api_token=test-token");
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.deepEqual(body.zones, [{ id: "z1", name: "example.com", status: "active" }]);
+  } finally {
+    globalThis.__ddnsCloudflareFetch = originalFetch;
+    server.close();
+  }
+});
