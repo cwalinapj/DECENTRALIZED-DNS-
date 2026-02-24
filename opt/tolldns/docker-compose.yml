@@ -1,0 +1,15 @@
+services:
+  gateway:
+    image: ddns-pi-gateway:latest
+    environment:
+      NODE_ENV: "production"
+      HOST: "0.0.0.0"
+      PORT: "8054"
+    ports:
+      - "127.0.0.1:8068:8054"
+    volumes:
+      - gateway_data:/data
+    restart: unless-stopped
+
+volumes:
+  gateway_data:
