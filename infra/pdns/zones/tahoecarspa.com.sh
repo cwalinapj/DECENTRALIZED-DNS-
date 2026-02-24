@@ -21,7 +21,7 @@ sudo pdnsutil replace-rrset "$ZONE" api A 3600 "$NS1_IP"
 sudo pdnsutil replace-rrset "$ZONE" dns A 3600 "$NS1_IP"
 
 # SOA (single quoted content string)
-SERIAL="$(date -u +%Y%m%d%H)"
+SERIAL="$(date -u +%Y%m%d%H%M)"
 sudo pdnsutil replace-rrset "$ZONE" @ SOA 3600 "ns1.$ZONE hostmaster.$ZONE ${SERIAL} 10800 3600 604800 3600"
 
 sudo pdnsutil check-zone "$ZONE"
