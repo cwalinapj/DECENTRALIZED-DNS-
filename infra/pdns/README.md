@@ -14,3 +14,9 @@ It also includes `tahoecarspa.com` bootstrap/verification scripts that use
 - `ns2/pdns.conf` – baseline config for secondary auth DNS
 - `scripts/bootstrap_tahoecarspa_zone.sh` – creates/updates the zone records
 - `scripts/verify_tahoecarspa_zone.sh` – basic record presence checks
+
+## Credential handling
+
+`pdns.conf` samples intentionally omit committed credential values (`gmysql-password`
+and `api-key`). Inject these via deployment-time overrides or secret-backed config
+includes.
