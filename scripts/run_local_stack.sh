@@ -94,7 +94,7 @@ Firefox about:config values:
   network.trr.uri = ${TRR_URL}
   network.trr.custom_uri = ${TRR_URL}
   network.trr.allow-rfc1918 = true
-  network.trr.bootstrapAddr = ${GATEWAY_HOST}
+  network.trr.bootstrapAddress = ${GATEWAY_HOST}
 
 TRR URL:
   ${TRR_URL}

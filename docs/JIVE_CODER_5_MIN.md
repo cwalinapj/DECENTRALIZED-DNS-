@@ -35,7 +35,7 @@ Keep this terminal open.
    | `network.trr.uri` | `https://127.0.0.1:8443/dns-query` |
    | `network.trr.custom_uri` | `https://127.0.0.1:8443/dns-query` |
    | `network.trr.allow-rfc1918` | `true` |
-   | `network.trr.bootstrapAddr` | `127.0.0.1` |
+   | `network.trr.bootstrapAddress` | `127.0.0.1` |
 
 ## Step 3 — Browse
 
@@ -43,11 +43,20 @@ Open Firefox → browse `https://netflix.com`
 
 Firefox is now resolving DNS through your local gateway. The site loads normally; DNS just went through your stack first.
 
+Expected output at the end of `npm run local:stack`:
+
+```text
+✅ firefox DoH verify passed (A)
+✅ firefox DoH verify passed (AAAA)
+✅ LOCAL STACK READY
+```
+
 ## Try resolving any domain via local gateway
 
 Open a second terminal and run:
 
 ```bash
+curl -s 'http://127.0.0.1:8054/v1/resolve?name=netflix.com&type=A' | jq '{name,type,confidence,rrset_hash,answers,upstreams_used,cache}'
 curl 'http://127.0.0.1:8054/v1/resolve?name=netflix.com&type=A'
 curl 'http://127.0.0.1:8054/v1/resolve?name=github.com&type=A'
 curl 'http://127.0.0.1:8054/v1/resolve?name=example.com&type=A'
@@ -61,9 +70,16 @@ Press `Ctrl+C` in the terminal running `npm run local:stack`.
 
 ## Want to try the public demo instead?
 
-No local install needed. See: [`docs/PUBLIC_DEMO.md`](./PUBLIC_DEMO.md)
+No local install needed. See: [`docs/PUBLIC_DEMO.md`](PUBLIC_DEMO.md)
 
 ## Help the network (optional)
 
 If you want to run a node and contribute to the network:
-[`docs/MINER_QUICKSTART_CF.md`](./MINER_QUICKSTART_CF.md)
+[`docs/MINER_QUICKSTART_CF.md`](MINER_QUICKSTART_CF.md)
+
+## Troubleshooting
+
+- If Firefox still uses system DNS, recheck `network.trr.mode=3`.
+- If TLS fails on `127.0.0.1:8443`, restart `npm run local:stack` and keep it running.
+- If `jq` is missing, install it (`brew install jq` or `apt-get install jq`) and rerun the verify command.
+- If `/v1/resolve` fails, confirm gateway is listening on `127.0.0.1:8054`.

@@ -2051,3 +2051,34 @@ found 0 vulnerabilities
   ]
 }
 ```
+
+### 2026-02-24T04:16:00Z — Docs polish follow-up (Jive funnel + Firefox pref key)
+- Branch: `copilot/fix-broken-links-and-typo`
+- Scope: docs + local stack script output string only (no protocol changes)
+
+Commands run:
+```bash
+npm test
+rg -n "bootstrapAddr\\b" docs/ README.md
+# local markdown link existence check for JIVE docs links
+links=$(grep -oE '\\[[^]]+\\]\\(([^)]+)\\)' docs/JIVE_CODER_5_MIN.md | sed -E 's/.*\\(([^)]+)\\)/\\1/' | grep -vE '^(https?://|mailto:|#)')
+for l in $links; do p="docs/${l#./}"; [ -f "$p" ] && echo "OK $l -> $p" || echo "MISSING $l -> $p"; done
+```
+
+Output snippet:
+```text
+npm test
+...
+==> tests/smoke: /resolve
+curl: (22) The requested URL returned error: 502
+gateway did not return a response
+Listening on 0.0.0.0:8056
+(exit 1; pre-existing smoke instability in this environment)
+
+rg -n "bootstrapAddr\\b" docs/ README.md
+No matches found.
+
+JIVE markdown local link check:
+OK PUBLIC_DEMO.md -> docs/PUBLIC_DEMO.md
+OK MINER_QUICKSTART_CF.md -> docs/MINER_QUICKSTART_CF.md
+```

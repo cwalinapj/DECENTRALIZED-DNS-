@@ -19,7 +19,7 @@ TLS_PROXY_TARGET=http://127.0.0.1:8054 TLS_PROXY_PORT=8443 bash scripts/firefox_
    - `network.trr.uri=https://127.0.0.1:8443/dns-query`
    - `network.trr.custom_uri=https://127.0.0.1:8443/dns-query`
    - `network.trr.allow-rfc1918=true`
-   - `network.trr.bootstrapAddr=127.0.0.1`
+   - `network.trr.bootstrapAddress=127.0.0.1`
 4. Verify + browse:
 ```bash
 bash scripts/firefox_doh_verify.sh --url https://127.0.0.1:8443 --name netflix.com --type A --insecure

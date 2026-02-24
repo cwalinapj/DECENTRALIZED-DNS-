@@ -42,7 +42,7 @@ Set exactly:
 - `network.trr.custom_uri` = `https://127.0.0.1:8443/dns-query`
 - `network.trr.mode` = `3` (or `2` if you need fallback)
 - `network.trr.allow-rfc1918` = `true`
-- `network.trr.bootstrapAddr` = `127.0.0.1`
+- `network.trr.bootstrapAddress` = `127.0.0.1`
 
 ## 4) Verify DoH endpoint before browsing
 
@@ -59,4 +59,3 @@ Expected output includes:
 ## 5) Real browse test
 
 Open `https://netflix.com` in Firefox. The page should load with hostname preserved (`netflix.com`), not an IP URL.
-
