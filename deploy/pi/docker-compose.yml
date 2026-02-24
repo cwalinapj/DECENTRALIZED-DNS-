@@ -1,0 +1,43 @@
+services:
+  gateway:
+    build:
+      context: ../../
+      dockerfile: gateway/Dockerfile.stack
+    environment:
+      NODE_ENV: "production"
+      HOST: "0.0.0.0"
+      PORT: "${GATEWAY_HTTP_PORT:-8054}"
+
+      RECURSIVE_UPSTREAMS: "${RECURSIVE_UPSTREAMS}"
+      RECURSIVE_TIMEOUT_MS: "${RECURSIVE_TIMEOUT_MS}"
+      RECURSIVE_QUORUM_MIN: "${RECURSIVE_QUORUM_MIN}"
+      RECURSIVE_OVERLAP_RATIO: "${RECURSIVE_OVERLAP_RATIO}"
+
+      CACHE_PATH: "${CACHE_PATH}"
+      CACHE_MAX_ENTRIES: "${CACHE_MAX_ENTRIES}"
+      STALE_MAX_S: "${STALE_MAX_S}"
+      PREFETCH_FRACTION: "${PREFETCH_FRACTION}"
+      TTL_CAP_S: "${TTL_CAP_S}"
+    volumes:
+      - ddns_gateway_data:/data
+    ports:
+      - "127.0.0.1:8054:8054"
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    depends_on:
+      - gateway
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+
+volumes:
+  ddns_gateway_data:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,29 @@
+{
+  # Local-only TLS (self-signed). Use a real domain+DNS later if you want public TLS.
+}
+
+:443 {
+  tls internal
+
+  encode zstd gzip
+
+  handle /healthz {
+    reverse_proxy gateway:8054
+  }
+
+  handle /dns-query {
+    reverse_proxy gateway:8054
+  }
+
+  handle_path /v1/* {
+    reverse_proxy gateway:8054
+  }
+
+  handle {
+    respond "not found" 404
+  }
+}
+
+:80 {
+  respond "ok" 200
+}
