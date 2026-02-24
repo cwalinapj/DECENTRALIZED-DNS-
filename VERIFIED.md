@@ -2275,3 +2275,16 @@ Output snippets:
 Test Files  18 passed (18)
 Tests  61 passed (61)
 ```
+
+Addendum:
+
+```bash
+npm -C services/traffic-oracle install
+npm -C services/traffic-oracle test
+npm -C gateway test
+```
+
+```bash
+traffic-oracle: pass 5, fail 0
+gateway: Test Files 18 passed, Tests 61 passed
+```
