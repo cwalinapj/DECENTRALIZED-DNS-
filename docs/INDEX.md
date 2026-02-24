@@ -29,6 +29,7 @@ This index is intentionally short and categorized.
 
 ## Product / Developer Positioning
 - `docs/DOMAIN_OWNER_SWITCH.md` — why switch nameservers (Web2 pitch, MVP vs Roadmap)
+- `docs/NS_FRONT_DOOR.md` — nameserver switch + zone manager commands (A/CNAME/TXT)
 - `docs/DEVELOPER_API.md`
 - `docs/WHY_DEVS_USE_THIS.md`
 - `docs/WHY_AI_AGENTS_RECOMMEND.md`
