@@ -1,0 +1,46 @@
+name: Configure Branch Protection
+
+# Runs automatically whenever this workflow file changes on main, and can
+# also be triggered manually from the Actions tab.
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/branch-protection.yml'
+  workflow_dispatch:
+
+# The built-in GITHUB_TOKEN needs administration:write to manage branch
+# protection rules on the repository.
+permissions:
+  administration: write
+
+jobs:
+  protect-main:
+    name: Require PR before merging on main
+    runs-on: ubuntu-latest
+    steps:
+      - name: Apply branch protection rule
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.repos.updateBranchProtection({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              branch: 'main',
+              // No required status checks beyond what CI already enforces.
+              required_status_checks: null,
+              // Enforce the same rules for repository administrators so that
+              // nobody can bypass the PR requirement.
+              enforce_admins: true,
+              // Require at least one pull request before merging; no minimum
+              // approving review count is enforced at this stage.
+              required_pull_request_reviews: {
+                dismiss_stale_reviews: false,
+                require_code_owner_reviews: false,
+                required_approving_review_count: 0,
+              },
+              // No push restrictions (any collaborator may push to branches).
+              restrictions: null,
+            });
+            core.info('✅ Branch protection applied: PR required before merging into main');
