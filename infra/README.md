@@ -6,7 +6,7 @@ minimal and designed to be filled in as environments are brought online.
 ## Layout
 - `cloudflare/` – Cloudflare Workers/R2/D1 scaffolds
 - `docker/` – container image notes and templates
-- `pdns/` – PowerDNS auth server configs and zone bootstrap scripts
+- `pdns/` – PowerDNS bootstrap scripts for authoritative name servers
 - `terraform/` – IaC templates (stubs)
 
 ## Usage
