@@ -152,6 +152,64 @@ describe("domain continuity notice endpoints", () => {
     delete process.env.DOMAIN_EXPIRY_WORKER_URL;
   });
 
+  it("consumes traffic-oracle compat payload keys directly", async () => {
+    resetStores();
+    vi.resetModules();
+    process.env.DOMAIN_STATUS_STORE_PATH = TEST_STORE_PATH;
+    process.env.MOCK_REGISTRAR_STORE_PATH = TEST_REGISTRAR_STORE_PATH;
+    process.env.REGISTRAR_ENABLED = "0";
+    process.env.REGISTRAR_PROVIDER = "mock";
+    process.env.REGISTRAR_DRY_RUN = "1";
+    process.env.DOMAIN_EXPIRY_WORKER_URL = "http://127.0.0.1:8093/v1/check";
+    // @ts-expect-error test mock
+    globalThis.fetch = vi.fn(async (url: string | URL) => {
+      const target = String(url);
+      if (target.includes("/v1/check") && target.includes("domain=active.com")) {
+        return new Response(
+          JSON.stringify({
+            domain: "active.com",
+            expires_at: "2020-01-01T00:00:00Z",
+            traffic_signal: "real",
+            treasury_renewal_allowed: false,
+            score: 84,
+            tier: "Gold",
+            reasons: ["TIER_GOLD_HEALTHY_SITE"]
+          }),
+          { status: 200, headers: { "content-type": "application/json" } }
+        );
+      }
+      return new Response(
+        JSON.stringify({
+          domain: "example.com",
+          expires_at: "2999-01-01T00:00:00Z",
+          traffic_signal: "none",
+          treasury_renewal_allowed: true,
+          score: 10,
+          tier: "Verify-only",
+          reasons: ["TIER_VERIFY_ONLY_LOW_CONFIDENCE"]
+        }),
+        { status: 200, headers: { "content-type": "application/json" } }
+      );
+    });
+
+    const mod = await import("../src/server.js");
+    const app = mod.createApp();
+
+    const status = await request(app).get("/v1/domain/status").query({ domain: "active.com" });
+    expect(status.status).toBe(200);
+    expect(status.body.treasury_renewal_allowed).toBe(false);
+    expect(typeof status.body.eligible_for_hold).toBe("boolean");
+    expect(String(status.body.renewal_due_date || "")).toContain("2020-01-01");
+
+    const banner = await request(app).get("/v1/domain/banner").query({ domain: "active.com", format: "json" });
+    expect(banner.status).toBe(200);
+    expect(banner.body.banner_state).toBe("renewal_due");
+    expect(String(banner.body.renewal_due_date || "")).toContain("2020-01-01");
+
+    vi.restoreAllMocks();
+    delete process.env.DOMAIN_EXPIRY_WORKER_URL;
+  });
+
   it("returns status payload with continuity fields", async () => {
     resetStores();
     const app = await loadApp();

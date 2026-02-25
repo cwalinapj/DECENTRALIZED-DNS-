@@ -2245,3 +2245,121 @@ Output snippets:
 bash scripts/validate-compat-mvp.sh
 [compat] docker-compose.validation.yml not found; skipping compat validation (MVP).
 ```
+
+### 2026-02-24 — Traffic Oracle / Eligibility Engine scaffold
+
+Branch: `codex/traffic-oracle-20260224044814`  
+Worktree: `/tmp/ddns-pr-traffic-oracle-20260224044814`
+
+Commands run:
+
+```bash
+npm -C services/traffic-oracle test
+npm -C gateway test
+```
+
+Output snippets:
+
+```bash
+> traffic-oracle@0.1.0 test
+✔ /healthz and /v1/check return compat payload
+✔ /v1/scan enqueues and /v1/scan/:id resolves done
+✔ cache works for /v1/check unless refresh=1
+ℹ pass 5
+ℹ fail 0
+```
+
+```bash
+> ddns-resolver@0.1.0 test
+✓ tests/domain_notice_endpoints.test.ts (11 tests)
+Test Files  18 passed (18)
+Tests  61 passed (61)
+```
+
+Addendum:
+
+```bash
+npm -C services/traffic-oracle install
+npm -C services/traffic-oracle test
+npm -C gateway test
+```
+
+```bash
+traffic-oracle: pass 5, fail 0
+gateway: Test Files 18 passed, Tests 61 passed
+```
+
+Validation extras:
+
+```bash
+make fmt
+make lint
+make test
+make e2e
+```
+
+```bash
+make fmt -> FAIL (repo baseline in core): "This is not the tsc command you are looking for"
+make test -> PASS (run_all complete; non-fatal program id sync warning)
+make e2e -> PASS (compat validation skipped: docker-compose.validation.yml not found)
+```
+
+### 2026-02-25 — Cloudflare connect onboarding hardening (OAuth/API token + zones + TXT verify + DNS actions)
+
+Branch: `codex/pr-cf-connect-052402`  
+Worktree: `/tmp/ddns-pr-cf-connect-20260225052402`
+
+Commands run:
+
+```bash
+npm -C services/hosting-control-plane test
+npm ci
+npm -C gateway ci
+npm -C packages/attack-mode ci && npm -C packages/attack-mode run build
+npm -C packages/payments ci && npm -C packages/payments run build
+npm -C core ci
+make fmt
+make lint
+make test
+make e2e
+```
+
+Output snippets:
+
+```bash
+> hosting-control-plane@0.1.0 test
+✔ Cloudflare connect stores required fields and connection zones use stored token
+✔ verify-domain returns pending without TXT and delegation, then verified once both exist
+✔ actions endpoint upserts DNS records and returns optional worker template
+ℹ pass 8
+ℹ fail 0
+```
+
+```bash
+make fmt
+cd gateway && npx tsc -p tsconfig.json --noEmit
+cd core && npx tsc -p tsconfig.json --noEmit
+```
+
+```bash
+make lint
+markdownlint "**/*.md" --ignore node_modules --ignore .git --config .markdownlint.json
+> ddns-resolver@0.1.0 lint
+> tsc -p tsconfig.json --noEmit
+> ddns-core@0.1.0 build
+```
+
+```bash
+make test
+==> /tmp/ddns-pr-cf-connect-20260225052402/services/hosting-control-plane: npm test
+ℹ pass 8
+ℹ fail 0
+==> run_all: complete
+==> warning: program id sync mismatch (STRICT_PROGRAM_ID_SYNC=1 to enforce hard-fail)
+```
+
+```bash
+make e2e
+bash scripts/validate-compat-mvp.sh
+[compat] docker-compose.validation.yml not found; skipping compat validation (MVP).
+```
