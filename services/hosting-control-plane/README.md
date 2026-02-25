@@ -8,45 +8,32 @@ Cloudflare is the default edge/CDN delivery layer (boring and reliable).
 
 - `GET /healthz` — readiness probe
 - `POST /v1/sites` — create site plan
-- `GET /connect-cloudflare` — simple onboarding page (OAuth or API token path)
+- `GET /connect-cloudflare` — interactive onboarding page (OAuth or API token path)
 - `GET /v1/cloudflare/oauth/start?user_id=...` — build OAuth authorization URL
 - `POST /v1/cloudflare/connect` — create Cloudflare connection record (API token or OAuth token)
-- `GET /v1/cloudflare/zones` — list Cloudflare zones (pass token via `x-cloudflare-token` header)
+- `GET /v1/cloudflare/zones` — list Cloudflare zones (token via `x-cloudflare-token` header)
+- `GET /v1/cloudflare/connections/:id/zones` — list zones using stored token for connection
 - `POST /v1/cloudflare/connections/:id/zone` — select zone for a connection
-- `POST /v1/cloudflare/connections/:id/verify-domain` — produce TXT verification record and mark verification status
-- `POST /v1/cloudflare/connections/:id/actions` — trigger DNS upserts for NS/gateway records and optional worker template
+- `POST /v1/cloudflare/connections/:id/verify-domain` — verify TXT + nameserver delegation
+- `GET /v1/cloudflare/connections/:id/status` — connection metadata + latest verification data
+- `POST /v1/cloudflare/connections/:id/actions` — upsert DNS records for NS/gateway and optional worker template output
 
-### POST /v1/sites
+## Cloudflare onboarding flow
 
-Request body (JSON):
+1. Create connection via OAuth token or API token (`/v1/cloudflare/connect`).
+2. List zones (`/v1/cloudflare/connections/:id/zones`) and select one (`/zone`).
+3. Verify ownership (`/verify-domain`):
+   - Adds/returns required TXT challenge: `_tolldns-verification.<domain> TXT <token>`
+   - Checks registrar delegation includes provider NS records.
+4. Apply actions (`/actions`) to create/update DNS records and optionally output worker deploy template.
 
-```json
-{ "domain": "example.com", "origin_url": "https://origin.example.com" }
-```
+## Security model (MVP)
 
-or:
-
-```json
-{ "domain": "example.com", "static_dir": "./public" }
-```
-
-Exactly one of `origin_url` or `static_dir` must be provided.
-
-Response:
-
-```json
-{
-  "domain": "example.com",
-  "edge_provider": "cloudflare",
-  "dns_records": [
-    { "type": "CNAME", "name": "example.com", "value": "edge.tolldns.io", "proxied": true, "ttl": 300 }
-  ],
-  "tls_status": {
-    "status": "pending_validation",
-    "message": "Cloudflare edge certificate provisioning is in progress"
-  }
-}
-```
+- Stored connection metadata fields:
+  - `user_id`, `zone_id`, `token_ref`, `created_at`, `scopes`, `last_verified_at`
+- Raw tokens are **not** returned by API responses.
+- Raw tokens are persisted encrypted only when `CF_TOKEN_STORE_KEY` is configured.
+- Without `CF_TOKEN_STORE_KEY`, tokens remain memory-only for current process lifetime.
 
 ## Run
 
@@ -64,8 +51,13 @@ npm start          # listens on PORT (default 8092)
 | `HOSTING_EDGE_CNAME` | `edge.tolldns.io` | CNAME target for edge delivery |
 | `CF_OAUTH_CLIENT_ID` | _unset_ | Cloudflare OAuth client ID for `/v1/cloudflare/oauth/start` |
 | `CF_OAUTH_REDIRECT_URI` | _unset_ | OAuth redirect URI for `/v1/cloudflare/oauth/start` |
+| `CF_TOKEN_STORE_KEY` | _unset_ | Encryption key for token-at-rest store (`base64:<bytes>` or passphrase) |
+| `PROVIDER_NS1` | `ns1.tahoecarspa.com` | Required NS #1 for delegation check |
+| `PROVIDER_NS2` | `ns2.tahoecarspa.com` | Required NS #2 for delegation check |
 
-### Cloudflare connection record fields
+## Local storage
 
-`POST /v1/cloudflare/connect` stores (in-memory for MVP): `user_id`, `zone_id`,
-`token_ref`, `created_at`, `scopes`, `last_verified_at`.
+- `services/hosting-control-plane/.cache/cloudflare_connections.json`
+- `services/hosting-control-plane/.cache/cloudflare_tokens.enc.json`
+
+These files are local runtime state and should not be committed.
