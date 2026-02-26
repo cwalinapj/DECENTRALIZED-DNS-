@@ -2453,3 +2453,40 @@ make e2e
 bash scripts/validate-compat-mvp.sh
 [compat] docker-compose.validation.yml not found; skipping compat validation (MVP).
 ```
+
+### 2026-02-26 — NameRecord + issue_toll_pass regression coverage
+
+Branch: `codex/pr-name-record-issue-pass`  
+Worktree: `/private/tmp/ddns-pr-name-record`
+
+Commands run:
+
+```bash
+make fmt
+cd solana && cargo fmt --all && cargo test -p ddns_anchor
+ALLOW_PROTOCOL_CHANGE=1 npm test
+```
+
+Output snippets:
+
+```bash
+make fmt
+cd gateway && npx tsc -p tsconfig.json --noEmit
+src/server.ts(...): error TS2307: Cannot find module '@ddns/attack-mode'
+src/server.ts(...): error TS2307: Cannot find module '@ddns/payments'
+```
+
+```bash
+cd solana && cargo fmt --all && cargo test -p ddns_anchor
+running 4 tests
+test tests::validate_label_accepts_valid_labels ... ok
+test tests::validate_label_rejects_invalid_chars_or_shape ... ok
+test tests::hash_label_dns_matches_sha256_label_plus_suffix ... ok
+test result: ok. 4 passed; 0 failed
+```
+
+```bash
+ALLOW_PROTOCOL_CHANGE=1 npm test
+[protocol-gate] BYPASS: ALLOW_PROTOCOL_CHANGE=1
+==> run_all: complete
+```
