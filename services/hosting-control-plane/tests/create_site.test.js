@@ -291,6 +291,21 @@ test("points install endpoint awards once, then returns duplicate with same idem
   }
 });
 
+test("points install endpoint rejects invalid user_id characters", async () => {
+  const server = await startServer();
+  try {
+    const res = await makeRequest(server, "POST", "/v1/points/install", {
+      user_id: "bad user/id!",
+      domain: "example.com"
+    });
+    assert.equal(res.status, 400);
+    const body = await res.json();
+    assert.equal(body.error, "invalid_user_id");
+  } finally {
+    server.close();
+  }
+});
+
 test("verify-domain rejects empty normalized domain", async () => {
   const server = await startServer();
   try {

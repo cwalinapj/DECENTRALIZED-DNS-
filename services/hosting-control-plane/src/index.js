@@ -916,6 +916,7 @@ export function createServer() {
         const userId = String(body?.user_id || linked?.user_id || "").trim();
         const domain = normalizeDomain(body?.domain || linked?.domain || "");
         if (!userId) return sendJson(res, 400, { error: "missing_user_id" });
+        if (!/^[A-Za-z0-9_-]+$/.test(userId)) return sendJson(res, 400, { error: "invalid_user_id" });
         if (!domain) return sendJson(res, 400, { error: "missing_domain" });
         const installId = String(body?.install_id || "").trim();
         const hostProvider = String(body?.host_provider || "generic-web-host").trim();
