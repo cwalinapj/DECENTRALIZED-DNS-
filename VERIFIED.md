@@ -2410,3 +2410,46 @@ make e2e
 bash scripts/validate-compat-mvp.sh
 [compat] docker-compose.validation.yml not found; skipping compat validation (MVP).
 ```
+
+### 2026-02-26 — PR #164 discrepancy fix (rebase-safe PDNS split config snippets)
+
+Branch: `copilot/add-infra-pdns-folders`  
+Worktree: `/tmp/ddns-pr-164-fix`
+
+Commands run:
+
+```bash
+make fmt
+make lint
+make test
+make e2e
+```
+
+Output snippets:
+
+```bash
+make fmt
+cd gateway && npx tsc -p tsconfig.json --noEmit
+This is not the tsc command you are looking for
+```
+
+```bash
+make lint
+> ddns-resolver@0.1.0 lint
+> tsc -p tsconfig.json --noEmit
+sh: tsc: command not found
+```
+
+```bash
+make test
+==> gate: no protocol drift (solana/programs/**)
+[protocol-gate] PASS: no protocol drift
+==> run_all: complete
+==> warning: program id sync mismatch (STRICT_PROGRAM_ID_SYNC=1 to enforce hard-fail)
+```
+
+```bash
+make e2e
+bash scripts/validate-compat-mvp.sh
+[compat] docker-compose.validation.yml not found; skipping compat validation (MVP).
+```
