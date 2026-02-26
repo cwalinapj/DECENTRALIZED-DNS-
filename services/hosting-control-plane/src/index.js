@@ -17,10 +17,25 @@ const CACHE_DIR = path.resolve(process.cwd(), ".cache");
 const CONNECTIONS_FILE = path.join(CACHE_DIR, "cloudflare_connections.json");
 const TOKENS_FILE = path.join(CACHE_DIR, "cloudflare_tokens.enc.json");
 const POINTS_FILE = path.join(CACHE_DIR, "hosting_points.json");
-const POINTS_INSTALL_WEB_HOST = Number(process.env.POINTS_INSTALL_WEB_HOST || "250");
-const POINTS_NS_VERIFIED = Number(process.env.POINTS_NS_VERIFIED || "120");
-const POINTS_DNS_ACTIONS = Number(process.env.POINTS_DNS_ACTIONS || "80");
-const POINTS_WORKER_TEMPLATE = Number(process.env.POINTS_WORKER_TEMPLATE || "20");
+const USER_ID_PATTERN = /^[a-zA-Z0-9_-]{1,128}$/;
+
+function getValidatedPointsValue(envVarName, defaultValue) {
+  const raw = process.env[envVarName];
+  if (raw === undefined || raw === "") return defaultValue;
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    console.warn(
+      `Invalid ${envVarName}="${raw}". Using default ${defaultValue}. Expected a positive number.`
+    );
+    return defaultValue;
+  }
+  return parsed;
+}
+
+const POINTS_INSTALL_WEB_HOST = getValidatedPointsValue("POINTS_INSTALL_WEB_HOST", 250);
+const POINTS_NS_VERIFIED = getValidatedPointsValue("POINTS_NS_VERIFIED", 120);
+const POINTS_DNS_ACTIONS = getValidatedPointsValue("POINTS_DNS_ACTIONS", 80);
+const POINTS_WORKER_TEMPLATE = getValidatedPointsValue("POINTS_WORKER_TEMPLATE", 20);
 
 // MVP state store (JSON + encrypted token bag). Swap to DB for production.
 const connections = new Map();
@@ -50,6 +65,14 @@ function sendHtml(res, statusCode, html) {
 
 function normalizeDomain(domain) {
   return typeof domain === "string" ? domain.trim().toLowerCase().replace(/\.+$/, "") : "";
+}
+
+function normalizeUserId(userId) {
+  return typeof userId === "string" ? userId.trim() : "";
+}
+
+function isValidUserId(userId) {
+  return USER_ID_PATTERN.test(userId);
 }
 
 function buildTokenRef(token) {
@@ -528,7 +551,13 @@ function addPoints({
   const normalizedDomain = normalizeDomain(domain);
   const amount = Number(points) || 0;
   if (!userId || !normalizedDomain || amount <= 0) {
-    return { awarded: false, reason: "invalid_points_request", points_awarded: 0, total_points: Number(pointsBalancesByUser.get(userId) || 0) };
+    return {
+      awarded: false,
+      reason: "invalid_points_request",
+      points_awarded: 0,
+      total_points: Number(pointsBalancesByUser.get(userId) || 0),
+      domain_points: normalizedDomain ? userDomainBalance(userId, normalizedDomain) : 0
+    };
   }
   if (idempotencyKey && pointsIdempotency.has(idempotencyKey)) {
     return {
@@ -913,9 +942,10 @@ export function createServer() {
       readJson(req, res, (body) => {
         const connectionId = String(body?.connection_id || "").trim();
         const linked = connectionId ? rowById(connectionId) : null;
-        const userId = String(body?.user_id || linked?.user_id || "").trim();
+        const userId = normalizeUserId(body?.user_id || linked?.user_id || "");
         const domain = normalizeDomain(body?.domain || linked?.domain || "");
         if (!userId) return sendJson(res, 400, { error: "missing_user_id" });
+        if (!isValidUserId(userId)) return sendJson(res, 400, { error: "invalid_user_id" });
         if (!domain) return sendJson(res, 400, { error: "missing_domain" });
         const installId = String(body?.install_id || "").trim();
         const hostProvider = String(body?.host_provider || "generic-web-host").trim();
@@ -944,17 +974,19 @@ export function createServer() {
     }
 
     if (req.method === "GET" && pathname === "/v1/points/balance") {
-      const userId = String(url.searchParams.get("user_id") || "").trim();
+      const userId = normalizeUserId(url.searchParams.get("user_id") || "");
       const domain = String(url.searchParams.get("domain") || "").trim();
       if (!userId) return sendJson(res, 400, { error: "missing_user_id" });
+      if (!isValidUserId(userId)) return sendJson(res, 400, { error: "invalid_user_id" });
       return sendJson(res, 200, pointsBalanceResponse(userId, domain));
     }
 
     if (req.method === "GET" && pathname === "/v1/points/events") {
-      const userId = String(url.searchParams.get("user_id") || "").trim();
+      const userId = normalizeUserId(url.searchParams.get("user_id") || "");
       const domain = normalizeDomain(url.searchParams.get("domain") || "");
       const limit = Math.max(1, Math.min(200, Number(url.searchParams.get("limit") || 50)));
       if (!userId) return sendJson(res, 400, { error: "missing_user_id" });
+      if (!isValidUserId(userId)) return sendJson(res, 400, { error: "invalid_user_id" });
       const filtered = pointsEvents
         .filter((evt) => evt.user_id === userId && (!domain || evt.domain === domain))
         .slice(-limit)

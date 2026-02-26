@@ -291,6 +291,54 @@ test("points install endpoint awards once, then returns duplicate with same idem
   }
 });
 
+test("points balance endpoint returns 400 when user_id is missing", async () => {
+  const server = await startServer();
+  try {
+    const res = await makeRequest(server, "GET", "/v1/points/balance");
+    assert.equal(res.status, 400);
+    const body = await res.json();
+    assert.equal(body.error, "missing_user_id");
+  } finally {
+    server.close();
+  }
+});
+
+test("points install endpoint returns 400 when user_id is missing", async () => {
+  const server = await startServer();
+  const unique = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  const domain = `points-${unique}.example`;
+  try {
+    const res = await makeRequest(server, "POST", "/v1/points/install", {
+      domain,
+      host_provider: "cpanel",
+      install_id: "install-1"
+    });
+    assert.equal(res.status, 400);
+    const body = await res.json();
+    assert.equal(body.error, "missing_user_id");
+  } finally {
+    server.close();
+  }
+});
+
+test("points install endpoint returns 400 when domain is missing", async () => {
+  const server = await startServer();
+  const unique = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  const userId = `points-user-${unique}`;
+  try {
+    const res = await makeRequest(server, "POST", "/v1/points/install", {
+      user_id: userId,
+      host_provider: "cpanel",
+      install_id: "install-1"
+    });
+    assert.equal(res.status, 400);
+    const body = await res.json();
+    assert.equal(body.error, "missing_domain");
+  } finally {
+    server.close();
+  }
+});
+
 test("verify-domain rejects empty normalized domain", async () => {
   const server = await startServer();
   try {

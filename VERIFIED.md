@@ -2410,3 +2410,51 @@ make e2e
 bash scripts/validate-compat-mvp.sh
 [compat] docker-compose.validation.yml not found; skipping compat validation (MVP).
 ```
+
+### 2026-02-26 — PR #171 Copilot triage follow-up (input validation + negative tests)
+
+Branch: `codex/pr-hosting-points-202956`  
+Worktree: `/tmp/ddns-pr-171-triage`
+
+Commands run:
+
+```bash
+npm -C services/hosting-control-plane test
+npm test
+make fmt
+make lint
+make test
+make e2e
+```
+
+Output snippets:
+
+```bash
+> hosting-control-plane@0.1.0 test
+✔ points balance endpoint returns 400 when user_id is missing
+✔ points install endpoint returns 400 when user_id is missing
+✔ points install endpoint returns 400 when domain is missing
+ℹ pass 12
+ℹ fail 0
+```
+
+```bash
+npm test
+==> gate: no protocol drift (solana/programs/**)
+[protocol-gate] PASS: no protocol drift
+==> run_all: complete
+```
+
+```bash
+make test
+==> /tmp/ddns-pr-171-triage/services/hosting-control-plane: npm test
+ℹ pass 12
+ℹ fail 0
+==> warning: program id sync mismatch (STRICT_PROGRAM_ID_SYNC=1 to enforce hard-fail)
+```
+
+```bash
+make e2e
+bash scripts/validate-compat-mvp.sh
+[compat] docker-compose.validation.yml not found; skipping compat validation (MVP).
+```
