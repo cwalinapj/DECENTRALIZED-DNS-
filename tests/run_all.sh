@@ -67,6 +67,11 @@ if [ -f "$root/tests/ns_front_door_zone_manager.test.mjs" ]; then
   (cd "$root" && node --test tests/ns_front_door_zone_manager.test.mjs)
 fi
 
+if [ -f "$root/tests/zone_manager_pdns_backend.test.mjs" ]; then
+  echo "==> tests/zone-manager-pdns-backend"
+  (cd "$root" && node --test tests/zone_manager_pdns_backend.test.mjs)
+fi
+
 # Solana (optional)
 if [ -d "$root/solana" ]; then
   echo "==> solana: cargo test"

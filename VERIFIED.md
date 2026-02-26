@@ -2524,3 +2524,57 @@ make e2e
 bash scripts/validate-compat-mvp.sh
 [compat] docker-compose.validation.yml not found; skipping compat validation (MVP).
 ```
+
+### 2026-02-26 — PowerDNS-backed zone manager mode (NS front-door)
+
+Branch: `codex/pdns-backed-mode`  
+Worktree: `/tmp/ddns-pdns-mode`
+
+Commands run:
+
+```bash
+node --test tests/ns_front_door_zone_manager.test.mjs
+node --test tests/zone_manager_pdns_backend.test.mjs
+make fmt
+make lint
+make test
+make e2e
+```
+
+Output snippets:
+
+```bash
+✔ zone_manager set/list/resolve works for valid A record
+✔ zone_manager rejects invalid type/ip/ttl
+✔ ns_front_door prints nameserver onboarding instructions
+✔ pdns backend set/resolve/delete round trip
+✔ pdns backend requires PDNS env vars
+```
+
+```bash
+make fmt
+cd gateway && npx tsc -p tsconfig.json --noEmit
+This is not the tsc command you are looking for
+```
+
+```bash
+make lint
+> ddns-resolver@0.1.0 lint
+> tsc -p tsconfig.json --noEmit
+sh: tsc: command not found
+```
+
+```bash
+make test
+==> tests/zone-manager-pdns-backend
+ℹ pass 2
+ℹ fail 0
+==> run_all: complete
+==> warning: program id sync mismatch (STRICT_PROGRAM_ID_SYNC=1 to enforce hard-fail)
+```
+
+```bash
+make e2e
+bash scripts/validate-compat-mvp.sh
+[compat] docker-compose.validation.yml not found; skipping compat validation (MVP).
+```
