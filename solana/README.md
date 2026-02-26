@@ -210,6 +210,23 @@ anchor test --provider.cluster localnet
 # anchor test --provider.cluster devnet --provider.wallet ./devnet-wallet.json
 ```
 
+## Surfpool (mainnet-like local emulation across all programs)
+
+This workspace includes a Surfpool wiring path that auto-loads every program listed under `[programs.localnet]` in `Anchor.toml`.
+
+```bash
+# See full wired program set (fails if any solana/programs/* dir is missing from Anchor.toml)
+npm run surfpool:plan
+
+# Preview build/deploy order without starting Surfpool
+DRY_RUN=1 npm run surfpool:emulate-mainnet
+
+# Execute full local emulation against Surfpool (mainnet datasource, local deploy)
+npm run surfpool:emulate-mainnet
+```
+
+More detail: `docs/SURFPOOL_MAINNET_EMULATION.md`
+
 ## Design 3 MVP (Stake + Cache-as-Witness + Quorum)
 
 This is the “miners-first decentralization” path:
