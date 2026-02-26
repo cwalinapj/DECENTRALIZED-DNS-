@@ -16,11 +16,20 @@ const PROVIDER_NS2 = (process.env.PROVIDER_NS2 || "ns2.tahoecarspa.com").trim().
 const CACHE_DIR = path.resolve(process.cwd(), ".cache");
 const CONNECTIONS_FILE = path.join(CACHE_DIR, "cloudflare_connections.json");
 const TOKENS_FILE = path.join(CACHE_DIR, "cloudflare_tokens.enc.json");
+const POINTS_FILE = path.join(CACHE_DIR, "hosting_points.json");
+const POINTS_INSTALL_WEB_HOST = Number(process.env.POINTS_INSTALL_WEB_HOST || "250");
+const POINTS_NS_VERIFIED = Number(process.env.POINTS_NS_VERIFIED || "120");
+const POINTS_DNS_ACTIONS = Number(process.env.POINTS_DNS_ACTIONS || "80");
+const POINTS_WORKER_TEMPLATE = Number(process.env.POINTS_WORKER_TEMPLATE || "20");
 
 // MVP state store (JSON + encrypted token bag). Swap to DB for production.
 const connections = new Map();
 const tokenSecrets = new Map();
 const oauthStates = new Map();
+const pointsEvents = [];
+const pointsBalancesByUser = new Map();
+const pointsBalancesByUserDomain = new Map();
+const pointsIdempotency = new Map();
 
 function sendJson(res, statusCode, payload) {
   const body = JSON.stringify(payload);
@@ -152,6 +161,35 @@ function persistConnections() {
   });
 }
 
+function pointsSnapshot() {
+  const userBalances = {};
+  for (const [userId, value] of pointsBalancesByUser.entries()) {
+    userBalances[userId] = value;
+  }
+  const userDomainBalances = {};
+  for (const [userId, domains] of pointsBalancesByUserDomain.entries()) {
+    userDomainBalances[userId] = {};
+    for (const [domain, value] of domains.entries()) {
+      userDomainBalances[userId][domain] = value;
+    }
+  }
+  const idempotency = {};
+  for (const [key, eventId] of pointsIdempotency.entries()) {
+    idempotency[key] = eventId;
+  }
+  return {
+    updated_at: safeIsoNow(),
+    events: pointsEvents,
+    balances_by_user: userBalances,
+    balances_by_user_domain: userDomainBalances,
+    idempotency
+  };
+}
+
+function persistPointsStore() {
+  writeJsonFile(POINTS_FILE, pointsSnapshot());
+}
+
 function persistTokenSecrets() {
   const encryptedTokens = {};
   for (const [tokenRef, token] of tokenSecrets.entries()) {
@@ -189,6 +227,28 @@ function loadStore() {
   for (const [tokenRef, encrypted] of Object.entries(encryptedTokens)) {
     const token = decryptToken(encrypted);
     if (token) tokenSecrets.set(tokenRef, token);
+  }
+
+  const pointsPayload = readJsonFile(POINTS_FILE, {});
+  const events = Array.isArray(pointsPayload?.events) ? pointsPayload.events : [];
+  for (const evt of events) {
+    if (evt?.event_id && evt?.user_id) pointsEvents.push(evt);
+  }
+  const userBalances = pointsPayload?.balances_by_user || {};
+  for (const [userId, value] of Object.entries(userBalances)) {
+    pointsBalancesByUser.set(userId, Number(value) || 0);
+  }
+  const domainBalances = pointsPayload?.balances_by_user_domain || {};
+  for (const [userId, domains] of Object.entries(domainBalances)) {
+    const dm = new Map();
+    for (const [domain, value] of Object.entries(domains || {})) {
+      dm.set(normalizeDomain(domain), Number(value) || 0);
+    }
+    pointsBalancesByUserDomain.set(userId, dm);
+  }
+  const idempotency = pointsPayload?.idempotency || {};
+  for (const [key, eventId] of Object.entries(idempotency)) {
+    if (key && eventId) pointsIdempotency.set(key, String(eventId));
   }
 }
 
@@ -284,7 +344,9 @@ function htmlConnectPage() {
     <fieldset>
       <legend>After connect</legend>
       <label>Connection ID <input id="connId" /></label>
+      <label>User ID <input id="pointsUser" value="user-demo" /></label>
       <button id="zonesBtn" type="button">List zones</button>
+      <button id="pointsBtn" type="button">Check points</button>
       <select id="zoneSelect"></select>
       <button id="chooseZoneBtn" type="button">Select zone</button>
       <hr />
@@ -324,6 +386,7 @@ function htmlConnectPage() {
         document.getElementById("connectOut").textContent = body.connection_id || body.error || "connected";
         if (body.connection_id) {
           document.getElementById("connId").value = body.connection_id;
+          document.getElementById("pointsUser").value = body.user_id || user_id;
         }
         out(body);
       });
@@ -351,6 +414,13 @@ function htmlConnectPage() {
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ zone_id })
         });
+        out(await res.json());
+      });
+
+      document.getElementById("pointsBtn").addEventListener("click", async () => {
+        const user_id = document.getElementById("pointsUser").value.trim();
+        const domain = document.getElementById("verifyDomain").value.trim();
+        const res = await fetch("/v1/points/balance?user_id=" + encodeURIComponent(user_id) + "&domain=" + encodeURIComponent(domain));
         out(await res.json());
       });
 
@@ -433,11 +503,84 @@ function rowById(connectionId) {
 function persistAll() {
   persistConnections();
   persistTokenSecrets();
+  persistPointsStore();
 }
 
 function saveConnection(row) {
   connections.set(row.connection_id, row);
   persistAll();
+}
+
+function userDomainBalance(userId, domain) {
+  const domainMap = pointsBalancesByUserDomain.get(userId);
+  if (!domainMap) return 0;
+  return Number(domainMap.get(domain) || 0);
+}
+
+function addPoints({
+  userId,
+  domain,
+  points,
+  reason,
+  idempotencyKey,
+  metadata
+}) {
+  const normalizedDomain = normalizeDomain(domain);
+  const amount = Number(points) || 0;
+  if (!userId || !normalizedDomain || amount <= 0) {
+    return { awarded: false, reason: "invalid_points_request", points_awarded: 0, total_points: Number(pointsBalancesByUser.get(userId) || 0) };
+  }
+  if (idempotencyKey && pointsIdempotency.has(idempotencyKey)) {
+    return {
+      awarded: false,
+      points_awarded: 0,
+      reason: "duplicate_event",
+      event_id: pointsIdempotency.get(idempotencyKey),
+      total_points: Number(pointsBalancesByUser.get(userId) || 0),
+      domain_points: userDomainBalance(userId, normalizedDomain)
+    };
+  }
+  const eventId = crypto.randomUUID();
+  const evt = {
+    event_id: eventId,
+    user_id: userId,
+    domain: normalizedDomain,
+    points: amount,
+    reason,
+    created_at: safeIsoNow(),
+    metadata: metadata || {}
+  };
+  pointsEvents.push(evt);
+  pointsBalancesByUser.set(userId, Number(pointsBalancesByUser.get(userId) || 0) + amount);
+  const domainMap = pointsBalancesByUserDomain.get(userId) || new Map();
+  domainMap.set(normalizedDomain, Number(domainMap.get(normalizedDomain) || 0) + amount);
+  pointsBalancesByUserDomain.set(userId, domainMap);
+  if (idempotencyKey) pointsIdempotency.set(idempotencyKey, eventId);
+  persistPointsStore();
+  return {
+    awarded: true,
+    event_id: eventId,
+    points_awarded: amount,
+    total_points: Number(pointsBalancesByUser.get(userId) || 0),
+    domain_points: Number(domainMap.get(normalizedDomain) || 0)
+  };
+}
+
+function pointsBalanceResponse(userId, maybeDomain = "") {
+  const totalPoints = Number(pointsBalancesByUser.get(userId) || 0);
+  const domains = Array.from(pointsBalancesByUserDomain.get(userId)?.entries() || []).map(([domain, points]) => ({
+    domain,
+    points: Number(points) || 0
+  }));
+  const normalizedDomain = normalizeDomain(maybeDomain);
+  return {
+    user_id: userId,
+    total_points: totalPoints,
+    domain: normalizedDomain || null,
+    domain_points: normalizedDomain ? userDomainBalance(userId, normalizedDomain) : null,
+    domains,
+    updated_at: safeIsoNow()
+  };
 }
 
 function requireConnection(connectionId, res) {
@@ -553,10 +696,12 @@ export function createServer() {
           verification: null
         };
         saveConnection(row);
+        const userPoints = pointsBalanceResponse(userId);
 
         return sendJson(res, 200, {
           ...toPublicConnection(row),
-          token_storage: tokenCipherKey() ? "encrypted_file" : "memory_only"
+          token_storage: tokenCipherKey() ? "encrypted_file" : "memory_only",
+          points: userPoints
         });
       });
       return;
@@ -640,6 +785,16 @@ export function createServer() {
               }
             };
             saveConnection(updated);
+            const pointsGrant = status === "verified"
+              ? addPoints({
+                  userId: updated.user_id,
+                  domain,
+                  points: POINTS_NS_VERIFIED,
+                  reason: "ns_delegation_verified",
+                  idempotencyKey: `ns_verified:${updated.user_id}:${domain}`,
+                  metadata: { connection_id: connectionId }
+                })
+              : { awarded: false, points_awarded: 0, total_points: Number(pointsBalancesByUser.get(updated.user_id) || 0), domain_points: userDomainBalance(updated.user_id, domain) };
 
             sendJson(res, 200, {
               connection_id: connectionId,
@@ -656,7 +811,13 @@ export function createServer() {
                 expected_nameservers: expectedNs
               },
               status,
-              last_verified_at: updated.last_verified_at
+              last_verified_at: updated.last_verified_at,
+              points: {
+                awarded: pointsGrant.awarded,
+                points_awarded: pointsGrant.points_awarded,
+                total_points: pointsGrant.total_points,
+                domain_points: pointsGrant.domain_points
+              }
             });
           })
           .catch((err) => sendJson(res, 500, { error: String(err?.message || err) }));
@@ -690,12 +851,36 @@ export function createServer() {
 
         Promise.all(records.map((record) => upsertDnsRecord(token, row.zone_id, record)))
           .then((appliedRecords) => {
+            const actionPoints = addPoints({
+              userId: row.user_id,
+              domain,
+              points: POINTS_DNS_ACTIONS,
+              reason: "dns_actions_applied",
+              idempotencyKey: `dns_actions:${row.user_id}:${domain}`,
+              metadata: { connection_id: connectionId, zone_id: row.zone_id }
+            });
+            const workerPoints = deployWorker
+              ? addPoints({
+                  userId: row.user_id,
+                  domain,
+                  points: POINTS_WORKER_TEMPLATE,
+                  reason: "worker_template_requested",
+                  idempotencyKey: `worker_template:${row.user_id}:${domain}`,
+                  metadata: { connection_id: connectionId, zone_id: row.zone_id }
+                })
+              : { awarded: false, points_awarded: 0, total_points: actionPoints.total_points, domain_points: actionPoints.domain_points };
             sendJson(res, 200, {
               connection_id: connectionId,
               zone_id: row.zone_id,
               domain,
               nameservers_to_set_at_registrar: [ns1, ns2],
               applied_dns_records: appliedRecords,
+              points: {
+                actions_awarded: actionPoints.points_awarded,
+                worker_awarded: workerPoints.points_awarded,
+                total_points: Number(pointsBalancesByUser.get(row.user_id) || 0),
+                domain_points: userDomainBalance(row.user_id, domain)
+              },
               worker_deployment: deployWorker
                 ? {
                     status: "template_ready",
@@ -719,8 +904,62 @@ export function createServer() {
       if (!row) return;
       return sendJson(res, 200, {
         ...toPublicConnection(row),
+        points: pointsBalanceResponse(row.user_id, row.domain || ""),
         verification: row.verification || null
       });
+    }
+
+    if (req.method === "POST" && pathname === "/v1/points/install") {
+      readJson(req, res, (body) => {
+        const connectionId = String(body?.connection_id || "").trim();
+        const linked = connectionId ? rowById(connectionId) : null;
+        const userId = String(body?.user_id || linked?.user_id || "").trim();
+        const domain = normalizeDomain(body?.domain || linked?.domain || "");
+        if (!userId) return sendJson(res, 400, { error: "missing_user_id" });
+        if (!domain) return sendJson(res, 400, { error: "missing_domain" });
+        const installId = String(body?.install_id || "").trim();
+        const hostProvider = String(body?.host_provider || "generic-web-host").trim();
+        const idempotencyKey = installId
+          ? `web_host_install:${userId}:${domain}:${installId}`
+          : `web_host_install:${userId}:${domain}`;
+        const grant = addPoints({
+          userId,
+          domain,
+          points: POINTS_INSTALL_WEB_HOST,
+          reason: "web_host_install",
+          idempotencyKey,
+          metadata: { host_provider: hostProvider, connection_id: connectionId || null }
+        });
+        return sendJson(res, 200, {
+          user_id: userId,
+          domain,
+          points_awarded: grant.points_awarded,
+          total_points: grant.total_points,
+          domain_points: grant.domain_points,
+          already_recorded: grant.awarded === false && grant.reason === "duplicate_event",
+          reason: "web_host_install"
+        });
+      });
+      return;
+    }
+
+    if (req.method === "GET" && pathname === "/v1/points/balance") {
+      const userId = String(url.searchParams.get("user_id") || "").trim();
+      const domain = String(url.searchParams.get("domain") || "").trim();
+      if (!userId) return sendJson(res, 400, { error: "missing_user_id" });
+      return sendJson(res, 200, pointsBalanceResponse(userId, domain));
+    }
+
+    if (req.method === "GET" && pathname === "/v1/points/events") {
+      const userId = String(url.searchParams.get("user_id") || "").trim();
+      const domain = normalizeDomain(url.searchParams.get("domain") || "");
+      const limit = Math.max(1, Math.min(200, Number(url.searchParams.get("limit") || 50)));
+      if (!userId) return sendJson(res, 400, { error: "missing_user_id" });
+      const filtered = pointsEvents
+        .filter((evt) => evt.user_id === userId && (!domain || evt.domain === domain))
+        .slice(-limit)
+        .reverse();
+      return sendJson(res, 200, { user_id: userId, domain: domain || null, events: filtered });
     }
 
     if (req.method === "POST" && pathname === "/v1/sites") {

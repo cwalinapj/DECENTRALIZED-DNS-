@@ -2363,3 +2363,50 @@ make e2e
 bash scripts/validate-compat-mvp.sh
 [compat] docker-compose.validation.yml not found; skipping compat validation (MVP).
 ```
+
+### 2026-02-26 — Hosting points system MVP (web-host install)
+
+Branch: `codex/pr-hosting-points-202956`  
+Worktree: `/tmp/ddns-pr-hosting-points-20260225202956`
+
+Commands run:
+
+```bash
+npm -C services/hosting-control-plane test
+make fmt
+make lint
+make test
+make e2e
+```
+
+Output snippets:
+
+```bash
+> hosting-control-plane@0.1.0 test
+✔ points install endpoint awards once, then returns duplicate with same idempotency key
+✔ verify-domain returns pending without TXT and delegation, then verified once both exist
+✔ actions endpoint upserts DNS records and returns optional worker template
+ℹ pass 9
+ℹ fail 0
+```
+
+```bash
+make fmt
+cd gateway && npx tsc -p tsconfig.json --noEmit
+cd core && npx tsc -p tsconfig.json --noEmit
+```
+
+```bash
+make test
+==> /tmp/ddns-pr-hosting-points-20260225202956/services/hosting-control-plane: npm test
+ℹ pass 9
+ℹ fail 0
+==> run_all: complete
+==> warning: program id sync mismatch (STRICT_PROGRAM_ID_SYNC=1 to enforce hard-fail)
+```
+
+```bash
+make e2e
+bash scripts/validate-compat-mvp.sh
+[compat] docker-compose.validation.yml not found; skipping compat validation (MVP).
+```

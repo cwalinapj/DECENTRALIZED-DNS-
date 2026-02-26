@@ -176,6 +176,7 @@ test("verify-domain returns pending without TXT and delegation, then verified on
     assert.equal(secondBody.checks.txt_present, true);
     assert.equal(secondBody.checks.delegated, true);
     assert.equal(typeof secondBody.last_verified_at, "string");
+    assert.equal(typeof secondBody.points.total_points, "number");
   } finally {
     globalThis.__dnsResolveTxt = originalResolveTxt;
     globalThis.__dnsResolveNs = originalResolveNs;
@@ -235,11 +236,57 @@ test("actions endpoint upserts DNS records and returns optional worker template"
     assert.equal(actionsBody.applied_dns_records.length, 3);
     assert.equal(actionsBody.worker_deployment.status, "template_ready");
     assert.equal(actionsBody.nameservers_to_set_at_registrar[0], "ns1.tahoecarspa.com");
+    assert.equal(typeof actionsBody.points.total_points, "number");
 
     const postCalls = calls.filter((c) => c.method === "POST" && c.path.endsWith("/dns_records"));
     assert.equal(postCalls.length, 3);
   } finally {
     globalThis.__cloudflareFetch = originalFetch;
+    server.close();
+  }
+});
+
+test("points install endpoint awards once, then returns duplicate with same idempotency key", async () => {
+  const server = await startServer();
+  const unique = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  const userId = `points-user-${unique}`;
+  const domain = `points-${unique}.example`;
+  try {
+    const first = await makeRequest(server, "POST", "/v1/points/install", {
+      user_id: userId,
+      domain,
+      host_provider: "cpanel",
+      install_id: "install-1"
+    });
+    assert.equal(first.status, 200);
+    const firstBody = await first.json();
+    assert.equal(firstBody.points_awarded > 0, true);
+    assert.equal(firstBody.already_recorded, false);
+
+    const second = await makeRequest(server, "POST", "/v1/points/install", {
+      user_id: userId,
+      domain,
+      host_provider: "cpanel",
+      install_id: "install-1"
+    });
+    assert.equal(second.status, 200);
+    const secondBody = await second.json();
+    assert.equal(secondBody.points_awarded, 0);
+    assert.equal(secondBody.already_recorded, true);
+
+    const balance = await makeRequest(server, "GET", `/v1/points/balance?user_id=${encodeURIComponent(userId)}&domain=${encodeURIComponent(domain)}`);
+    assert.equal(balance.status, 200);
+    const balanceBody = await balance.json();
+    assert.equal(balanceBody.total_points > 0, true);
+    assert.equal(balanceBody.domain_points > 0, true);
+
+    const events = await makeRequest(server, "GET", `/v1/points/events?user_id=${encodeURIComponent(userId)}&domain=${encodeURIComponent(domain)}&limit=10`);
+    assert.equal(events.status, 200);
+    const eventsBody = await events.json();
+    assert.equal(Array.isArray(eventsBody.events), true);
+    assert.equal(eventsBody.events.length >= 1, true);
+    assert.equal(eventsBody.events[0].reason, "web_host_install");
+  } finally {
     server.close();
   }
 });
