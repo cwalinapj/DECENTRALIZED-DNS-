@@ -19,7 +19,9 @@
     "demo:cf:deploy": "cd services/cf-demo-gateway && npm i && npx wrangler deploy",
     "demo:cf:dev": "cd services/cf-demo-gateway && npm i && npx wrangler dev --local --port 8788",
     "openapi:verify": "bash scripts/openapi_verify.sh",
-    "local:stack": "bash scripts/run_local_stack.sh"
+    "local:stack": "bash scripts/run_local_stack.sh",
+    "surfpool:plan": "npm -C solana run surfpool:plan",
+    "surfpool:emulate-mainnet": "npm -C solana run surfpool:emulate-mainnet"
   },
   "dependencies": {
     "@noble/ed25519": "^2.1.0",

@@ -1543,6 +1543,77 @@ deploy_wave_complete
 [compat] docker-compose.validation.yml not found; skipping compat validation (MVP).
 ```
 
+### 2026-02-26 — Surfpool wiring for all Anchor programs (mainnet emulation path)
+
+Branch: `codex/pr-surfpool-anchor`  
+Worktree: `/tmp/ddns-pr-surfpool`
+
+Commands run:
+
+```bash
+npm -C solana ci
+npm -C solana run surfpool:test-plan
+npm run surfpool:plan
+DRY_RUN=1 npm run surfpool:emulate-mainnet
+make fmt
+make lint
+make test
+make e2e
+```
+
+Output snippets:
+
+```bash
+> ddns-anchor@0.1.0 surfpool:test-plan
+✔ parseProgramsFromAnchorToml parses localnet entries
+✔ parseProgramsFromAnchorToml parses devnet entries
+ℹ pass 2
+ℹ fail 0
+```
+
+```bash
+> ddns-anchor@0.1.0 surfpool:plan
+section: programs.localnet
+program_count: 17
+programs_dir_count: 17
+| ddns_anchor | EJVVNdwBdZiEpA4QjVaeV79WPsoUpa4zLA4mqpxWxXi5 |
+...
+| ddns_rent_bond | 9RNRmBdFfdo6GNRzgutbNcV3bJSJXzhoCtqGQ8HBpfTi |
+```
+
+```bash
+DRY_RUN=1 npm run surfpool:emulate-mainnet
+surfpool_network: mainnet
+program_count: 17
+programs: ddns_anchor ... ddns_rent_bond
+dry_run: true
+plan_only: build + deploy + verify all programs listed above
+```
+
+```bash
+make fmt
+cd gateway && npx tsc -p tsconfig.json --noEmit
+This is not the tsc command you are looking for
+```
+
+```bash
+make lint
+> ddns-resolver@0.1.0 lint
+sh: tsc: command not found
+make: *** [lint] Error 127
+```
+
+```bash
+make test
+==> run_all: complete
+```
+
+```bash
+make e2e
+bash scripts/validate-compat-mvp.sh
+[compat] docker-compose.validation.yml not found; skipping compat validation (MVP).
+```
+
 ## 2026-02-21 — Web2-first pricing docs framing (USD-first, operator lanes split)
 
 Commands:

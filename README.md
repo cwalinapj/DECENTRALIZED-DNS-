@@ -197,5 +197,6 @@ Roadmap items below are planned unless stated as MVP in linked docs:
 
 These are not part of user onboarding:
 - program deployment, devnet proof, and inventory: `DEVNET_RUNBOOK.md`, `docs/DEVNET_STATUS.md`
+- surfpool mainnet-emulation flow for all Anchor programs: `docs/SURFPOOL_MAINNET_EMULATION.md`
 - reserve planning + rent bond accounting: `docs/RENT_BOND.md`
 - strict demo proofs and artifacts: `docs/PROOF.md`, `VERIFIED.md`, `artifacts/devnet_inventory.json`

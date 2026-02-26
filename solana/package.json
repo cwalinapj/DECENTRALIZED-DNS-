@@ -40,7 +40,10 @@
     "names": "tsx scripts/names.ts",
     "devnet:verify": "tsx scripts/devnet_verify_deployed.ts --rpc https://api.devnet.solana.com",
     "devnet:audit": "tsx scripts/devnet_audit.ts --rpc https://api.devnet.solana.com",
-    "witness-rewards": "tsx scripts/witness_rewards.ts"
+    "witness-rewards": "tsx scripts/witness_rewards.ts",
+    "surfpool:plan": "tsx scripts/surfpool_plan.ts",
+    "surfpool:test-plan": "tsx --test scripts/lib/anchor_programs.test.ts",
+    "surfpool:emulate-mainnet": "bash scripts/surfpool_emulate_mainnet.sh"
   },
   "devDependencies": {
     "@coral-xyz/anchor": "^0.32.1",
