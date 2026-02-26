@@ -29,6 +29,7 @@ Full walk-through: [`docs/JIVE_CODER_5_MIN.md`](docs/JIVE_CODER_5_MIN.md)
 - One link (Web2-first funnel): `docs/GET_STARTED.md`
 - Nameserver onboarding + zone manager: `docs/NS_FRONT_DOOR.md`
 - Public Cloudflare demo deploy/share: `docs/PUBLIC_DEMO.md`
+- Cross-repo Surfpool reference: [org-memory-registry](https://github.com/cwalinapj/org-memory-registry)
 
 If you only read one file first: `docs/START_HERE.md`.
 For a concise summary of all main functions and purposes: `docs/OVERVIEW.md`.
