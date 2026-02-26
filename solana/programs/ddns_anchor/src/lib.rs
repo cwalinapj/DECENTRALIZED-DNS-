@@ -559,6 +559,39 @@ fn is_reserved(name: &str) -> bool {
     matches!(name, "fuck" | "shit" | "cunt" | "bitch" | "ass")
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn validate_label_accepts_valid_labels() {
+        assert!(validate_label("abc").is_ok());
+        assert!(validate_label("abc-123").is_ok());
+        assert!(validate_label("z9-foo-bar-42").is_ok());
+    }
+
+    #[test]
+    fn validate_label_rejects_invalid_chars_or_shape() {
+        assert!(validate_label("ab").is_err());
+        assert!(validate_label("a".repeat(33).as_str()).is_err());
+        assert!(validate_label("-abc").is_err());
+        assert!(validate_label("abc-").is_err());
+        assert!(validate_label("Abc").is_err());
+        assert!(validate_label("abc.def").is_err());
+        assert!(validate_label("abc_def").is_err());
+    }
+
+    #[test]
+    fn hash_label_dns_matches_sha256_label_plus_suffix() {
+        let actual = hash_label_dns("netflix");
+        let mut hasher = Sha256::new();
+        hasher.update(b"netflix");
+        hasher.update(b".dns");
+        let expected: [u8; 32] = hasher.finalize().into();
+        assert_eq!(actual, expected);
+    }
+}
+
 #[error_code]
 pub enum ErrorCode {
     #[msg("Config already initialized")]
