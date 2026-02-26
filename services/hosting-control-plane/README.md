@@ -17,6 +17,9 @@ Cloudflare is the default edge/CDN delivery layer (boring and reliable).
 - `POST /v1/cloudflare/connections/:id/verify-domain` — verify TXT + nameserver delegation
 - `GET /v1/cloudflare/connections/:id/status` — connection metadata + latest verification data
 - `POST /v1/cloudflare/connections/:id/actions` — upsert DNS records for NS/gateway and optional worker template output
+- `POST /v1/points/install` — claim one-time web-host install points (idempotent)
+- `GET /v1/points/balance?user_id=...&domain=...` — points meter for user/domain
+- `GET /v1/points/events?user_id=...` — points event history
 
 ## Cloudflare onboarding flow
 
@@ -26,6 +29,7 @@ Cloudflare is the default edge/CDN delivery layer (boring and reliable).
    - Adds/returns required TXT challenge: `_tolldns-verification.<domain> TXT <token>`
    - Checks registrar delegation includes provider NS records.
 4. Apply actions (`/actions`) to create/update DNS records and optionally output worker deploy template.
+5. Claim install points (`/v1/points/install`) for web-host adoption; track meter via `/v1/points/balance`.
 
 ## Security model (MVP)
 
@@ -34,6 +38,7 @@ Cloudflare is the default edge/CDN delivery layer (boring and reliable).
 - Raw tokens are **not** returned by API responses.
 - Raw tokens are persisted encrypted only when `CF_TOKEN_STORE_KEY` is configured.
 - Without `CF_TOKEN_STORE_KEY`, tokens remain memory-only for current process lifetime.
+- Points ledger stores only user/domain/reason totals (no raw credentials, no email body content).
 
 ## Run
 
@@ -54,10 +59,15 @@ npm start          # listens on PORT (default 8092)
 | `CF_TOKEN_STORE_KEY` | _unset_ | Encryption key for token-at-rest store (`base64:<bytes>` or passphrase) |
 | `PROVIDER_NS1` | `ns1.tahoecarspa.com` | Required NS #1 for delegation check |
 | `PROVIDER_NS2` | `ns2.tahoecarspa.com` | Required NS #2 for delegation check |
+| `POINTS_INSTALL_WEB_HOST` | `250` | One-time points for hosted install claim |
+| `POINTS_NS_VERIFIED` | `120` | Points when TXT + nameserver delegation verifies |
+| `POINTS_DNS_ACTIONS` | `80` | Points when DNS actions are applied |
+| `POINTS_WORKER_TEMPLATE` | `20` | Bonus points for worker template action |
 
 ## Local storage
 
 - `services/hosting-control-plane/.cache/cloudflare_connections.json`
 - `services/hosting-control-plane/.cache/cloudflare_tokens.enc.json`
+- `services/hosting-control-plane/.cache/hosting_points.json`
 
 These files are local runtime state and should not be committed.
