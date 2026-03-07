@@ -2525,10 +2525,10 @@ bash scripts/validate-compat-mvp.sh
 [compat] docker-compose.validation.yml not found; skipping compat validation (MVP).
 ```
 
-### 2026-02-26 — PowerDNS-backed zone manager mode (NS front-door)
+### 2026-02-26 — NameRecord + issue_toll_pass regression coverage
 
-Branch: `codex/pdns-backed-mode`  
-Worktree: `/tmp/ddns-pdns-mode`
+Branch: `codex/pr-name-record-issue-pass`  
+Worktree: `/private/tmp/ddns-pr-name-record`
 
 Commands run:
 
@@ -2544,37 +2544,23 @@ make e2e
 Output snippets:
 
 ```bash
-✔ zone_manager set/list/resolve works for valid A record
-✔ zone_manager rejects invalid type/ip/ttl
-✔ ns_front_door prints nameserver onboarding instructions
-✔ pdns backend set/resolve/delete round trip
-✔ pdns backend requires PDNS env vars
-```
-
-```bash
 make fmt
 cd gateway && npx tsc -p tsconfig.json --noEmit
-This is not the tsc command you are looking for
+src/server.ts(...): error TS2307: Cannot find module '@ddns/attack-mode'
+src/server.ts(...): error TS2307: Cannot find module '@ddns/payments'
 ```
 
 ```bash
-make lint
-> ddns-resolver@0.1.0 lint
-> tsc -p tsconfig.json --noEmit
-sh: tsc: command not found
+cd solana && cargo fmt --all && cargo test -p ddns_anchor
+running 4 tests
+test tests::validate_label_accepts_valid_labels ... ok
+test tests::validate_label_rejects_invalid_chars_or_shape ... ok
+test tests::hash_label_dns_matches_sha256_label_plus_suffix ... ok
+test result: ok. 4 passed; 0 failed
 ```
 
 ```bash
-make test
-==> tests/zone-manager-pdns-backend
-ℹ pass 2
-ℹ fail 0
+ALLOW_PROTOCOL_CHANGE=1 npm test
+[protocol-gate] BYPASS: ALLOW_PROTOCOL_CHANGE=1
 ==> run_all: complete
-==> warning: program id sync mismatch (STRICT_PROGRAM_ID_SYNC=1 to enforce hard-fail)
-```
-
-```bash
-make e2e
-bash scripts/validate-compat-mvp.sh
-[compat] docker-compose.validation.yml not found; skipping compat validation (MVP).
 ```
