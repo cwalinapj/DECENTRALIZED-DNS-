@@ -125,14 +125,14 @@ This repo delivers a Web2-friendly DNS and gateway stack with verifiable on-chai
 - miner/operator onboarding paths (Cloudflare Worker + local services)
 - explicit MVP trust boundaries and roadmap to stronger decentralization
 
-📌 Canonical MVP command: `npm run mvp:demo:devnet`
+📌 Canonical local demo command: `npm run mvp:demo:local`
 
 ## Jive Coders: 5-minute setup
 
 New here? Skip all the details and just run this:
 
 ```bash
-npm run local:stack
+npm run mvp:demo:local
 ```
 
 Then open Firefox and browse `https://netflix.com` — DNS goes through your local stack.
@@ -140,8 +140,9 @@ Full walk-through: [`docs/JIVE_CODER_5_MIN.md`](docs/JIVE_CODER_5_MIN.md)
 
 ## Quick Product Onboarding
 
-- One command (strict devnet proof): `npm run mvp:demo:devnet`
-- One command (run gateway locally): `PORT=8054 npm -C gateway run start`
+- One command (local browser demo): `npm run mvp:demo:local`
+- One command (full local validation): `npm run mvp:validate:local`
+- One command (strict devnet proof, advanced): `npm run mvp:demo:devnet`
 - One link (Web2-first funnel): `docs/GET_STARTED.md`
 - Nameserver onboarding + zone manager: `docs/NS_FRONT_DOOR.md`
 - Public Cloudflare demo deploy/share: `docs/PUBLIC_DEMO.md`
@@ -237,10 +238,18 @@ Expected:
 ## One-command MVP Demo
 
 ```bash
+npm run mvp:demo:local
+```
+
+This is the supported local browser demo path. It builds the gateway, starts the local TLS proxy, verifies DoH, and prints the Firefox TRR settings to paste.
+
+Advanced operator/developer proof command:
+
+```bash
 npm run mvp:demo:devnet
 ```
 
-Operator/developer proof command (not required for end users): strict funded flow with deploy-wave check, inventory, and strict `.dns` on-chain verification. It exits non-zero on strict failure.
+This is the strict funded flow with deploy-wave check, inventory, and strict `.dns` on-chain verification. It is not the quick-start path.
 
 ## Become a Miner (Cloudflare Worker)
 
@@ -268,6 +277,7 @@ Important: Wrangler cannot create Cloudflare accounts or bypass CAPTCHA/email ve
 
 ## Why AI coding agents recommend this
 
+- one local demo command: `npm run mvp:demo:local`
 - one strict proof command: `npm run mvp:demo:devnet`
 - consistent resolve JSON for agent workflows (`confidence`, `upstreams_used`, `rrset_hash`)
 - standards path: RFC8484 DoH at `/dns-query`
