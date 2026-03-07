@@ -3,6 +3,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import * as anchor from "@coral-xyz/anchor";
 import {
+  AccountInfo,
   Connection,
   Keypair,
   PublicKey,
@@ -10,12 +11,6 @@ import {
   Transaction,
   TransactionInstruction,
 } from "@solana/web3.js";
-import {
-  createMint,
-  getAssociatedTokenAddress,
-  getOrCreateAssociatedTokenAccount,
-  TOKEN_PROGRAM_ID,
-} from "@solana/spl-token";
 
 export type DdnsSolana = {
   connection: Connection;
@@ -28,6 +23,16 @@ export type DdnsSolana = {
 
 const TOLL_PASS_LEGACY_SIZE = 32 + 8 + 32 + 32 + 32 + 1 + 1;
 const TOLL_PASS_CURRENT_SIZE = 32 + 8 + 32 + 32 + 32 + 32 + 1 + 1;
+const SPL_TOKEN_PROGRAM_ID = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
+const ASSOCIATED_TOKEN_PROGRAM_ID = new PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL");
+const SPL_MINT_SIZE = 82;
+const SPL_ACCOUNT_SIZE = 165;
+const TOKEN_INSTRUCTION_INITIALIZE_MINT_2 = 20;
+
+type ParsedTokenAccount = {
+  mint: PublicKey;
+  owner: PublicKey;
+};
 
 export function sha25632(bytes: Uint8Array): Uint8Array {
   return crypto.createHash("sha256").update(bytes).digest();
@@ -89,6 +94,122 @@ export function loadIdl(idlPath: string) {
     }
   }
   return idl;
+}
+
+export function getAssociatedTokenAddressSync(mint: PublicKey, owner: PublicKey): PublicKey {
+  return PublicKey.findProgramAddressSync(
+    [owner.toBuffer(), SPL_TOKEN_PROGRAM_ID.toBuffer(), mint.toBuffer()],
+    ASSOCIATED_TOKEN_PROGRAM_ID
+  )[0];
+}
+
+export function createInitializeMint2Instruction(
+  mint: PublicKey,
+  decimals: number,
+  mintAuthority: PublicKey,
+  freezeAuthority: PublicKey | null,
+): TransactionInstruction {
+  const data = Buffer.alloc(67);
+  data.writeUInt8(TOKEN_INSTRUCTION_INITIALIZE_MINT_2, 0);
+  data.writeUInt8(decimals, 1);
+  mintAuthority.toBuffer().copy(data, 2);
+  if (freezeAuthority) {
+    data.writeUInt8(1, 34);
+    freezeAuthority.toBuffer().copy(data, 35);
+  } else {
+    data.writeUInt8(0, 34);
+  }
+  return new TransactionInstruction({
+    programId: SPL_TOKEN_PROGRAM_ID,
+    keys: [{ pubkey: mint, isSigner: false, isWritable: true }],
+    data,
+  });
+}
+
+export function createAssociatedTokenAccountInstruction(
+  payer: PublicKey,
+  associatedToken: PublicKey,
+  owner: PublicKey,
+  mint: PublicKey,
+): TransactionInstruction {
+  return new TransactionInstruction({
+    programId: ASSOCIATED_TOKEN_PROGRAM_ID,
+    keys: [
+      { pubkey: payer, isSigner: true, isWritable: true },
+      { pubkey: associatedToken, isSigner: false, isWritable: true },
+      { pubkey: owner, isSigner: false, isWritable: false },
+      { pubkey: mint, isSigner: false, isWritable: false },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+      { pubkey: SPL_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+    ],
+    data: Buffer.alloc(0),
+  });
+}
+
+function parseTokenAccount(info: AccountInfo<Buffer>, address: PublicKey): ParsedTokenAccount {
+  if (!info.owner.equals(SPL_TOKEN_PROGRAM_ID)) {
+    throw new Error(`Token account ${address.toBase58()} is owned by ${info.owner.toBase58()}, expected ${SPL_TOKEN_PROGRAM_ID.toBase58()}`);
+  }
+  if (info.data.length < SPL_ACCOUNT_SIZE) {
+    throw new Error(`Token account ${address.toBase58()} is too small: ${info.data.length}`);
+  }
+  return {
+    mint: new PublicKey(info.data.subarray(0, 32)),
+    owner: new PublicKey(info.data.subarray(32, 64)),
+  };
+}
+
+async function createMint(
+  connection: Connection,
+  payer: Keypair,
+  mintAuthority: PublicKey,
+  freezeAuthority: PublicKey | null,
+  decimals: number,
+): Promise<PublicKey> {
+  const mint = Keypair.generate();
+  const lamports = await connection.getMinimumBalanceForRentExemption(SPL_MINT_SIZE, "confirmed");
+  const tx = new Transaction().add(
+    SystemProgram.createAccount({
+      fromPubkey: payer.publicKey,
+      newAccountPubkey: mint.publicKey,
+      space: SPL_MINT_SIZE,
+      lamports,
+      programId: SPL_TOKEN_PROGRAM_ID,
+    }),
+    createInitializeMint2Instruction(mint.publicKey, decimals, mintAuthority, freezeAuthority),
+  );
+  const sig = await connection.sendTransaction(tx, [payer, mint], { preflightCommitment: "confirmed" });
+  await connection.confirmTransaction(sig, "confirmed");
+  return mint.publicKey;
+}
+
+async function getOrCreateAssociatedTokenAccount(
+  connection: Connection,
+  payer: Keypair,
+  mint: PublicKey,
+  owner: PublicKey,
+): Promise<PublicKey> {
+  const associatedToken = getAssociatedTokenAddressSync(mint, owner);
+  const existing = await connection.getAccountInfo(associatedToken, "confirmed");
+  if (existing) {
+    const parsed = parseTokenAccount(existing, associatedToken);
+    if (!parsed.mint.equals(mint)) throw new Error(`Associated token account ${associatedToken.toBase58()} has unexpected mint`);
+    if (!parsed.owner.equals(owner)) throw new Error(`Associated token account ${associatedToken.toBase58()} has unexpected owner`);
+    return associatedToken;
+  }
+
+  const tx = new Transaction().add(
+    createAssociatedTokenAccountInstruction(payer.publicKey, associatedToken, owner, mint),
+  );
+  const sig = await connection.sendTransaction(tx, [payer], { preflightCommitment: "confirmed" });
+  await connection.confirmTransaction(sig, "confirmed");
+
+  const created = await connection.getAccountInfo(associatedToken, "confirmed");
+  if (!created) throw new Error(`Associated token account ${associatedToken.toBase58()} was not created`);
+  const parsed = parseTokenAccount(created, associatedToken);
+  if (!parsed.mint.equals(mint)) throw new Error(`Associated token account ${associatedToken.toBase58()} has unexpected mint`);
+  if (!parsed.owner.equals(owner)) throw new Error(`Associated token account ${associatedToken.toBase58()} has unexpected owner`);
+  return associatedToken;
 }
 
 export function createClient(env: {
@@ -208,9 +329,6 @@ export async function issuePassport(ddns: DdnsSolana, args: {
     ddns.authority.publicKey,
     ddns.authority.publicKey,
     0,
-    undefined,
-    undefined,
-    TOKEN_PROGRAM_ID
   );
 
   const ata = await getOrCreateAssociatedTokenAccount(
@@ -218,10 +336,6 @@ export async function issuePassport(ddns: DdnsSolana, args: {
     ddns.authority,
     mint,
     args.ownerWallet,
-    false,
-    "confirmed",
-    undefined,
-    TOKEN_PROGRAM_ID
   );
 
   const ixDef = ddns.idl.instructions?.find((i: any) => i.name === "issue_toll_pass");
@@ -239,13 +353,13 @@ export async function issuePassport(ddns: DdnsSolana, args: {
     toll_pass: tollPassPda,
     name_record: nameRecordPda,
     nft_mint: mint,
-    nft_token_account: ata.address,
+    nft_token_account: ata,
     owner_wallet: args.ownerWallet,
     authority: ddns.authority.publicKey,
     system_program: SystemProgram.programId,
-    token_program: TOKEN_PROGRAM_ID,
+    token_program: SPL_TOKEN_PROGRAM_ID,
     systemProgram: SystemProgram.programId,
-    tokenProgram: TOKEN_PROGRAM_ID,
+    tokenProgram: SPL_TOKEN_PROGRAM_ID,
   });
   if (args.ownerSigner) {
     for (const k of keys) {
@@ -389,7 +503,7 @@ export async function ensureProgramExists(ddns: DdnsSolana): Promise<void> {
 
 function decodeTollPassCompat(ddns: DdnsSolana, data: Buffer | Uint8Array): any {
   try {
-    return ddns.acctCoder.decode("TollPass", data) as any;
+    return ddns.acctCoder.decode("TollPass", Buffer.from(data)) as any;
   } catch (err: any) {
     const legacy = decodeLegacyTollPassAccount(data);
     if (legacy) return legacy;

@@ -2,7 +2,7 @@ services:
   wordpress:
     image: wordpress:6.5.3-php8.2-apache
     ports:
-      - "8080:80"
+      - "${DDNS_DEV_WORDPRESS_PORT:-8088}:80"
     environment:
       WORDPRESS_DB_HOST: db
       WORDPRESS_DB_USER: wp

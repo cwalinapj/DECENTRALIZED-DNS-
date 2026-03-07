@@ -61,5 +61,9 @@
     "tweetnacl": "^1.0.3",
     "typescript": "^5.3.3",
     "yargs": "^17.7.2"
+  },
+  "overrides": {
+    "diff": "8.0.3",
+    "serialize-javascript": "7.0.4"
   }
 }
