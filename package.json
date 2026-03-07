@@ -5,6 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "bash tests/run_all.sh",
+    "mvp:validate:local": "make fmt lint test e2e",
+    "mvp:demo:local": "bash scripts/run_local_stack.sh",
     "devnet:inventory": "bash scripts/devnet_inventory.sh",
     "devnet:inventory:required": "bash scripts/devnet_inventory.sh",
     "devnet:inventory:all": "REQUIRE_ALL=1 bash scripts/devnet_inventory.sh",
@@ -19,7 +21,7 @@
     "demo:cf:deploy": "cd services/cf-demo-gateway && npm i && npx wrangler deploy",
     "demo:cf:dev": "cd services/cf-demo-gateway && npm i && npx wrangler dev --local --port 8788",
     "openapi:verify": "bash scripts/openapi_verify.sh",
-    "local:stack": "bash scripts/run_local_stack.sh",
+    "local:stack": "npm run mvp:demo:local",
     "surfpool:plan": "npm -C solana run surfpool:plan",
     "surfpool:emulate-mainnet": "npm -C solana run surfpool:emulate-mainnet"
   },

@@ -1,9 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
+import bs58 from "bs58";
 import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
 import nacl from "tweetnacl";
-import { Keypair, PublicKey } from "@solana/web3.js";
 
 type WitnessReceiptV1 = {
   version: 1;
@@ -83,11 +83,21 @@ function witnessSignBytes(params: {
   return sha256(msg);
 }
 
-function loadKeypairFromEnv(envName: string): Keypair {
+type SolanaKeypair = {
+  publicKeyBase58: string;
+  secretKey: Uint8Array;
+};
+
+function loadKeypairFromEnv(envName: string): SolanaKeypair {
   const p = process.env[envName];
   if (!p) throw new Error(`missing env ${envName}`);
   const raw = JSON.parse(fs.readFileSync(p, "utf8"));
-  return Keypair.fromSecretKey(Uint8Array.from(raw));
+  const secretKey = Uint8Array.from(raw);
+  const pair = nacl.sign.keyPair.fromSecretKey(secretKey);
+  return {
+    publicKeyBase58: bs58.encode(Buffer.from(pair.publicKey)),
+    secretKey,
+  };
 }
 
 function ensureDir(p: string) {
@@ -98,7 +108,7 @@ const SPOOL_DIR = process.env.SPOOL_DIR || path.resolve("spool");
 const RECEIPTS_FILE = path.join(SPOOL_DIR, "receipts.jsonl");
 
 const gatewayKeypair = loadKeypairFromEnv("GATEWAY_KEYPAIR");
-const witnessPubkey = gatewayKeypair.publicKey.toBase58();
+const witnessPubkey = gatewayKeypair.publicKeyBase58;
 
 // In MVP, we resolve from a simple env mapping (name -> dest). This keeps the gateway runnable
 // without requiring on-chain reads yet. Later: read CanonicalRoute PDA from ddns_registry.

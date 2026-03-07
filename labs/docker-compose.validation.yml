@@ -22,7 +22,7 @@ services:
       - "8080:80"
     volumes:
       - wp-data:/var/www/html
-      - ./plugins/wp-compat-orchestrator/plugin:/var/www/html/wp-content/plugins/ddns-compat-orchestrator
+      - ../plugins/wp-optin/plugin:/var/www/html/wp-content/plugins/ddns-optin
 
   wp-cli:
     image: wordpress:cli-2
@@ -40,12 +40,13 @@ services:
       WP_CLI_ALLOW_ROOT: "1"
     volumes:
       - wp-data:/var/www/html
-      - ./plugins/wp-compat-orchestrator/plugin:/var/www/html/wp-content/plugins/ddns-compat-orchestrator
+      - ../plugins/wp-optin/plugin:/var/www/html/wp-content/plugins/ddns-optin
 
   control-plane:
     build:
       context: ./compat-control-plane
     environment:
+      ALLOW_UNAUTHENTICATED: "1"
       DATA_DIR: /data
       PORT: "8788"
     ports:

@@ -1,8 +1,10 @@
+#![allow(unexpected_cfgs)]
+
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, Transfer};
-use solana_program::sysvar::instructions as sysvar_instructions;
+use anchor_lang::solana_program::sysvar::instructions as sysvar_instructions;
 use anchor_spl::token::spl_token;
-use solana_program::program_pack::Pack;
+use anchor_lang::solana_program::program_pack::Pack;
 
 declare_id!("2it8BbaePYnGaKcBrT5fAk7uj2YWaGdKtqSPriervwtA");
 
@@ -617,13 +619,13 @@ pub struct VoucherV1 {
 }
 
 fn hash_voucher_message(voucher_bytes: &[u8]) -> [u8; 32] {
-    let h = solana_program::hash::hashv(&[VOUCHER_DOMAIN_SEP, voucher_bytes]);
+    let h = solana_sha256_hasher::hashv(&[VOUCHER_DOMAIN_SEP, voucher_bytes]);
     h.to_bytes()
 }
 
 fn expected_redeem_seed(payer: &Pubkey, nonce: u64) -> [u8; 32] {
     let nonce_bytes = nonce.to_le_bytes();
-    solana_program::hash::hashv(&[payer.as_ref(), &nonce_bytes]).to_bytes()
+    solana_sha256_hasher::hashv(&[payer.as_ref(), &nonce_bytes]).to_bytes()
 }
 
 fn mul_bps(amount: u64, bps: u16) -> Result<u64> {
@@ -646,7 +648,7 @@ fn find_ed25519_verification(
         let ix = sysvar_instructions::load_instruction_at_checked(i, sysvar_ix)
             .map_err(|_| error!(EscrowError::MissingEd25519Ix))?;
 
-        if ix.program_id != solana_program::ed25519_program::id() {
+        if ix.program_id != solana_sdk_ids::ed25519_program::id() {
             continue;
         }
 

@@ -1,5 +1,5 @@
+import crypto from "node:crypto";
 import { Connection, PublicKey } from "@solana/web3.js";
-import { getHashedName, getNameAccountKey, NameRegistryState } from "@bonfida/spl-name-service";
 import type { ResolveRecord } from "../server.js";
 import { selectPreferredTextRecord } from "../hosting/targets.js";
 import type { Adapter } from "./shim.js";
@@ -10,6 +10,11 @@ export type SnsConfig = {
   timeoutMs: number;
 };
 
+const SNS_HASH_PREFIX = "SPL Name Service";
+const SNS_NAME_PROGRAM_ID = new PublicKey("namesLPneVptA9Z5rqUDD9tMTWEJwofgaYwp8cawRkX");
+const SNS_ROOT_DOMAIN_ACCOUNT = new PublicKey("58PwtjSDuFHuUkYjH9BYnnQKHfwo9reZhC2zMJv9JPkx");
+const SNS_HEADER_LEN = 96;
+
 export function supportsSns(name: string): boolean {
   return name.toLowerCase().endsWith(".sol");
 }
@@ -17,14 +22,14 @@ export function supportsSns(name: string): boolean {
 export async function resolveSns(name: string, config: SnsConfig): Promise<ResolveRecord[]> {
   const trimmed = name.toLowerCase().replace(/\.sol$/, "");
   const connection = new Connection(config.rpcUrl, "confirmed");
-  const hashed = await getHashedName(trimmed);
-  const nameAccountKey = await getNameAccountKey(hashed, undefined, new PublicKey("namesLPneVptA9Z5JXxK1QX5Qk8i5gGbpGd3uW9oU8s"));
+  const hashed = getHashedName(trimmed);
+  const nameAccountKey = getNameAccountKey(hashed, undefined, SNS_ROOT_DOMAIN_ACCOUNT);
 
   // Prefer NameRegistryState parsing when possible; fall back to raw account owner.
   try {
-    const retrieved: any = await withTimeout(NameRegistryState.retrieve(connection, nameAccountKey), config.timeoutMs);
-    if (!retrieved) return [];
-    const registry = retrieved.registry ?? retrieved;
+    const accountInfo = await withTimeout(connection.getAccountInfo(nameAccountKey, "confirmed"), config.timeoutMs);
+    if (!accountInfo) return [];
+    const registry = parseNameRegistry(accountInfo.data);
 
     const owner = registry.owner.toBase58();
     const records: ResolveRecord[] = [{ type: "OWNER", value: owner }];
@@ -43,6 +48,33 @@ export async function resolveSns(name: string, config: SnsConfig): Promise<Resol
     if (!accountInfo) return [];
     return [{ type: "OWNER", value: accountInfo.owner.toBase58() }];
   }
+}
+
+function getHashedName(name: string): Buffer {
+  return crypto.createHash("sha256").update(`${SNS_HASH_PREFIX}${name}`, "utf8").digest();
+}
+
+function getNameAccountKey(
+  hashedName: Buffer,
+  nameClass?: PublicKey,
+  parentName?: PublicKey
+): PublicKey {
+  const seeds = [
+    hashedName,
+    nameClass ? nameClass.toBuffer() : Buffer.alloc(32),
+    parentName ? parentName.toBuffer() : Buffer.alloc(32),
+  ];
+  return PublicKey.findProgramAddressSync(seeds, SNS_NAME_PROGRAM_ID)[0];
+}
+
+function parseNameRegistry(data: Buffer): { owner: PublicKey; data: Buffer } {
+  if (data.length < SNS_HEADER_LEN) {
+    throw new Error("SNS registry account is truncated");
+  }
+  return {
+    owner: new PublicKey(data.subarray(32, 64)),
+    data: data.subarray(SNS_HEADER_LEN),
+  };
 }
 
 export function createSnsAdapter(params: { rpcUrl: string }): Adapter {

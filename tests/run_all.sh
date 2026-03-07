@@ -81,13 +81,7 @@ if [ -d "$root/solana" ]; then
     (cd "$root/solana" && anchor build)
     if [ -x "$root/scripts/check_program_id_sync.sh" ]; then
       echo "==> gate: program id sync"
-      if [ "${STRICT_PROGRAM_ID_SYNC:-0}" = "1" ]; then
-        (cd "$root" && bash scripts/check_program_id_sync.sh)
-      else
-        if ! (cd "$root" && bash scripts/check_program_id_sync.sh); then
-          echo "==> warning: program id sync mismatch (STRICT_PROGRAM_ID_SYNC=1 to enforce hard-fail)"
-        fi
-      fi
+      (cd "$root" && bash scripts/check_program_id_sync.sh)
     fi
   else
     echo "==> skip: anchor not installed"

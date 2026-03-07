@@ -4,13 +4,13 @@ version = "0.1.0"
 edition = "2021"
 
 [lib]
-crate-type = ["cdylib", "lib"]
+crate-type = ["cdylib", "rlib"]
 
 [features]
 no-entrypoint = []
 no-idl = []
 no-log-ix-name = []
-idl-build = ["anchor-lang/idl-build"]
+idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
 cpi = []
 custom-heap = []
 custom-panic = []
@@ -18,6 +18,5 @@ anchor-debug = []
 
 [dependencies]
 anchor-lang = { version = "0.32.1", features = ["init-if-needed"] }
-anchor-spl = { version = "0.32.1", default-features = false, features = ["token"] }
+anchor-spl = { version = "0.32.1", default-features = false, features = ["token", "token_2022"] }
 spl-token = { version = "8.0.0", features = ["no-entrypoint"] }
-

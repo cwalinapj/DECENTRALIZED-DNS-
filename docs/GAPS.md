@@ -1,9 +1,8 @@
 # Gaps
 
-## Solana build
-- `anchor build` fails due to Anchor CLI mismatch and `spl-token-2022` errors.
-- Install matching Anchor CLI (0.29.x) or bump `anchor-lang`.
-- Pin `spl-token-2022` to compatible versions and reduce stack usage.
+## Remaining MVP truth gaps
+- Compat validation script had stale paths and deleted plugin API references; keep `make e2e` aligned with current `labs/` assets and `plugins/wp-optin`.
+- Program ID sync should gate canonical sources of truth (`Anchor.toml` + `declare_id!`) instead of local build keypairs in `solana/target/deploy`.
 
 ## Name registry backend
 - `/resolve` currently uses DoH only.

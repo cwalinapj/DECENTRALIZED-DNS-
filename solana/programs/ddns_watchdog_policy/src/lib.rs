@@ -1,3 +1,5 @@
+#![allow(unexpected_cfgs)]
+
 use anchor_lang::prelude::*;
 
 declare_id!("Ct4gQ98PofJxca2HSQrfzd1Cohay4praM9dFF2L9jr1g");
@@ -555,4 +557,3 @@ pub enum WatchdogError {
     #[msg("invalid confidence")]
     InvalidConfidence,
 }
-
