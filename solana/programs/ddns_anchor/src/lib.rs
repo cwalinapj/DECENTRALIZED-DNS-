@@ -568,6 +568,17 @@ mod tests {
         assert!(validate_label("abc").is_ok());
         assert!(validate_label("abc-123").is_ok());
         assert!(validate_label("z9-foo-bar-42").is_ok());
+        // 32-character maximum valid length boundary
+        assert!(validate_label("abcdefghijklmnopqrstuvwxyzabcdef").is_ok());
+    }
+
+    #[test]
+    fn validate_label_rejects_reserved_words() {
+        assert!(validate_label("fuck").is_err());
+        assert!(validate_label("shit").is_err());
+        assert!(validate_label("cunt").is_err());
+        assert!(validate_label("bitch").is_err());
+        assert!(validate_label("ass").is_err());
     }
 
     #[test]
