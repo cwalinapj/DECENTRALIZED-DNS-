@@ -8,7 +8,7 @@ import {
   createInitializeMintInstruction,
   createMintToInstruction,
   getAssociatedTokenAddressSync,
-} from "@solana/spl-token";
+} from "../scripts/lib/token.js";
 import crypto from "crypto";
 
 import { DdnsDomainRewards } from "../target/types/ddns_domain_rewards";
@@ -175,4 +175,3 @@ describe("ddns_domain_rewards (toll-event split: owner/miners/treasury)", () => 
     if (afterTreasury - beforeTreasury !== expectedTreasury) throw new Error("treasury split mismatch");
   });
 });
-

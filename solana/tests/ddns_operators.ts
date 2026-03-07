@@ -8,7 +8,7 @@ import {
   createInitializeMintInstruction,
   createMintToInstruction,
   getAssociatedTokenAddressSync,
-} from "@solana/spl-token";
+} from "../scripts/lib/token.js";
 import crypto from "crypto";
 
 import { DdnsOperators } from "../target/types/ddns_operators";

@@ -12,7 +12,7 @@ import {
   getOrCreateAssociatedTokenAccount,
   mintTo,
   getAssociatedTokenAddressSync,
-} from "@solana/spl-token";
+} from "./lib/token.js";
 
 function loadKeypair(filePath: string): Keypair {
   const raw = JSON.parse(fs.readFileSync(filePath, "utf8"));

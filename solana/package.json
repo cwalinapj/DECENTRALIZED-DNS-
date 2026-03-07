@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "deploy:devnet": "anchor deploy --provider.cluster devnet",
-    "apply-metadata": "tsx scripts/apply_metadata.ts",
-    "apply-metadata:dry": "tsx scripts/apply_metadata.ts --dry-run",
+    "apply-metadata": "npm --prefix tools/metadata run apply --",
+    "apply-metadata:dry": "npm --prefix tools/metadata run apply:dry --",
     "metadata:sample": "node scripts/write_sample_metadata.mjs",
     "mint-toll-pass": "tsx scripts/mint_toll_pass.ts",
     "set-route": "tsx scripts/set_route.ts",
@@ -48,8 +48,6 @@
   "devDependencies": {
     "@coral-xyz/anchor": "^0.32.1",
     "@ddns/attack-mode": "file:../packages/attack-mode",
-    "@metaplex-foundation/mpl-token-metadata": "2.13.0",
-    "@solana/spl-token": "^0.4.9",
     "@solana/web3.js": "^1.98.4",
     "bn.js": "^5.2.3",
     "bs58": "^5.0.0",

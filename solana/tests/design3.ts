@@ -7,7 +7,7 @@ import {
   createAssociatedTokenAccountInstruction,
   createInitializeMintInstruction,
   getAssociatedTokenAddressSync,
-} from "@solana/spl-token";
+} from "../scripts/lib/token.js";
 import crypto from "crypto";
 
 import { DdnsRegistry } from "../target/types/ddns_registry";

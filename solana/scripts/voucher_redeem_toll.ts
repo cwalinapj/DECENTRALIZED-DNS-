@@ -7,7 +7,7 @@ import {
   PublicKey,
   Transaction,
 } from "@solana/web3.js";
-import { getAccount } from "@solana/spl-token";
+import { getAccount } from "./lib/token.js";
 import BN from "bn.js";
 import {
   anchorProviderFromEnv,

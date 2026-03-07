@@ -5,7 +5,7 @@ import { Keypair, PublicKey } from "@solana/web3.js";
 import {
   createAccount,
   TOKEN_PROGRAM_ID,
-} from "@solana/spl-token";
+} from "./lib/token.js";
 import {
   anchorProviderFromEnv,
   loadIdl,

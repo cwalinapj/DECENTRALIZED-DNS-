@@ -18,7 +18,7 @@ import {
   getAccount,
   getMint,
   TOKEN_PROGRAM_ID,
-} from "@solana/spl-token";
+} from "./lib/token.js";
 import { guardWriteWithMultiRpc, parseRpcQuorumUrls } from "./_attack_mode.js";
 
 function loadKeypair(filePath: string): Keypair {

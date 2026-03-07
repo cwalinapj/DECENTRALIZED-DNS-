@@ -7,7 +7,7 @@ import {
   getAssociatedTokenAddress,
   getAccount,
   createAccount,
-} from "@solana/spl-token";
+} from "./lib/token.js";
 import {
   anchorProviderFromEnv,
   loadIdl,

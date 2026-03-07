@@ -8,7 +8,7 @@ import {
   createInitializeMintInstruction,
   createMintToInstruction,
   getAssociatedTokenAddressSync,
-} from "@solana/spl-token";
+} from "../scripts/lib/token.js";
 import crypto from "crypto";
 
 import { DdnsRewards } from "../target/types/ddns_rewards";
@@ -267,4 +267,3 @@ describe("ddns_rewards (domain revenue share + epoch bonus)", () => {
     }
   });
 });
-

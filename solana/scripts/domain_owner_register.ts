@@ -4,7 +4,7 @@ import * as anchor from "@coral-xyz/anchor";
 import { PublicKey } from "@solana/web3.js";
 import {
   getOrCreateAssociatedTokenAccount,
-} from "@solana/spl-token";
+} from "./lib/token.js";
 import {
   anchorProviderFromEnv,
   loadIdl,
@@ -102,4 +102,3 @@ main().catch((e) => {
   console.error(e);
   process.exit(1);
 });
-

@@ -12,7 +12,7 @@ import {
   getAssociatedTokenAddressSync,
   getOrCreateAssociatedTokenAccount,
   mintTo,
-} from "@solana/spl-token";
+} from "./lib/token.js";
 
 function loadKeypair(filePath: string): anchor.web3.Keypair {
   const raw = JSON.parse(fs.readFileSync(filePath, "utf8"));
@@ -259,4 +259,3 @@ main().catch((e) => {
   console.error(e);
   process.exit(1);
 });
-

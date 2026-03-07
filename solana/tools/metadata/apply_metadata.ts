@@ -9,7 +9,7 @@ import {
   Transaction,
   sendAndConfirmTransaction,
 } from "@solana/web3.js";
-import { getMint } from "@solana/spl-token";
+import { getMint } from "../../scripts/lib/token.js";
 import {
   createCreateMetadataAccountV3Instruction,
   createCreateMasterEditionV3Instruction,
@@ -92,20 +92,19 @@ async function main() {
     MPL_TOKEN_METADATA_PROGRAM_ID?: PublicKey;
     PROGRAM_ID?: PublicKey;
   };
-  const MPL_PROGRAM_ID =
-    mplIds.MPL_TOKEN_METADATA_PROGRAM_ID ?? mplIds.PROGRAM_ID;
-  if (!MPL_PROGRAM_ID) {
+  const mplProgramId = mplIds.MPL_TOKEN_METADATA_PROGRAM_ID ?? mplIds.PROGRAM_ID;
+  if (!mplProgramId) {
     throw new Error("Unable to resolve Metaplex program id from mpl-token-metadata package.");
   }
-  console.log("mpl_program_id:", MPL_PROGRAM_ID.toBase58());
+  console.log("mpl_program_id:", mplProgramId.toBase58());
 
   const [metadataPda] = PublicKey.findProgramAddressSync(
-    [Buffer.from("metadata"), MPL_PROGRAM_ID.toBuffer(), mint.toBuffer()],
-    MPL_PROGRAM_ID
+    [Buffer.from("metadata"), mplProgramId.toBuffer(), mint.toBuffer()],
+    mplProgramId,
   );
   const [masterEditionPda] = PublicKey.findProgramAddressSync(
-    [Buffer.from("metadata"), MPL_PROGRAM_ID.toBuffer(), mint.toBuffer(), Buffer.from("edition")],
-    MPL_PROGRAM_ID
+    [Buffer.from("metadata"), mplProgramId.toBuffer(), mint.toBuffer(), Buffer.from("edition")],
+    mplProgramId,
   );
 
   const creators = parseCreators(argv.creators);
@@ -115,20 +114,16 @@ async function main() {
     ? await connection.getAccountInfo(masterEditionPda)
     : null;
 
-  let mintInfo = null as null | Awaited<ReturnType<typeof getMint>>;
+  let mintInfo: Awaited<ReturnType<typeof getMint>> | null = null;
   try {
     mintInfo = await getMint(connection, mint);
   } catch (err) {
-    if (!argv["dry-run"]) {
-      throw err;
-    }
+    if (!argv["dry-run"]) throw err;
     console.warn("Mint account not found; skipping mint-authority check in dry-run.");
   }
+
   if (mintInfo && !argv["allow-non-mint-authority"]) {
-    if (!mintInfo.mintAuthority) {
-      throw new Error("payer is not mint authority; cannot create metadata");
-    }
-    if (!mintInfo.mintAuthority.equals(payer.publicKey)) {
+    if (!mintInfo.mintAuthority || !mintInfo.mintAuthority.equals(payer.publicKey)) {
       throw new Error("payer is not mint authority; cannot create metadata");
     }
   }
@@ -159,8 +154,8 @@ async function main() {
             isMutable,
             collectionDetails: null,
           },
-        }
-      )
+        },
+      ),
     );
   } else if (argv.force) {
     const newUpdateAuthority = argv["new-update-authority"]
@@ -187,8 +182,8 @@ async function main() {
             primarySaleHappened: null,
             isMutable,
           },
-        }
-      )
+        },
+      ),
     );
   } else {
     console.log("Metadata already exists; skipping update (use --force to update).");
@@ -208,8 +203,8 @@ async function main() {
             payer: payer.publicKey,
             metadata: metadataPda,
           },
-          { createMasterEditionArgs: { maxSupply: 0 } }
-        )
+          { createMasterEditionArgs: { maxSupply: 0 } },
+        ),
       );
     }
   }

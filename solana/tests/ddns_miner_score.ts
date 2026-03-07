@@ -7,7 +7,7 @@ import {
   getOrCreateAssociatedTokenAccount,
   mintTo,
   TOKEN_PROGRAM_ID,
-} from "@solana/spl-token";
+} from "../scripts/lib/token.js";
 import { expect } from "chai";
 import BN from "bn.js";
 import crypto from "node:crypto";

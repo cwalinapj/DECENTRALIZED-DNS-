@@ -6,7 +6,7 @@ import { hideBin } from "yargs/helpers";
 import * as anchor from "@coral-xyz/anchor";
 import BN from "bn.js";
 import { Connection, Keypair, PublicKey, SystemProgram } from "@solana/web3.js";
-import { TOKEN_PROGRAM_ID, getOrCreateAssociatedTokenAccount } from "@solana/spl-token";
+import { TOKEN_PROGRAM_ID, getOrCreateAssociatedTokenAccount } from "./lib/token.js";
 
 function loadKeypair(filePath: string): anchor.web3.Keypair {
   const raw = JSON.parse(fs.readFileSync(filePath, "utf8"));

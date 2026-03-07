@@ -10,12 +10,12 @@ import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import {
   TOKEN_PROGRAM_ID,
-    createAssociatedTokenAccount,
+  createAssociatedTokenAccount,
   createMint,
   getAssociatedTokenAddressSync,
   getOrCreateAssociatedTokenAccount,
   mintTo,
-} from "@solana/spl-token";
+} from "./lib/token.js";
 
 const DEFAULT_RPC =
   process.env.ANCHOR_PROVIDER_URL || process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
