@@ -9,14 +9,14 @@ import {
   Transaction,
   sendAndConfirmTransaction,
 } from "@solana/web3.js";
-import { getMint } from "../../scripts/lib/token.js";
+import { getMint } from "./lib/token.js";
 import {
-  createCreateMetadataAccountV3Instruction,
   createCreateMasterEditionV3Instruction,
+  createCreateMetadataAccountV3Instruction,
   createUpdateMetadataAccountV2Instruction,
-} from "@metaplex-foundation/mpl-token-metadata";
-import type { Creator } from "@metaplex-foundation/mpl-token-metadata";
-import * as mpl from "@metaplex-foundation/mpl-token-metadata";
+  MPL_TOKEN_METADATA_PROGRAM_ID,
+} from "./lib/metadata.js";
+import type { Creator } from "./lib/metadata.js";
 
 function loadKeypair(filePath: string): Keypair {
   const data = fs.readFileSync(filePath, "utf8");
@@ -37,10 +37,9 @@ function parseCreators(input?: string): Creator[] | null {
     if (!Number.isFinite(share) || share < 0 || share > 100) {
       throw new Error(`Invalid share for creator: ${part}`);
     }
-    const verified = verifiedStr ? verifiedStr === "true" || verifiedStr === "1" : false;
     return {
       address: new PublicKey(pubkeyStr),
-      verified,
+      verified: verifiedStr ? verifiedStr === "true" || verifiedStr === "1" : false,
       share,
     };
   });
@@ -69,17 +68,10 @@ async function main() {
     .strict()
     .parse();
 
-  const rpcUrl =
-    argv.rpc ||
-    process.env.ANCHOR_PROVIDER_URL ||
-    "https://api.devnet.solana.com";
-  const keypairPath =
-    argv.keypair || path.join(process.env.HOME || ".", ".config/solana/id.json");
+  const rpcUrl = argv.rpc || process.env.ANCHOR_PROVIDER_URL || "https://api.devnet.solana.com";
+  const keypairPath = argv.keypair || path.join(process.env.HOME || ".", ".config/solana/id.json");
   const mint = new PublicKey(argv.mint);
-  const name = argv.name;
-  const symbol = argv.symbol;
   const uri = argv.uri;
-  const sellerFeeBps = Number(argv["seller-fee-bps"]);
 
   if (!isValidUri(uri)) {
     throw new Error("Invalid uri: must start with http(s):// or ipfs://");
@@ -88,31 +80,17 @@ async function main() {
   const connection = new Connection(rpcUrl, "confirmed");
   const payer = loadKeypair(keypairPath);
 
-  const mplIds = mpl as unknown as {
-    MPL_TOKEN_METADATA_PROGRAM_ID?: PublicKey;
-    PROGRAM_ID?: PublicKey;
-  };
-  const mplProgramId = mplIds.MPL_TOKEN_METADATA_PROGRAM_ID ?? mplIds.PROGRAM_ID;
-  if (!mplProgramId) {
-    throw new Error("Unable to resolve Metaplex program id from mpl-token-metadata package.");
-  }
-  console.log("mpl_program_id:", mplProgramId.toBase58());
-
   const [metadataPda] = PublicKey.findProgramAddressSync(
-    [Buffer.from("metadata"), mplProgramId.toBuffer(), mint.toBuffer()],
-    mplProgramId,
+    [Buffer.from("metadata"), MPL_TOKEN_METADATA_PROGRAM_ID.toBuffer(), mint.toBuffer()],
+    MPL_TOKEN_METADATA_PROGRAM_ID,
   );
   const [masterEditionPda] = PublicKey.findProgramAddressSync(
-    [Buffer.from("metadata"), mplProgramId.toBuffer(), mint.toBuffer(), Buffer.from("edition")],
-    mplProgramId,
+    [Buffer.from("metadata"), MPL_TOKEN_METADATA_PROGRAM_ID.toBuffer(), mint.toBuffer(), Buffer.from("edition")],
+    MPL_TOKEN_METADATA_PROGRAM_ID,
   );
 
-  const creators = parseCreators(argv.creators);
-  const isMutable = Boolean(argv.mutable);
   const metadataAccount = await connection.getAccountInfo(metadataPda);
-  const masterEditionAccount = argv["master-edition"]
-    ? await connection.getAccountInfo(masterEditionPda)
-    : null;
+  const masterEditionAccount = argv["master-edition"] ? await connection.getAccountInfo(masterEditionPda) : null;
 
   let mintInfo: Awaited<ReturnType<typeof getMint>> | null = null;
   try {
@@ -121,14 +99,25 @@ async function main() {
     if (!argv["dry-run"]) throw err;
     console.warn("Mint account not found; skipping mint-authority check in dry-run.");
   }
-
   if (mintInfo && !argv["allow-non-mint-authority"]) {
     if (!mintInfo.mintAuthority || !mintInfo.mintAuthority.equals(payer.publicKey)) {
       throw new Error("payer is not mint authority; cannot create metadata");
     }
   }
 
+  const creators = parseCreators(argv.creators);
   const tx = new Transaction();
+  const metadataData = {
+    name: argv.name,
+    symbol: argv.symbol,
+    uri,
+    sellerFeeBasisPoints: Number(argv["seller-fee-bps"]),
+    creators,
+    collection: null,
+    uses: null,
+  };
+
+  console.log("mpl_program_id:", MPL_TOKEN_METADATA_PROGRAM_ID.toBase58());
 
   if (!metadataAccount) {
     tx.add(
@@ -141,26 +130,13 @@ async function main() {
           updateAuthority: payer.publicKey,
         },
         {
-          createMetadataAccountArgsV3: {
-            data: {
-              name,
-              symbol,
-              uri,
-              sellerFeeBasisPoints: sellerFeeBps,
-              creators,
-              collection: null,
-              uses: null,
-            },
-            isMutable,
-            collectionDetails: null,
-          },
+          data: metadataData,
+          isMutable: Boolean(argv.mutable),
+          collectionDetails: null,
         },
       ),
     );
   } else if (argv.force) {
-    const newUpdateAuthority = argv["new-update-authority"]
-      ? new PublicKey(argv["new-update-authority"])
-      : null;
     tx.add(
       createUpdateMetadataAccountV2Instruction(
         {
@@ -168,20 +144,10 @@ async function main() {
           updateAuthority: payer.publicKey,
         },
         {
-          updateMetadataAccountArgsV2: {
-            data: {
-              name,
-              symbol,
-              uri,
-              sellerFeeBasisPoints: sellerFeeBps,
-              creators,
-              collection: null,
-              uses: null,
-            },
-            updateAuthority: newUpdateAuthority,
-            primarySaleHappened: null,
-            isMutable,
-          },
+          data: metadataData,
+          updateAuthority: argv["new-update-authority"] ? new PublicKey(argv["new-update-authority"]) : null,
+          primarySaleHappened: null,
+          isMutable: Boolean(argv.mutable),
         },
       ),
     );
@@ -203,7 +169,7 @@ async function main() {
             payer: payer.publicKey,
             metadata: metadataPda,
           },
-          { createMasterEditionArgs: { maxSupply: 0 } },
+          { maxSupply: 0n },
         ),
       );
     }
@@ -226,9 +192,7 @@ async function main() {
     return;
   }
 
-  const sig = await sendAndConfirmTransaction(connection, tx, [payer], {
-    commitment: "confirmed",
-  });
+  const sig = await sendAndConfirmTransaction(connection, tx, [payer], { commitment: "confirmed" });
   console.log(`Metadata applied: ${sig}`);
 }
 
