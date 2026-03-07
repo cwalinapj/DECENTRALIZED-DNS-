@@ -26,6 +26,10 @@ Verification logs (devnet/localnet commands + tx signatures) live in:
 - `docs/STATUS.md`
 - `solana/VERIFIED.md`
 
+Canonical local/operator command map:
+
+- `docs/CANONICAL_DEMO_PATH.md`
+
 ## Run The MVP (Devnet)
 
 Prereqs:
@@ -154,8 +158,8 @@ Not yet decentralized in MVP:
 - Non-premium participants can still use `.dns` and run non-sellable participation paths.
 
 Compat validation note:
-- `scripts/validate-compat-mvp.sh` intentionally skips when compat harness inputs are missing (`docker-compose.validation.yml`, `workers/compat-runner`) during MVP bootstrap.
-- Set `STRICT_COMPAT=1` to enforce hard failure once compat assets are present.
+- `scripts/validate-compat-mvp.sh` now runs a real WordPress compat registration harness using `labs/docker-compose.validation.yml`, `labs/compat-control-plane`, and `plugins/wp-optin`.
+- The current MVP e2e proof is site registration + token persistence against the compat control plane, not the older bundle/job pipeline.
 
 ## MVP Abuse Model: Escrow/Bond Is The Throttle
 

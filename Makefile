@@ -1,4 +1,4 @@
-.PHONY: fmt lint test e2e test-contracts test-solana
+.PHONY: fmt lint test e2e demo-local validate-local test-contracts test-solana
 
 fmt:
 	cd gateway && npx tsc -p tsconfig.json --noEmit
@@ -16,6 +16,11 @@ test:
 
 e2e:
 	bash scripts/validate-compat-mvp.sh
+
+validate-local: fmt lint test e2e
+
+demo-local:
+	bash scripts/run_local_stack.sh
 
 test-contracts:
 	cd contracts && forge test

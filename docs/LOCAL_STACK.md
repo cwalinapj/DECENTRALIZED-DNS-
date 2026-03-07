@@ -2,6 +2,12 @@
 
 Use this to run a local TollDNS stack for Firefox TRR testing and real browsing.
 
+Canonical command:
+
+```bash
+npm run mvp:demo:local
+```
+
 ## 1) Baseline checks
 
 ```bash
@@ -11,7 +17,7 @@ npm ci && npm test
 ## 2) Start the local stack
 
 ```bash
-npm run local:stack
+npm run mvp:demo:local
 ```
 
 What this does:

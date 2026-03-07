@@ -29,6 +29,7 @@ Full walk-through: [`docs/JIVE_CODER_5_MIN.md`](docs/JIVE_CODER_5_MIN.md)
 - One link (Web2-first funnel): `docs/GET_STARTED.md`
 - Nameserver onboarding + zone manager: `docs/NS_FRONT_DOOR.md`
 - Public Cloudflare demo deploy/share: `docs/PUBLIC_DEMO.md`
+- Cross-repo Surfpool reference: [org-memory-registry](https://github.com/cwalinapj/org-memory-registry)
 
 If you only read one file first: `docs/START_HERE.md`.
 For a concise summary of all main functions and purposes: `docs/OVERVIEW.md`.
@@ -197,5 +198,6 @@ Roadmap items below are planned unless stated as MVP in linked docs:
 
 These are not part of user onboarding:
 - program deployment, devnet proof, and inventory: `DEVNET_RUNBOOK.md`, `docs/DEVNET_STATUS.md`
+- surfpool mainnet-emulation flow for all Anchor programs: `docs/SURFPOOL_MAINNET_EMULATION.md`
 - reserve planning + rent bond accounting: `docs/RENT_BOND.md`
 - strict demo proofs and artifacts: `docs/PROOF.md`, `VERIFIED.md`, `artifacts/devnet_inventory.json`

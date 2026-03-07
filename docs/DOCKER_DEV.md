@@ -33,7 +33,7 @@ Or use:
 ```
 
 ## Validation compose
-`docker-compose.validation.yml` runs validation tooling used in CI and local checks.
+`labs/docker-compose.validation.yml` runs validation tooling used in CI and local checks.
 
 ## WordPress plugin harness
 Use the bundled WordPress + coordinator harness:

@@ -2,12 +2,27 @@
 
 If you only read one file, read this one.
 
+Canonical path:
+
+```bash
+npm run mvp:validate:local
+npm run mvp:demo:local
+```
+
+Strict operator proof:
+
+```bash
+npm run mvp:demo:devnet
+```
+
+Full command policy: [`docs/CANONICAL_DEMO_PATH.md`](./CANONICAL_DEMO_PATH.md)
+
 ## Jive Coders: 5-minute setup
 
 New here? Run one command, browse a site, done:
 
 ```bash
-npm run local:stack
+npm run mvp:demo:local
 ```
 
 Open Firefox → browse `https://netflix.com`. Full guide: [`docs/JIVE_CODER_5_MIN.md`](./JIVE_CODER_5_MIN.md)
@@ -57,10 +72,7 @@ curl 'http://127.0.0.1:8054/v1/domain/banner?domain=low-traffic.com&format=json'
 ## Developer quick verify
 
 ```bash
-PORT=8054 npm -C gateway run start
-curl 'http://localhost:8054/v1/status'
-curl 'http://localhost:8054/v1/resolve?name=netflix.com&type=A'
-bash scripts/gateway_smoke.sh
+npm run mvp:validate:local
 ```
 
 ## Operator/Developer Proof (advanced)

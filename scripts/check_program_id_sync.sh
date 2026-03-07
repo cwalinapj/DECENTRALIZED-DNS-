@@ -36,14 +36,14 @@ for line in anchor_toml.read_text().splitlines():
         anchor_ids[k] = v.strip('"')
 
 errors = []
+warnings = []
 rows = []
 for prog, anchor_id in sorted(anchor_ids.items()):
     kp = deploy_dir / f"{prog}-keypair.json"
     lib = programs_dir / prog / "src/lib.rs"
-    if not kp.exists():
-        errors.append(f"{prog}: missing keypair {kp}")
-        continue
-    keypair_id = subprocess.check_output(["solana-keygen", "pubkey", str(kp)], text=True).strip()
+    keypair_id = None
+    if kp.exists():
+        keypair_id = subprocess.check_output(["solana-keygen", "pubkey", str(kp)], text=True).strip()
 
     if not lib.exists():
         errors.append(f"{prog}: missing declare file {lib}")
@@ -55,12 +55,15 @@ for prog, anchor_id in sorted(anchor_ids.items()):
         errors.append(f"{prog}: declare_id! not found in {lib}")
         continue
 
-    if anchor_id != keypair_id:
-        errors.append(f"{prog}: Anchor.toml ({anchor_id}) != keypair ({keypair_id})")
-    if declare_id != keypair_id:
-        errors.append(f"{prog}: declare_id ({declare_id}) != keypair ({keypair_id})")
+    if anchor_id != declare_id:
+        errors.append(f"{prog}: Anchor.toml ({anchor_id}) != declare_id ({declare_id})")
 
     rows.append((prog, keypair_id, anchor_id, declare_id))
+    if keypair_id and keypair_id not in (anchor_id, declare_id):
+        warnings.append(
+            f"{prog}: build keypair ({keypair_id}) differs from canonical "
+            f"Anchor.toml/declare_id ({anchor_id}); target/deploy keypairs are local build artifacts"
+        )
 
 print("[id-check] Program ID sync report")
 for prog, kp, an, dec in rows:
@@ -71,6 +74,11 @@ if errors:
     for e in errors:
         print("  -", e)
     sys.exit(1)
+
+if warnings:
+    print("[id-check] WARN")
+    for w in warnings:
+        print("  -", w)
 
 print("[id-check] PASS")
 PY

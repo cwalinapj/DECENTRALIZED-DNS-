@@ -1,6 +1,6 @@
 # STATUS (Never Lies)
 
-Last updated: 2026-02-20
+Last updated: 2026-03-07
 
 ## MVP demo-critical deployment gate
 
@@ -46,3 +46,19 @@ and read:
 
 - Command logs and output snippets: `VERIFIED.md`
 - Devnet inventory artifacts: `artifacts/devnet_inventory.json`, `artifacts/devnet_inventory.md`
+
+## Local readiness snapshot
+
+Validated successfully in this checkout on 2026-03-07:
+
+- `npm run mvp:validate:local`
+- `make fmt`
+- `make lint`
+- `make test`
+- `make e2e`
+
+Notes:
+
+- Canonical local demo/runtime commands now live in `docs/CANONICAL_DEMO_PATH.md`.
+- `make e2e` now exercises a real WordPress-to-control-plane registration flow via `plugins/wp-optin` and `labs/docker-compose.validation.yml`.
+- Program-ID drift gate now enforces canonical sources of truth (`solana/Anchor.toml` + `declare_id!`) and reports local `target/deploy` keypair differences as warnings only.

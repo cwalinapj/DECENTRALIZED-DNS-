@@ -1,3 +1,5 @@
+#![allow(unexpected_cfgs)]
+
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::system_instruction;
 use sha2::{Digest, Sha256};

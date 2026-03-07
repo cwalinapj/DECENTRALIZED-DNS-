@@ -4,6 +4,7 @@ This index is intentionally short and categorized.
 
 ## Overview (Start Here)
 
+- `docs/CANONICAL_DEMO_PATH.md` — single source of truth for local validation, local demo runtime, and strict devnet proof
 - `docs/GET_STARTED.md` — product onboarding funnel (browse, local run, miner)
 - `docs/OVERVIEW.md` — **main functions and purposes of this repo** (components, endpoints, flow)
 - `docs/START_HERE.md` — canonical MVP run instructions
@@ -38,6 +39,7 @@ This index is intentionally short and categorized.
 - `docs/WEB2_PRICING_MODEL.md`
 - `docs/PAYMENTS_AND_TREASURY.md`
 - `docs/RENT_BOND.md`
+- `docs/SURFPOOL_MAINNET_EMULATION.md`
 - `docs/DOMAIN_CONTINUITY.md`
 - `docs/DOMAIN_CONTINUITY_UI.md`
 - `docs/DOMAIN_CONTINUITY_HOSTING_MVP.md` (NS onboarding, whitelabel hosting, IPFS recovery snapshot, grace-mode overlay)

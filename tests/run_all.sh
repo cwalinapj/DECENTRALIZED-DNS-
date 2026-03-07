@@ -67,6 +67,11 @@ if [ -f "$root/tests/ns_front_door_zone_manager.test.mjs" ]; then
   (cd "$root" && node --test tests/ns_front_door_zone_manager.test.mjs)
 fi
 
+if [ -f "$root/tests/zone_manager_pdns_backend.test.mjs" ]; then
+  echo "==> tests/zone-manager-pdns-backend"
+  (cd "$root" && node --test tests/zone_manager_pdns_backend.test.mjs)
+fi
+
 # Solana (optional)
 if [ -d "$root/solana" ]; then
   echo "==> solana: cargo test"
@@ -76,13 +81,7 @@ if [ -d "$root/solana" ]; then
     (cd "$root/solana" && anchor build)
     if [ -x "$root/scripts/check_program_id_sync.sh" ]; then
       echo "==> gate: program id sync"
-      if [ "${STRICT_PROGRAM_ID_SYNC:-0}" = "1" ]; then
-        (cd "$root" && bash scripts/check_program_id_sync.sh)
-      else
-        if ! (cd "$root" && bash scripts/check_program_id_sync.sh); then
-          echo "==> warning: program id sync mismatch (STRICT_PROGRAM_ID_SYNC=1 to enforce hard-fail)"
-        fi
-      fi
+      (cd "$root" && bash scripts/check_program_id_sync.sh)
     fi
   else
     echo "==> skip: anchor not installed"
