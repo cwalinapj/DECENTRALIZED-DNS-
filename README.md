@@ -38,13 +38,10 @@ If you want, I can draw the exact feedback loop between:
 name resolution
 storage lease
 proof/recovery
-routing/failoverҩаҧanalysis to=functions.exec_command 天天中彩票足彩 อาคารจีเอ็มเอ็มjson
-{"cmd":"sudo systemctl status dnsmasq --no-pager -l && echo '---' && sudo journalctl -xeu dnsmasq.service --no-pager | tail -100 && echo '---' && sudo dnsmasq --test","workdir":"/Users/root1/DECENTRALIZED-DNS-","yield_time_ms":1000,"max_output_tokens":6000}
+routing/failover
 
-routing/failoverҩаҧanalysis to=functions.exec_command 天天中彩票足彩 อาคารจีเอ็มเอ็มjson
-{"cmd":"sudo systemctl status dnsmasq --no-pager -l && echo '---' && sudo journalctl -xeu dnsmasq.service --no-pager | tail -100 && echo '---' && sudo dnsmasq --test","workdir":"/Users/root1/DECENTRALIZED-DNS-","yield_time_ms":1000,"max_output_tokens":6000}
 
-Yes. routing/failover is the part where TollDNS and the storage method help each other the most.
+routing/failover is the part where TollDNS and the storage method help each other the most.
 
 The loop looks like this:
 
