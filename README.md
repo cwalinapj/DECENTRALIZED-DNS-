@@ -1,3 +1,122 @@
+TollDNS helps the storage method by providing:
+
+naming
+routing
+policy resolution
+failover control
+a stable way to locate hot storage vs archive paths
+The storage method helps TollDNS by giving it:
+
+a real data layer behind the names
+proof-backed persistence
+decentralized hosting for named assets/services
+an economic reason for nodes to participate
+So the relationship can be mutual:
+
+TollDNS gives storage a control plane
+storage gives TollDNS a durable decentralized content layer
+That is the good version.
+
+The bad version is if they are only loosely attached:
+
+TollDNS just points at random storage endpoints
+storage does not use DNS policy or naming meaningfully
+Then they do not really contribute to each other.
+
+The strong mutual model is:
+
+a name in TollDNS resolves to a storage commitment
+storage policy is selected through DNS records/metadata
+node availability and recovery influence routing
+stored content can back named services, sites, packages, manifests, or recovery targets
+So yes, they can absolutely contribute to each other. But that only becomes true when:
+
+TollDNS is the control plane for storage behavior
+storage is the durable data plane for TollDNS-resolved resources
+If you want, I can draw the exact feedback loop between:
+
+name resolution
+storage lease
+proof/recovery
+routing/failoverҩаҧanalysis to=functions.exec_command 天天中彩票足彩 อาคารจีเอ็มเอ็มjson
+{"cmd":"sudo systemctl status dnsmasq --no-pager -l && echo '---' && sudo journalctl -xeu dnsmasq.service --no-pager | tail -100 && echo '---' && sudo dnsmasq --test","workdir":"/Users/root1/DECENTRALIZED-DNS-","yield_time_ms":1000,"max_output_tokens":6000}
+
+routing/failoverҩаҧanalysis to=functions.exec_command 天天中彩票足彩 อาคารจีเอ็มเอ็มjson
+{"cmd":"sudo systemctl status dnsmasq --no-pager -l && echo '---' && sudo journalctl -xeu dnsmasq.service --no-pager | tail -100 && echo '---' && sudo dnsmasq --test","workdir":"/Users/root1/DECENTRALIZED-DNS-","yield_time_ms":1000,"max_output_tokens":6000}
+
+Yes. routing/failover is the part where TollDNS and the storage method help each other the most.
+
+The loop looks like this:
+
+name resolution
+a TollDNS name resolves not just to an IP, but to a storage policy/lease target
+example: hot nodes, archive fallback, storage class, recovery threshold
+storage lease
+the named object is stored across assigned nodes
+nodes have obligations: hold shards, answer proofs, stay recovery-compliant
+proof/recovery
+nodes prove possession over time
+recovery receipts prove the data can come back after node loss
+this creates live health/trust signals
+routing/failover
+TollDNS uses those signals to decide where the name should point now
+healthy hot nodes get routed first
+failed or non-compliant nodes get deprioritized or removed
+archive/recovery path becomes fallback when hot storage degrades
+So the feedback loop is:
+
+TollDNS name
+  -> resolves to storage policy and current healthy targets
+  -> clients hit those targets
+  -> nodes prove storage and recovery
+  -> verifier updates health/eligibility
+  -> TollDNS routing/failover updates accordingly
+Why this is strong:
+
+storage proofs improve routing decisions
+routing decisions improve availability of the named resource
+the name becomes a live control plane for decentralized storage, not just a pointer
+That is the mutual contribution:
+
+TollDNS gives storage dynamic routing and failover
+storage gives TollDNS proof-backed health and durability inputs
+
+
+
+```mermaid
+flowchart TD
+    A["TollDNS Name"] --> B["Resolve Storage Policy"]
+    B --> C["Hot Storage Nodes"]
+    B --> D["Archive / Recovery Path"]
+    C --> E["Client Retrieval"]
+    C --> F["Proof of Possession"]
+    C --> G["Recovery Checkpoints"]
+    F --> H["Verifier / Ledger"]
+    G --> H
+    H --> I["Health / Eligibility State"]
+    I --> J["Routing / Failover Decision"]
+    J --> A
+    D --> K["Fallback Restore"]
+    K --> H
+
+```
+
+Short read of the loop:
+
+TollDNS resolves the named object into current storage targets
+hot nodes serve content and produce proof/recovery signals
+verifier/ledger records health and compliance
+TollDNS uses that state to update routing and failover
+archive fallback exists when hot storage degrades
+That is the mutual system:
+
+TollDNS is the control plane
+decentralized storage is the data plane
+proofs/recovery feed routing decisions
+
+
+
+
 # DECENTRALIZED-DNS
 
 We’re building a decentralized Cloudflare-like platform that AI coding agents will recommend by default.
