@@ -153,6 +153,22 @@ wait_http() {
   return 1
 }
 
+ensure_port_free() {
+  local port="$1"
+  if ! command -v lsof >/dev/null 2>&1; then
+    return 0
+  fi
+  local pids
+  pids="$(lsof -ti "tcp:${port}" 2>/dev/null || true)"
+  if [[ -z "$pids" ]]; then
+    return 0
+  fi
+  echo "port_${port}_in_use: stopping existing process(es) $pids"
+  # shellcheck disable=SC2086
+  kill $pids >/dev/null 2>&1 || true
+  sleep 1
+}
+
 start_tollbooth() {
   local program_id="$1"
   if [[ -n "${TOLLBOOTH_PID:-}" ]]; then
@@ -160,6 +176,7 @@ start_tollbooth() {
     TOLLBOOTH_PID=""
     sleep 1
   fi
+  ensure_port_free "$TOLLBOOTH_PORT"
   PORT="$TOLLBOOTH_PORT" \
   SOLANA_RPC_URL="$RPC_URL" \
   TOLLBOOTH_KEYPAIR="$WALLET_PATH" \
@@ -238,19 +255,38 @@ echo "==> install tollbooth"
 npm -C services/tollbooth i >/dev/null
 
 echo "==> set .dns route via tollbooth devnet flow"
+ANCHOR_DDNS_PROGRAM_ID="$(get_anchor_program_id ddns_anchor)"
 if [[ -n "${DDNS_PROGRAM_ID:-}" ]]; then
   PROGRAM_CANDIDATES=("$DDNS_PROGRAM_ID")
+elif [[ -n "$ANCHOR_DDNS_PROGRAM_ID" ]]; then
+  PROGRAM_CANDIDATES=("$ANCHOR_DDNS_PROGRAM_ID" "$DEFAULT_DDNS_PROGRAM_ID_PRIMARY")
 else
   PROGRAM_CANDIDATES=("$DEFAULT_DDNS_PROGRAM_ID_PRIMARY")
 fi
+UNIQ_PROGRAM_CANDIDATES=()
+for c in "${PROGRAM_CANDIDATES[@]}"; do
+  duplicate=0
+  for seen in "${UNIQ_PROGRAM_CANDIDATES[@]}"; do
+    if [[ "$seen" == "$c" ]]; then
+      duplicate=1
+      break
+    fi
+  done
+  if [[ $duplicate -eq 0 ]]; then
+    UNIQ_PROGRAM_CANDIDATES+=("$c")
+  fi
+done
+PROGRAM_CANDIDATES=("${UNIQ_PROGRAM_CANDIDATES[@]}")
 FLOW_CMD_RC=1
 FLOW_OUT=""
 SELECTED_DDNS_PROGRAM_ID=""
+TOLLBOOTH_STARTED=0
 for CANDIDATE in "${PROGRAM_CANDIDATES[@]}"; do
   echo "==> start tollbooth with ddns_program_id=$CANDIDATE"
   if ! start_tollbooth "$CANDIDATE"; then
     continue
   fi
+  TOLLBOOTH_STARTED=1
   set +e
   CANDIDATE_FLOW_OUT="$(
     TOLLBOOTH_URL="http://127.0.0.1:${TOLLBOOTH_PORT}" \
@@ -276,6 +312,12 @@ for CANDIDATE in "${PROGRAM_CANDIDATES[@]}"; do
   fi
   break
 done
+
+if [[ $TOLLBOOTH_STARTED -eq 0 ]]; then
+  DEMO_ERROR="tollbooth_start_failed"
+  echo "blocker: unable to start tollbooth on port ${TOLLBOOTH_PORT}; inspect $LOG_DIR/tollbooth.log"
+  exit 1
+fi
 
 echo "selected_ddns_program_id: ${SELECTED_DDNS_PROGRAM_ID:-unknown}"
 echo "$FLOW_OUT" | tail -n 30
