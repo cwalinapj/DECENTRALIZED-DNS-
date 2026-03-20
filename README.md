@@ -140,6 +140,15 @@ bash scripts/miner_cf_verify.sh --url "https://<worker>.workers.dev" --name "net
 
 Important: Wrangler cannot create Cloudflare accounts or bypass CAPTCHA/email verification. You must complete browser login once; deploy is automated after that.
 
+## Raspberry Pi OS local restore
+
+For a stock-reset Raspberry Pi running the local bump-in-the-wire DNS stack, use:
+
+- `docs/RASPBERRY_PI_OS_RESTORE.md`
+- `deploy/pi/README.md`
+
+This is the source-controlled rebuild path for restoring the Pi from a fresh Raspberry Pi OS or Debian install.
+
 ## Why devs use this instead of raw DNS
 
 - consistent JSON response

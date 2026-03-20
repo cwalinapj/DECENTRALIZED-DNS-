@@ -92,5 +92,12 @@ Latest proof snapshot:
 - Quickstart: `docs/MINER_QUICKSTART_CF.md`
 - Onboarding UI: `docs/miner-onboard/index.html`
 
+## Raspberry Pi local hub
+
+If you are restoring the local Pi DNS hub after reinstalling Raspberry Pi OS or Debian:
+
+- `docs/RASPBERRY_PI_OS_RESTORE.md`
+- `deploy/pi/README.md`
+
 ## Firefox TRR local test
 - `docs/FIREFOX_TRR.md`

@@ -10,3 +10,6 @@ Start here after cloning the repo on the Pi:
 1) cp .env.example .env && edit WAN_IF/LAN_IF
 2) run install.sh
 3) docker compose up -d --build
+
+For full wipe-and-restore steps from a stock Raspberry Pi OS or Debian install, see:
+- `docs/RASPBERRY_PI_OS_RESTORE.md`
