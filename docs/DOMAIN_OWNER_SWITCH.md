@@ -2,7 +2,7 @@
 
 No crypto required. No wallet setup. Works with your existing registrar.
 
-This page is for domain owners who want faster, safer, and more transparent DNS — without changing registrars or learning blockchain.
+This page is for domain owners who want a portable naming and routing layer with safer DNS operations, without changing registrars or learning blockchain.
 
 ---
 
@@ -14,7 +14,7 @@ Pointing your nameservers to TollDNS gives you:
 - **Audit trail** — every resolve returns `confidence`, `rrset_hash`, and `upstreams_used` so you can see exactly what answered your queries.
 - **Renewal protection** — banner + grace + recovery flows activate before your domain silently expires (see below).
 - **USD-first pricing** — no surprise crypto fees. You pay in dollars; we handle settlement behind the scenes.
-- **Earnings potential** — domains using TollDNS nameservers accumulate credits that can offset renewal and hosting costs (policy-governed).
+- **Policy-based credits** — nameserver usage can accumulate credits that offset renewal or hosting costs (policy-governed).
 
 You keep full ownership at your registrar. Switching nameservers is a 5-minute change and is fully reversible.
 
@@ -103,6 +103,8 @@ These fields make DNS changes auditable and agent-friendly without any extra too
 ## Free static hosting / templates
 
 > **Roadmap** — not live in MVP.
+
+This is an expansion path, not the main reason to evaluate TollDNS today.
 
 Plans include:
 
