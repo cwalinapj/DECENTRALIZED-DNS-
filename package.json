@@ -14,6 +14,7 @@
     "devnet:deploy:all": "DEPLOY_ALL=1 DRY_RUN=0 bash scripts/devnet_deploy_wave.sh",
     "mvp:demo:devnet": "bash scripts/devnet_when_funded.sh",
     "mvp:funded:devnet": "bash scripts/devnet_when_funded.sh",
+    "prod:baseline:check": "bash scripts/prod_baseline_check.sh",
     "rent:bond:audit": "tsx scripts/rent_bond_audit.ts",
     "rent:bond:keepalive": "tsx scripts/rent_bond_keepalive.ts",
     "miner:cf:deploy": "cd services/cf-worker-miner && npm i && npx wrangler deploy",

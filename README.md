@@ -189,6 +189,7 @@ See:
 - User onboarding (Web2-first): `docs/START_HERE.md`
 - MVP scope and current behavior: `docs/MVP.md`
 - Definition-of-done checklist: `docs/MVP_DOD.md`
+- Production hardening backlog: `docs/PRODUCTION_BACKLOG.md`
 - Current verified status: `docs/STATUS.md`
 - Devnet audit snapshot: `docs/DEVNET_STATUS.md`
 - Mass adoption roadmap: `docs/MASS_ADOPTION_ROADMAP.md`
@@ -226,6 +227,7 @@ Optional direct checks:
 
 ```bash
 bash scripts/devnet_inventory.sh
+npm run prod:baseline:check
 ```
 
 ## Quickstart (Local)
