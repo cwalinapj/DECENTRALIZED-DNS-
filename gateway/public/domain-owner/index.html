@@ -1,0 +1,649 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TollDNS Domain Owner Control Plane</title>
+    <style>
+      :root {
+        --bg: #f3efe8;
+        --paper: #fffaf1;
+        --ink: #1d222b;
+        --muted: #5d6673;
+        --line: #d8ccb7;
+        --accent: #0f766e;
+        --accent-2: #9a3412;
+        --ok: #17603b;
+        --warn: #9a5b00;
+        --bad: #a22929;
+        --shadow: 0 16px 40px rgba(36, 26, 5, 0.08);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: Georgia, "Times New Roman", serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at top left, rgba(15, 118, 110, 0.12), transparent 30rem),
+          radial-gradient(circle at bottom right, rgba(154, 52, 18, 0.12), transparent 24rem),
+          var(--bg);
+      }
+      .wrap {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 32px 18px 48px;
+      }
+      h1, h2, h3 {
+        margin: 0 0 10px;
+        line-height: 1.1;
+      }
+      h1 {
+        font-size: clamp(2.4rem, 4vw, 4.4rem);
+        letter-spacing: -0.05em;
+      }
+      p, li {
+        color: var(--muted);
+        line-height: 1.6;
+      }
+      .hero,
+      .grid {
+        display: grid;
+        gap: 18px;
+      }
+      .hero {
+        grid-template-columns: 1.5fr 1fr;
+        align-items: start;
+      }
+      .grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+      .card {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        box-shadow: var(--shadow);
+        padding: 20px;
+      }
+      .eyebrow {
+        display: inline-block;
+        margin-bottom: 14px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(15, 118, 110, 0.1);
+        color: var(--accent);
+        font-size: 0.82rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .banner {
+        margin-top: 14px;
+        border-left: 4px solid var(--accent-2);
+        padding-left: 14px;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+      .row.single {
+        grid-template-columns: 1fr;
+      }
+      label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 0.92rem;
+        color: var(--muted);
+      }
+      input, select, textarea, button {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 12px 14px;
+        font: inherit;
+        color: var(--ink);
+        background: rgba(255, 255, 255, 0.92);
+      }
+      textarea {
+        min-height: 92px;
+        resize: vertical;
+      }
+      button {
+        cursor: pointer;
+        background: var(--ink);
+        color: #fffaf1;
+        border-color: var(--ink);
+        font-weight: 700;
+      }
+      button.secondary {
+        background: transparent;
+        color: var(--ink);
+        border-color: var(--line);
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 12px;
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+      .stat {
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.5);
+      }
+      .k {
+        color: var(--muted);
+        font-size: 0.76rem;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .v {
+        font-weight: 700;
+        word-break: break-word;
+      }
+      .ok { color: var(--ok); }
+      .warn { color: var(--warn); }
+      .bad { color: var(--bad); }
+      .split {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 18px;
+        margin-top: 18px;
+      }
+      pre {
+        margin: 0;
+        overflow-x: auto;
+        border-radius: 16px;
+        padding: 14px;
+        background: #192028;
+        color: #ecf6ff;
+        font-size: 12px;
+      }
+      code {
+        font-family: "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+      }
+      .link-list {
+        margin: 0;
+        padding-left: 18px;
+      }
+      .record-list {
+        display: grid;
+        gap: 10px;
+        margin-top: 12px;
+      }
+      .record-item {
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 10px 12px;
+        background: rgba(255, 255, 255, 0.52);
+      }
+      @media (max-width: 980px) {
+        .hero,
+        .split,
+        .grid,
+        .row {
+          grid-template-columns: 1fr;
+        }
+        .stats {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <section class="hero">
+        <div class="card">
+          <div class="eyebrow">Hosted Domain Owner Flow</div>
+          <h1>Connect domain, verify ownership, set records, and watch continuity.</h1>
+          <p>
+            This page is the current runtime-facing control plane for domain owners. It uses the real
+            TollDNS gateway APIs for verification, continuity, registrar status, banner state, and renewal intent.
+            If the optional hosting control plane is running, it can also build an edge/site plan.
+          </p>
+          <div class="banner">
+            <p><strong>MVP boundary:</strong> domain verification and continuity state are live. Basic record management is generated as exact repo commands until a hosted record-write API is promoted into the default gateway path.</p>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Default Nameservers</h2>
+          <ul class="link-list">
+            <li><code>ns1.tolldns.io</code></li>
+            <li><code>ns2.tolldns.io</code></li>
+          </ul>
+          <h2 style="margin-top: 18px;">Recommended Order</h2>
+          <ol class="link-list">
+            <li>Load overview</li>
+            <li>Start TXT verification</li>
+            <li>Switch nameservers</li>
+            <li>Build record plan</li>
+            <li>Check continuity and renewal state</li>
+          </ol>
+        </div>
+      </section>
+
+      <section class="card" style="margin-top: 18px;">
+        <h2>Connect Domain</h2>
+        <div class="row">
+          <div>
+            <label for="domain">Domain</label>
+            <input id="domain" value="example.com" placeholder="example.com" />
+          </div>
+          <div>
+            <label for="ownerPubkey">Owner Public Key (optional)</label>
+            <input id="ownerPubkey" placeholder="optional owner identifier" />
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label for="gatewayBase">Gateway API Base</label>
+            <input id="gatewayBase" value="http://localhost:8054" placeholder="http://localhost:8054" />
+          </div>
+          <div>
+            <label for="hostingBase">Hosting Control Plane Base (optional)</label>
+            <input id="hostingBase" value="http://localhost:8092" placeholder="http://localhost:8092" />
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label for="originUrl">Origin URL for Site Plan (optional)</label>
+            <input id="originUrl" value="https://origin.example.com" placeholder="https://origin.example.com" />
+          </div>
+          <div>
+            <label for="renewYears">Renewal Years</label>
+            <input id="renewYears" value="1" placeholder="1" />
+          </div>
+        </div>
+        <div class="actions">
+          <button id="loadOverviewBtn">Load overview</button>
+          <button class="secondary" id="startVerifyBtn">Start TXT verification</button>
+          <button class="secondary" id="claimContinuityBtn">Claim continuity</button>
+          <button class="secondary" id="renewBtn">Request renewal</button>
+          <button class="secondary" id="fetchNoticeBtn">Fetch notice token</button>
+          <button class="secondary" id="verifyNoticeBtn">Verify notice token</button>
+          <button class="secondary" id="buildSitePlanBtn">Build site plan</button>
+        </div>
+      </section>
+
+      <section class="grid" style="margin-top: 18px;">
+        <article class="card">
+          <h3>Connection</h3>
+          <div class="stats">
+            <div class="stat"><div class="k">Registrar Status</div><div class="v" id="registrarStatus">-</div></div>
+            <div class="stat"><div class="k">Uses TollDNS NS</div><div class="v" id="usesNs">-</div></div>
+            <div class="stat"><div class="k">Owner</div><div class="v" id="ownerValue">-</div></div>
+            <div class="stat"><div class="k">TXT Challenge</div><div class="v" id="verifyState">-</div></div>
+          </div>
+        </article>
+        <article class="card">
+          <h3>Continuity</h3>
+          <div class="stats">
+            <div class="stat"><div class="k">Eligible</div><div class="v" id="eligible">-</div></div>
+            <div class="stat"><div class="k">Phase</div><div class="v" id="phase">-</div></div>
+            <div class="stat"><div class="k">Banner State</div><div class="v" id="bannerState">-</div></div>
+            <div class="stat"><div class="k">Next Steps</div><div class="v" id="nextSteps">-</div></div>
+          </div>
+        </article>
+        <article class="card">
+          <h3>Renewal</h3>
+          <div class="stats">
+            <div class="stat"><div class="k">Renewal Due</div><div class="v" id="renewalDue">-</div></div>
+            <div class="stat"><div class="k">Grace Expires</div><div class="v" id="graceExpires">-</div></div>
+            <div class="stat"><div class="k">Credits Balance</div><div class="v" id="creditsBalance">-</div></div>
+            <div class="stat"><div class="k">Quote / Estimate</div><div class="v" id="renewalEstimate">-</div></div>
+          </div>
+        </article>
+      </section>
+
+      <section class="split">
+        <div class="card">
+          <h2>Verification + Notice</h2>
+          <div class="row single">
+            <div>
+              <label for="txtChallenge">TXT Challenge</label>
+              <textarea id="txtChallenge" readonly placeholder="Generate a TXT challenge to verify control."></textarea>
+            </div>
+          </div>
+          <div class="row single">
+            <div>
+              <label for="noticeToken">Notice Token</label>
+              <textarea id="noticeToken" placeholder="Fetch notice token to populate."></textarea>
+            </div>
+          </div>
+          <div class="row single">
+            <div>
+              <label for="noticeVerify">Notice Verification Result</label>
+              <textarea id="noticeVerify" readonly placeholder="Verify notice token to inspect signed payload."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Nameserver Switch</h2>
+          <div class="row single">
+            <div>
+              <label for="switchCommands">Registrar-Ready Commands</label>
+              <textarea id="switchCommands" readonly></textarea>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="secondary" id="copySwitchCommandsBtn">Copy switch commands</button>
+          </div>
+          <p>These match the current repo-supported path in <code>scripts/ns_front_door.sh</code>.</p>
+        </div>
+      </section>
+
+      <section class="split">
+        <div class="card">
+          <h2>Set Records</h2>
+          <div class="row">
+            <div>
+              <label for="recordName">Record Name</label>
+              <input id="recordName" value="example.com" placeholder="example.com" />
+            </div>
+            <div>
+              <label for="recordType">Type</label>
+              <select id="recordType">
+                <option value="A">A</option>
+                <option value="CNAME">CNAME</option>
+                <option value="TXT">TXT</option>
+              </select>
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label for="recordValue">Value</label>
+              <input id="recordValue" value="198.51.100.42" placeholder="198.51.100.42" />
+            </div>
+            <div>
+              <label for="recordTtl">TTL</label>
+              <input id="recordTtl" value="300" placeholder="300" />
+            </div>
+          </div>
+          <div class="row single">
+            <div>
+              <label for="recordCommands">Zone Manager Commands</label>
+              <textarea id="recordCommands" readonly></textarea>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="secondary" id="renderRecordPlanBtn">Render record plan</button>
+            <button class="secondary" id="copyRecordCommandsBtn">Copy record commands</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Optional Site Plan</h2>
+          <p>If <code>services/hosting-control-plane</code> is running, this builds a hosted edge/site plan and turns the returned records into exact local commands.</p>
+          <div class="record-list" id="sitePlanRecords">
+            <div class="record-item">No site plan yet.</div>
+          </div>
+          <div class="row single" style="margin-top: 12px;">
+            <div>
+              <label for="sitePlanSummary">Site Plan Summary</label>
+              <textarea id="sitePlanSummary" readonly placeholder="No site plan yet."></textarea>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" style="margin-top: 18px;">
+        <h2>Raw API State</h2>
+        <pre id="raw">No request yet.</pre>
+      </section>
+    </div>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+
+      function domain() {
+        return $("domain").value.trim().toLowerCase().replace(/\.$/, "");
+      }
+
+      function gatewayBase() {
+        return $("gatewayBase").value.trim().replace(/\/$/, "");
+      }
+
+      function hostingBase() {
+        return $("hostingBase").value.trim().replace(/\/$/, "");
+      }
+
+      function ownerPubkey() {
+        return $("ownerPubkey").value.trim();
+      }
+
+      function setValue(id, value, cls = "") {
+        const node = $(id);
+        node.className = `v ${cls}`.trim();
+        node.textContent = value == null || value === "" ? "-" : String(value);
+      }
+
+      function fmtList(value) {
+        return Array.isArray(value) && value.length ? value.join(" | ") : "none";
+      }
+
+      function switchCommandsFor(name) {
+        return [
+          `scripts/ns_front_door.sh ${name}`,
+          `scripts/ns_front_door.sh ${name} --verify`
+        ].join("\n");
+      }
+
+      function zoneCommand(record) {
+        const quotedValue = record.type === "TXT" ? `"${record.value}"` : record.value;
+        return `scripts/zone_manager.sh set --name ${record.name} --type ${record.type} --value ${quotedValue} --ttl ${record.ttl}`;
+      }
+
+      function updateRecordCommands(records) {
+        const commands = records.map(zoneCommand).join("\n");
+        $("recordCommands").value = commands || "";
+      }
+
+      function currentManualRecord() {
+        return {
+          name: $("recordName").value.trim(),
+          type: $("recordType").value,
+          value: $("recordValue").value.trim(),
+          ttl: $("recordTtl").value.trim() || "300"
+        };
+      }
+
+      async function copyText(value) {
+        await navigator.clipboard.writeText(value);
+      }
+
+      async function jsonFetch(url, options = {}) {
+        const res = await fetch(url, options);
+        const body = await res.json().catch(() => ({}));
+        return { ok: res.ok, status: res.status, body };
+      }
+
+      function renderSitePlan(body) {
+        const records = Array.isArray(body?.dns_records) ? body.dns_records : [];
+        const list = $("sitePlanRecords");
+        if (!records.length) {
+          list.innerHTML = `<div class="record-item">No DNS records returned.</div>`;
+          $("sitePlanSummary").value = JSON.stringify(body || {}, null, 2);
+          return;
+        }
+        list.innerHTML = records.map((record) => {
+          const name = record.name || domain();
+          const ttl = record.ttl || 300;
+          return `<div class="record-item"><strong>${record.type}</strong> ${name} → ${record.value} <span class="k">TTL ${ttl}</span></div>`;
+        }).join("");
+        $("sitePlanSummary").value = JSON.stringify({
+          edge_provider: body.edge_provider,
+          tls_status: body.tls_status,
+          nameservers_to_set_at_registrar: body.nameservers_to_set_at_registrar || [],
+          dns_records: records
+        }, null, 2);
+        updateRecordCommands(records.map((record) => ({
+          name: record.name || domain(),
+          type: record.type,
+          value: record.value,
+          ttl: String(record.ttl || 300)
+        })));
+      }
+
+      async function loadOverview() {
+        const name = domain();
+        const base = gatewayBase();
+        const headers = ownerPubkey() ? { "X-Owner-Pubkey": ownerPubkey() } : {};
+
+        $("switchCommands").value = switchCommandsFor(name);
+        $("recordName").value = name;
+
+        const requests = await Promise.allSettled([
+          jsonFetch(`${base}/v1/domain/status?domain=${encodeURIComponent(name)}`, { headers }),
+          jsonFetch(`${base}/v1/domain/continuity?domain=${encodeURIComponent(name)}`),
+          jsonFetch(`${base}/v1/domain/banner?domain=${encodeURIComponent(name)}&format=json`),
+          jsonFetch(`${base}/v1/registrar/domain?domain=${encodeURIComponent(name)}`),
+          jsonFetch(`${base}/v1/registrar/quote?domain=${encodeURIComponent(name)}`),
+          jsonFetch(`${base}/v1/credits/balance?domain=${encodeURIComponent(name)}`)
+        ]);
+
+        const payload = {};
+        const [statusRes, continuityRes, bannerRes, registrarRes, quoteRes, creditsRes] = requests.map((result) =>
+          result.status === "fulfilled" ? result.value : { ok: false, status: 0, body: { error: String(result.reason || "request_failed") } }
+        );
+
+        payload.status = statusRes.body;
+        payload.continuity = continuityRes.body;
+        payload.banner = bannerRes.body;
+        payload.registrar = registrarRes.body;
+        payload.quote = quoteRes.body;
+        payload.credits = creditsRes.body;
+        $("raw").textContent = JSON.stringify(payload, null, 2);
+
+        const status = statusRes.body || {};
+        const continuity = continuityRes.body?.continuity || continuityRes.body || {};
+        const banner = bannerRes.body || {};
+        const registrar = registrarRes.body || {};
+        const quote = quoteRes.body || {};
+        const credits = creditsRes.body || {};
+
+        setValue("registrarStatus", registrar.status || continuity.registrar_status || "unknown");
+        setValue("usesNs", status.uses_ddns_ns ? "yes" : "no", status.uses_ddns_ns ? "ok" : "warn");
+        setValue("ownerValue", status.owner_pubkey || ownerPubkey() || "none");
+        setValue("verifyState", status.txt_record_value ? "challenge_ready" : "not_started", status.txt_record_value ? "ok" : "");
+
+        setValue("eligible", continuity.eligible ? "Eligible" : "Not eligible", continuity.eligible ? "ok" : "warn");
+        setValue("phase", continuity.phase || status.phase || "unknown");
+        setValue("bannerState", banner.banner_state || "none", banner.banner_state === "ok" ? "ok" : "warn");
+        setValue("nextSteps", fmtList(continuity.next_steps || status.next_steps));
+
+        setValue("renewalDue", continuity.renewal_due_date || status.renewal_due_date || "unknown");
+        setValue("graceExpires", continuity.grace_expires_at || status.grace_expires_at || "unknown");
+        setValue("creditsBalance", credits.credits_balance ?? status.credits_balance ?? 0);
+        setValue("renewalEstimate", quote.price_usd ? `$${quote.price_usd}` : (credits.renewal_cost_estimate ?? status.estimated_renewal_cost ?? "unknown"));
+
+        $("txtChallenge").value = status.txt_record_name && status.txt_record_value
+          ? `${status.txt_record_name} IN TXT "${status.txt_record_value}"`
+          : "No TXT challenge yet. Use Start TXT verification.";
+      }
+
+      async function startVerification() {
+        const res = await jsonFetch(`${gatewayBase()}/v1/domain/verify`, {
+          method: "POST",
+          headers: { "content-type": "application/json", accept: "application/json" },
+          body: JSON.stringify({ domain: domain() })
+        });
+        $("raw").textContent = JSON.stringify(res.body, null, 2);
+        $("txtChallenge").value = res.body.txt_record_name && res.body.txt_record_value
+          ? `${res.body.txt_record_name} IN TXT "${res.body.txt_record_value}"`
+          : "Verification challenge unavailable.";
+        await loadOverview();
+      }
+
+      async function claimContinuity() {
+        const res = await jsonFetch(`${gatewayBase()}/v1/domain/continuity/claim`, {
+          method: "POST",
+          headers: { "content-type": "application/json", accept: "application/json" },
+          body: JSON.stringify({ domain: domain() })
+        });
+        $("raw").textContent = JSON.stringify(res.body, null, 2);
+        await loadOverview();
+      }
+
+      async function requestRenewal() {
+        const years = Number($("renewYears").value || "1");
+        const res = await jsonFetch(`${gatewayBase()}/v1/domain/renew`, {
+          method: "POST",
+          headers: { "content-type": "application/json", accept: "application/json" },
+          body: JSON.stringify({ domain: domain(), use_credits: true, years })
+        });
+        $("raw").textContent = JSON.stringify(res.body, null, 2);
+        await loadOverview();
+      }
+
+      async function fetchNotice() {
+        const res = await jsonFetch(`${gatewayBase()}/v1/domain/notice?domain=${encodeURIComponent(domain())}`);
+        $("noticeToken").value = res.body.token || "";
+        $("noticeVerify").value = res.body.pubkey ? `pubkey: ${res.body.pubkey}` : "";
+        $("raw").textContent = JSON.stringify(res.body, null, 2);
+      }
+
+      async function verifyNotice() {
+        const token = $("noticeToken").value.trim();
+        if (!token) {
+          $("noticeVerify").value = "missing token";
+          return;
+        }
+        const res = await jsonFetch(`${gatewayBase()}/v1/domain/notice/verify`, {
+          method: "POST",
+          headers: { "content-type": "application/json", accept: "application/json" },
+          body: JSON.stringify({ token })
+        });
+        $("noticeVerify").value = JSON.stringify(res.body, null, 2);
+      }
+
+      async function buildSitePlan() {
+        const originUrl = $("originUrl").value.trim();
+        if (!originUrl) {
+          $("sitePlanSummary").value = "origin_url is required for site plan";
+          return;
+        }
+        const res = await jsonFetch(`${hostingBase()}/v1/sites`, {
+          method: "POST",
+          headers: { "content-type": "application/json", accept: "application/json" },
+          body: JSON.stringify({ domain: domain(), origin_url: originUrl })
+        });
+        $("raw").textContent = JSON.stringify(res.body, null, 2);
+        renderSitePlan(res.body);
+      }
+
+      function renderManualRecordPlan() {
+        updateRecordCommands([currentManualRecord()]);
+      }
+
+      $("loadOverviewBtn").addEventListener("click", loadOverview);
+      $("startVerifyBtn").addEventListener("click", startVerification);
+      $("claimContinuityBtn").addEventListener("click", claimContinuity);
+      $("renewBtn").addEventListener("click", requestRenewal);
+      $("fetchNoticeBtn").addEventListener("click", fetchNotice);
+      $("verifyNoticeBtn").addEventListener("click", verifyNotice);
+      $("buildSitePlanBtn").addEventListener("click", buildSitePlan);
+      $("renderRecordPlanBtn").addEventListener("click", renderManualRecordPlan);
+      $("copySwitchCommandsBtn").addEventListener("click", async () => copyText($("switchCommands").value || ""));
+      $("copyRecordCommandsBtn").addEventListener("click", async () => copyText($("recordCommands").value || ""));
+      $("recordType").addEventListener("change", renderManualRecordPlan);
+      $("recordName").addEventListener("input", renderManualRecordPlan);
+      $("recordValue").addEventListener("input", renderManualRecordPlan);
+      $("recordTtl").addEventListener("input", renderManualRecordPlan);
+
+      $("switchCommands").value = switchCommandsFor(domain());
+      renderManualRecordPlan();
+      loadOverview().catch((err) => {
+        $("raw").textContent = `initial_load_failed: ${String(err)}`;
+      });
+    </script>
+  </body>
+</html>

@@ -91,10 +91,15 @@ Those can exist in the background, but they are not the conversion path for mass
 To make this flow real, the repo should prioritize:
 
 - one clear domain-owner onboarding page
+- one gateway-served domain-owner control plane page
 - one nameserver switch instruction path
 - one simple zone-management path
 - one continuity/routing status view
 - one hosted default story
+
+Current runtime page:
+
+- `gateway/public/domain-owner/index.html`
 
 ## Success Criteria
 

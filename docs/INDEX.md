@@ -33,6 +33,7 @@ This index is intentionally short and categorized.
 - `docs/domain-owner/index.html` — hosted domain-owner landing page / default product funnel
 - `docs/DOMAIN_OWNER_SWITCH.md` — why switch nameservers (Web2 pitch, MVP vs Roadmap)
 - `docs/DOMAIN_OWNER_FLOW.md` — default hosted-product flow for domain owners
+- `gateway/public/domain-owner/index.html` — gateway-served domain-owner control plane UI
 - `docs/NS_FRONT_DOOR.md` — nameserver switch + zone manager commands (A/CNAME/TXT)
 - `docs/TRAFFIC_ORACLE_MVP.md` — traffic oracle eligibility/scoring plan
 - `docs/TRAFFIC_ORACLE_LOCAL.md` — local traffic-oracle runbook + gateway compatibility wiring

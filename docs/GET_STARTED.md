@@ -13,6 +13,7 @@ If you are evaluating the product from a domain-owner perspective first, start h
 - hosted landing page: `docs/domain-owner/index.html`
 - hosted flow: `docs/DOMAIN_OWNER_FLOW.md`
 - nameserver switch instructions: `docs/DOMAIN_OWNER_SWITCH.md`
+- runtime control plane: `gateway/public/domain-owner/index.html`
 
 ## Recommended First Run
 
