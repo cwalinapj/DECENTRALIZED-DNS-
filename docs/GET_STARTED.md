@@ -2,17 +2,23 @@
 
 Web2-first onboarding for the current MVP.
 
-Default framing:
+Read TollDNS as:
 
 - TollDNS is a portable naming and routing layer for web properties
 - the shipped path today is the resolver/gateway demo
 - broader miner/operator infrastructure is advanced and optional
 
-Pick one track.
+## Recommended First Run
 
-## Track 1: Just browse (Firefox TRR)
+Do this first. It is the shortest path to understanding the product.
 
-This is the clearest way to see the product: your browser uses the local TollDNS resolver path directly.
+### Browser Demo (Firefox TRR)
+
+This is the clearest wedge:
+
+- your browser uses the local TollDNS resolver path directly
+- you see normal web browsing work through the stack
+- you do not need to start with miners, devnet, or protocol details
 
 1. Start gateway:
 ```bash
@@ -38,9 +44,11 @@ Then open `https://netflix.com` in Firefox.
 
 Detailed guide: `docs/FIREFOX_TRR.md`.
 
-## Track 2: Run locally (gateway + DoH verify)
+## If You Want More Than the Demo
 
-Use this if you want the local runtime and API behavior, not just the browser demo.
+### Local Runtime + API Checks
+
+Use this if you want to inspect the gateway behavior directly after the browser demo.
 
 ```bash
 npm -C gateway ci
@@ -62,14 +70,18 @@ bash scripts/gateway_smoke.sh
 bash scripts/firefox_doh_verify.sh --url https://127.0.0.1:8443 --name netflix.com --type A --insecure
 ```
 
-## What happens when upstreams disagree?
+### What Happens When Upstreams Disagree?
 
 - `confidence` reports how strong upstream agreement is (`high`, `medium`, `low`).
 - TTL is clamped conservatively when confidence is lower.
 - If upstreams fail after a good answer was cached, stale answers can be served briefly (`stale-if-error`) instead of hard-failing every lookup.
 - Use `GET /v1/status` for live upstream/cache health and `GET /v1/attack-mode` for degradation policy state.
 
-## Track 3: Become a miner (advanced)
+## Advanced Tracks
+
+These are not required to understand the current product wedge.
+
+### Become a Miner
 
 ```bash
 npm run miner:cf:deploy
@@ -82,7 +94,7 @@ Miner docs:
 - `docs/MINER_QUICKSTART_CF.md`
 - `docs/miner-onboard/index.html`
 
-## Operator / Treasury (advanced only)
+### Operator / Treasury
 
 Not required for the default product path:
 - strict devnet proof: `npm run mvp:demo:devnet`
