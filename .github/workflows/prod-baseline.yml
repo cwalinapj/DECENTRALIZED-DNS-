@@ -22,3 +22,6 @@ jobs:
 
       - name: Run production baseline checks
         run: npm run prod:baseline:check
+
+      - name: Verify signed release manifests
+        run: npm run prod:release:verify

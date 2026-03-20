@@ -1,0 +1,34 @@
+{
+  "manifest_version": "1",
+  "environment": "mainnet",
+  "status": "draft",
+  "generated_at_utc": "2026-03-20T11:02:28Z",
+  "git_commit": "081ed90615ce22d3d96bc8a1b1c7b6039bb0e8ea",
+  "programs": {
+    "ddns_anchor": "REPLACE_ME_DDNS_ANCHOR",
+    "ddns_registry": "REPLACE_ME_DDNS_REGISTRY",
+    "ddns_quorum": "REPLACE_ME_DDNS_QUORUM",
+    "ddns_stake": "REPLACE_ME_DDNS_STAKE",
+    "ddns_names": "REPLACE_ME_DDNS_NAMES"
+  },
+  "artifacts": [
+    {
+      "path": "solana/Anchor.toml",
+      "sha256": "8e4def1847c9a17ad03050ce44c55ec2b67261486682bbcc0098238a0d46c59d"
+    },
+    {
+      "path": "scripts/devnet_when_funded.sh",
+      "sha256": "6cc34436d740e8569ee23765b0fb5fc62fabb2ac9e82451726bcfcce37895d5c"
+    },
+    {
+      "path": "scripts/devnet_happy_path.sh",
+      "sha256": "879a4e9d74dd8a59f891095c78f8e9c6889a7b8155670f144276f27fa0c1eda9"
+    }
+  ],
+  "signature": {
+    "algorithm": "ed25519",
+    "public_key_pem_path": "config/release_signing/release_manifest_ed25519_pub.pem",
+    "payload_sha256": "ef088e62f9fa4c62e490794b932b298aadd17abb9118def5ac208bbe1b63a91b",
+    "signature_base64": "KYZm8pYGOTe0kiY6yO9NNW5adlv6nSeYrlw9fnwOi6Lj0HTZ6P60V5e+e3RozFJDxxfhgfZQfwGoOuKbQX+XBw=="
+  }
+}

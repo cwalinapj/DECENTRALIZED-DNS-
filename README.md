@@ -228,6 +228,7 @@ Optional direct checks:
 ```bash
 bash scripts/devnet_inventory.sh
 npm run prod:baseline:check
+npm run prod:release:verify
 ```
 
 ## Quickstart (Local)

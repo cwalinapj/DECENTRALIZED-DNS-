@@ -30,8 +30,9 @@ Acceptance criteria:
 
 ## Phase 1: remaining tasks
 
-- [ ] Add sealed release manifests for each environment (`artifacts/releases/<env>.json`)
-- [ ] Add signed changelog + artifact checksum verification in CI
+- [x] Add sealed release manifests for each environment (`artifacts/releases/<env>.json`)
+- [x] Add artifact checksum + signature verification gate in CI
+- [ ] Add signed changelog verification in CI
 - [ ] Add branch/tag release policy doc with rollback checklist
 
 ## Phase 2: security + correctness hardening
