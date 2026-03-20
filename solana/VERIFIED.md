@@ -1,6 +1,6 @@
 # VERIFIED (Devnet + Localnet)
 
-Date: 2026-02-09
+Date: 2026-03-20
 
 This file records reproducible verification steps and proof objects (program IDs, tx signatures, PDAs).
 
@@ -17,35 +17,19 @@ Expected:
 
 ## Devnet Deploy (Design3 Programs)
 
-Program ids:
+Canonical program IDs:
 
-- `ddns_registry`: `5zg8CsxpRKyurnTg539wr2nVtS6zritQDTGy4uAUerdx`
-- `ddns_quorum`: `9gyHsemmJfujZEqH1o4VhefxvbUJFQkPko8ASAteX5YB`
-- `ddns_stake`: `6gT4zHNpU4PtXL4LRv1sW8MwkFu254Z7gQM7wKqnmZYF`
+- `ddns_registry`: `GDVsLPGxcZLqxj45UujJfEWpXiMwJid8B5a428VZ12QL`
+- `ddns_quorum`: `7ru9XCvrBDys1te7MK6WLmMjNnQvhC5GZf2jPqAffucL`
+- `ddns_stake`: `3KMAq6EKGhskXF3DjjtSdkRUiKnhanb3MYsGWWjCM6Vc`
 
-Deploy tx signatures:
-
-- `ddns_stake`: `4LL3nYmjm9on2cbV8Twh8eKJxMaqsyHiUWRURYphqXCPCBNwWqujKCBkKRHn8KXZFjjcAsnpqoJgj8iJ1u9Ljij6`
-- `ddns_registry`: `3LhXu4tNmtihQWhsa8DgDab2hSMxkYKHUkfuUFG5q2XeQLDk62q2HRN48nS1thUfANm5SR6uXcsyhmD7bwqvo3fg`
-- `ddns_quorum`: `5Teztre2gzMy1YcZYS3a4oBbZ8dBmmfBxazSvYMsZm3iqKm237uhbw9A5rytDo4mb3Tna1LcucEXesrVhC4Tavvg`
-
-Optional:
-
-```bash
-solana program show -u devnet 5zg8CsxpRKyurnTg539wr2nVtS6zritQDTGy4uAUerdx
-solana program show -u devnet 9gyHsemmJfujZEqH1o4VhefxvbUJFQkPko8ASAteX5YB
-solana program show -u devnet 6gT4zHNpU4PtXL4LRv1sW8MwkFu254Z7gQM7wKqnmZYF
-```
+The legacy deploys referenced earlier were retired when the above replacements landed on devnet. Use `solana program show -u devnet <pid>` with a canonical PID to confirm a current deployment.
 
 ## Devnet Deploy + Proof (ddns_domain_rewards)
 
-Program id:
+Proof flows now rely on the canonical `ddns_domain_rewards` program:
 
-- `ddns_domain_rewards`: `7iFM5ZYPWpF2rK6dQkgeb4RLc2zTDnEgrTNVMp8n6s3m`
-
-Deploy tx signature:
-
-- `ddns_domain_rewards`: `3vzC7LhZH6eQzjYf6GhiVAcVpVHcVDsuQGSohaLFhxusBBZph95JQZqU1kmi5bjmGDLeaTzvL8s3yJm4udb4qtuc`
+- `ddns_domain_rewards`: `Gev4S1xdAUJqvyB65pvN46hXkiptWNa3CUx3hzJDhn2i`
 
 Proof: register a DomainOwner split + pay a toll that auto-splits to owner/miners/treasury.
 
@@ -160,3 +144,59 @@ Notes:
   `ddns_anchor, ddns_registry, ddns_quorum, ddns_stake, ddns_domain_rewards, ddns_rewards`.
 - Override required set with:
   `DDNS_REQUIRED_MVP_PROGRAMS=prog1,prog2,... npm -C solana run devnet:verify`.
+
+## Duplicate cleanup (2026-03-20)
+
+Commands run:
+
+```bash
+solana program close -u devnet --bypass-warning EJVVNdwBdZiEpA4QjVaeV79WPsoUpa4zLA4mqpxWxXi5
+solana program close -u devnet --bypass-warning 5F8ERKfRyErAJginsuRD4bN1oVZYFpJS5RVCFi9shRS3
+solana program close -u devnet --bypass-warning 5zg8CsxpRKyurnTg539wr2nVtS6zritQDTGy4uAUerdx
+solana program close -u devnet --bypass-warning 6gT4zHNpU4PtXL4LRv1sW8MwkFu254Z7gQM7wKqnmZYF
+solana program close -u devnet --bypass-warning FTeUikzSsLcr2U9WMhs7y5n4cLyjMwg59FB7wWmWYo86
+solana program close -u devnet --bypass-warning EeU6h3gUUVKJeBsGG77onyH9Sjbq87Uz976RYHt2pCPf
+solana program close -u devnet --bypass-warning 2PVfW3pT5q8gLSXi4VzAiB3JqJzowgvZW9akyXXANAE6
+solana program close -u devnet --bypass-warning 9gyHsemmJfujZEqH1o4VhefxvbUJFQkPko8ASAteX5YB
+solana program close -u devnet --bypass-warning Ct4gQ98PofJxca2HSQrfzd1Cohay4praM9dFF2L9jr1g
+solana program close -u devnet --bypass-warning 2it8BbaePYnGaKcBrT5fAk7uj2YWaGdKtqSPriervwtA
+solana program close -u devnet --bypass-warning 7iFM5ZYPWpF2rK6dQkgeb4RLc2zTDnEgrTNVMp8n6s3m
+solana program close -u devnet --bypass-warning J3rL2iuBB3LzvymJ92yRQbRV6biLFefBKh5UvHLBwEJ2
+```
+
+Reclaimed:
+
+- `EJVVNdwBdZiEpA4QjVaeV79WPsoUpa4zLA4mqpxWxXi5`: `2.86939224 SOL`
+- `5F8ERKfRyErAJginsuRD4bN1oVZYFpJS5RVCFi9shRS3`: `1.61854104 SOL`
+- `5zg8CsxpRKyurnTg539wr2nVtS6zritQDTGy4uAUerdx`: `1.61854104 SOL`
+- `6gT4zHNpU4PtXL4LRv1sW8MwkFu254Z7gQM7wKqnmZYF`: `1.99109592 SOL`
+- `FTeUikzSsLcr2U9WMhs7y5n4cLyjMwg59FB7wWmWYo86`: `1.99109592 SOL`
+- `EeU6h3gUUVKJeBsGG77onyH9Sjbq87Uz976RYHt2pCPf`: `2.80742040 SOL`
+- `2PVfW3pT5q8gLSXi4VzAiB3JqJzowgvZW9akyXXANAE6`: `2.13140952 SOL`
+- `9gyHsemmJfujZEqH1o4VhefxvbUJFQkPko8ASAteX5YB`: `2.13140952 SOL`
+- `Ct4gQ98PofJxca2HSQrfzd1Cohay4praM9dFF2L9jr1g`: `2.22227928 SOL`
+- `2it8BbaePYnGaKcBrT5fAk7uj2YWaGdKtqSPriervwtA`: `2.61248472 SOL`
+- `7iFM5ZYPWpF2rK6dQkgeb4RLc2zTDnEgrTNVMp8n6s3m`: `2.01860184 SOL`
+- `J3rL2iuBB3LzvymJ92yRQbRV6biLFefBKh5UvHLBwEJ2`: `2.92980504 SOL`
+
+Total reclaimed: `26.94207648 SOL`
+
+## Replacement deploys (2026-03-20)
+
+Commands run:
+
+```bash
+anchor deploy --program-name ddns_quorum --provider.cluster devnet
+anchor deploy --program-name ddns_watchdog_policy --provider.cluster devnet
+anchor deploy --program-name ddns_escrow --provider.cluster devnet
+anchor deploy --program-name ddns_domain_rewards --provider.cluster devnet
+anchor deploy --program-name ddns_ns_incentives --provider.cluster devnet
+```
+
+Pinned replacements now live:
+
+- `ddns_quorum`: `7ru9XCvrBDys1te7MK6WLmMjNnQvhC5GZf2jPqAffucL`
+- `ddns_watchdog_policy`: `Bf3Who54hZMHxubT3YgPZRHNitdQLqKA8HR9Hzbmog3e`
+- `ddns_escrow`: `5LLXEJJmBgaCgyFUYVYjnCivgdV4ZcrGWmWNExmArM7`
+- `ddns_domain_rewards`: `Gev4S1xdAUJqvyB65pvN46hXkiptWNa3CUx3hzJDhn2i`
+- `ddns_ns_incentives`: `FRoAXq829PMjtANWdnT16iKb7Unhq9NaViX3Mv9JNoeC`

@@ -2564,3 +2564,65 @@ ALLOW_PROTOCOL_CHANGE=1 npm test
 [protocol-gate] BYPASS: ALLOW_PROTOCOL_CHANGE=1
 ==> run_all: complete
 ```
+
+## 2026-03-20 — funded strict devnet flow
+
+Command:
+```bash
+bash scripts/devnet_when_funded.sh
+```
+
+Output snippet:
+```text
+{"ok":true,"name":"u-b5wjx4pd.dns","wallet":"B5wjX4PdcwsTqxbiAANgmXVEURN1LF2Cuijteqrk2jh5","dest":"https://example.com","ttl":300,"dest_hash_hex":"100680ad546ce6a577f42f52df33b4cfdca756859e664b8d7de329b150d09ce9","proof":{"program_id":"HM1AZFHisxDartjDJj5pTviqyUjDno9zfUHasE8c1TXu","record_pda":"Cze3
+==> optional witness reward submit/claim skipped (ENABLE_WITNESS_REWARDS=1 to enable)
+==> tx links
+assign_route_tx: https://explorer.solana.com/tx/4jRimTypv9S8zeLehFecHobHMbVRx5zdbWXT6BX9dokBFb9s1XKE539viWTSWXvpNWAt2cyAe2i398J3Pksi3smZ?cluster=devnet
+ddns_program_id_used: HM1AZFHisxDartjDJj5pTviqyUjDno9zfUHasE8c1TXu
+logs_dir: /var/folders/h5/7f2x98695lz6819tc0k6fbv80000gn/T//ddns-devnet-demo
+
+========== DEMO SUMMARY ==========
+deploy_verify: verified
+name_claimed: claimed_or_exists
+name: u-b5wjx4pd.dns
+route_written: yes
+resolve_result: ok
+resolved_dest: https://example.com
+resolved_ttl: 300
+tx_links:
+- https://explorer.solana.com/tx/4jRimTypv9S8zeLehFecHobHMbVRx5zdbWXT6BX9dokBFb9s1XKE539viWTSWXvpNWAt2cyAe2i398J3Pksi3smZ?cluster=devnet
+==================================
+✅ demo complete
+✅ STRICT DEMO COMPLETE (ON-CHAIN)
+```
+
+## 2026-03-20 — funded strict devnet flow
+
+Command:
+```bash
+bash scripts/devnet_when_funded.sh
+```
+
+Output snippet:
+```text
+tx_history_summary:
+- assign_route: 3 tx
+- claim_passport: 0 tx
+logs_dir: /var/folders/h5/7f2x98695lz6819tc0k6fbv80000gn/T//ddns-devnet-demo
+
+========== DEMO SUMMARY ==========
+deploy_verify: verified
+name_claimed: claimed_or_exists
+name: u-b5wjx4pd.dns
+route_written: yes
+resolve_result: ok
+resolved_dest: https://example.com?i=3
+resolved_ttl: 300
+tx_links:
+- https://explorer.solana.com/tx/3gfu84H7bZa4NXHzHqeXimhab4sNcqzfQRA2mhnd746eTufWSGXSUKG6oxHikQjsX7xV5KYYTbW2wSDBtiByTTpj?cluster=devnet
+- https://explorer.solana.com/tx/4XJkC6EyfumAba9LLhM7UoD5Q49FJ43UqtH4CsFNS8Vh6FFYHcPnpAsmMFE8YXBPTHFnXhnW3pGLEXSHDyANwuL9?cluster=devnet
+- https://explorer.solana.com/tx/5hG6oH4WE4iLCFh2FDSh4KEggsQTpMbUNBvZVN8yDRDJan7xTzCeKj3PiwivvZV8Sf1v12gLiTGzFzouWdxE6JUG?cluster=devnet
+==================================
+✅ demo complete
+✅ STRICT DEMO COMPLETE (ON-CHAIN)
+```
