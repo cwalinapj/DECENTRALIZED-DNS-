@@ -2,7 +2,7 @@
 
 use anchor_lang::prelude::*;
 
-declare_id!("BS62AYwh5KuhTWoVHiDbpAhifK4SDC1FJtKaYw9bSKaE");
+declare_id!("9J4EysJnFrZ92yTG8MystX9Kwn9eibqPtP6kd8b5mQw5");
 
 const SEED_CONFIG: &[u8] = b"rep_config";
 const SEED_EPOCH_REP: &[u8] = b"rep_epoch";

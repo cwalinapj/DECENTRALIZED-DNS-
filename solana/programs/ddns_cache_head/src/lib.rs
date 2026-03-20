@@ -2,7 +2,7 @@
 
 use anchor_lang::prelude::*;
 
-declare_id!("HjCiKFJKnSvuUd8gN8NjiFPdiwRZSqDit7LMJzFt3Sck");
+declare_id!("APczyvaMLpZaxh3hTRw5xKTkzwKcxEScxKn7zReR7QKg");
 
 const SEED_CACHE_HEAD: &[u8] = b"cache_head";
 

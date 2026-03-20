@@ -3,7 +3,7 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::{program::invoke, system_instruction};
 
-declare_id!("9RNRmBdFfdo6GNRzgutbNcV3bJSJXzhoCtqGQ8HBpfTi");
+declare_id!("BUEaJaRhXkcgnxNtSNRA7p1hbmtQgKwHHHngxKfjRHM3");
 
 const SEED_CONFIG: &[u8] = b"rent_bond_config";
 const SEED_RESERVE: &[u8] = b"program_reserve";

@@ -6,7 +6,7 @@ use anchor_lang::solana_program::sysvar::instructions as sysvar_instructions;
 use anchor_spl::token::spl_token;
 use anchor_lang::solana_program::program_pack::Pack;
 
-declare_id!("2it8BbaePYnGaKcBrT5fAk7uj2YWaGdKtqSPriervwtA");
+declare_id!("5LLXEJJmBgaCgyFUYVYjnCivgdV4ZcrGWmWNExmArM7");
 
 const BPS_DENOM: u64 = 10_000;
 const MAX_ALLOWLISTED_SIGNERS: usize = 16;

@@ -2,7 +2,7 @@
 
 use anchor_lang::prelude::*;
 
-declare_id!("Ct4gQ98PofJxca2HSQrfzd1Cohay4praM9dFF2L9jr1g");
+declare_id!("Bf3Who54hZMHxubT3YgPZRHNitdQLqKA8HR9Hzbmog3e");
 
 const MAX_WATCHDOGS: usize = 64;
 const MAX_SUBMITTERS: usize = 16;

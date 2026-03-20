@@ -2,7 +2,7 @@
 
 use anchor_lang::prelude::*;
 
-declare_id!("5F8ERKfRyErAJginsuRD4bN1oVZYFpJS5RVCFi9shRS3");
+declare_id!("GDVsLPGxcZLqxj45UujJfEWpXiMwJid8B5a428VZ12QL");
 
 #[program]
 pub mod ddns_registry {

@@ -5,7 +5,7 @@ use anchor_lang::solana_program::program_pack::Pack;
 use anchor_spl::token::{self, Token, Transfer};
 use spl_token::state::Account as SplTokenAccount;
 
-declare_id!("CKuPPeJAM8GdfvVMvERxa7rXJcNYwEy2P7wevQ4tjja2");
+declare_id!("Gev4S1xdAUJqvyB65pvN46hXkiptWNa3CUx3hzJDhn2i");
 
 #[program]
 pub mod ddns_domain_rewards {
