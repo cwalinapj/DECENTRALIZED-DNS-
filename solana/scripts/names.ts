@@ -24,8 +24,8 @@ function loadIdl() {
     throw new Error(`IDL not found at ${p}. Run: anchor build --program-name ddns_names`);
   }
   const idl = JSON.parse(fs.readFileSync(p, "utf8"));
-  // Anchor TS can choke on account namespace for legacy/minimal IDLs. Methods still work without it.
-  delete idl.accounts;
+  if (!idl.name && idl.metadata?.name) idl.name = idl.metadata.name;
+  if (!idl.version && idl.metadata?.version) idl.version = idl.metadata.version;
   return idl;
 }
 
@@ -62,6 +62,10 @@ function hashName(name: string): Uint8Array {
 
 function hashLabel(label: string): Uint8Array {
   return Uint8Array.from(sha256Bytes(normalizeLabel(label)));
+}
+
+function hashSubdomainName(parentHash: Uint8Array, labelHash: Uint8Array): Uint8Array {
+  return Uint8Array.from(sha256Bytes(Buffer.concat([Buffer.from(parentHash), Buffer.from(labelHash)])));
 }
 
 function labelFromPremium(name: string): string {
@@ -580,6 +584,7 @@ async function main() {
           const parent = "user.dns";
           const parentHash = hashName(parent);
           const labelHash = hashLabel(label);
+          nameHash.set(hashSubdomainName(parentHash, labelHash));
           [subName] = PublicKey.findProgramAddressSync([Buffer.from("sub"), Buffer.from(parentHash), Buffer.from(labelHash)], programId);
         } else {
           [premiumName] = PublicKey.findProgramAddressSync([Buffer.from("premium"), Buffer.from(nameHash)], programId);
@@ -634,7 +639,8 @@ async function loadProgram(rpc: string, walletPath: string, programIdArg?: strin
     throw new Error("ddns_names program id not found; set --program-id or DDNS_NAMES_PROGRAM_ID");
   }
   const programId = new PublicKey(programIdStr);
-  const program = new anchor.Program(idl as any, programId, provider);
+  const idlWithAddress = { ...(idl as any), address: programId.toBase58() };
+  const program = new anchor.Program(idlWithAddress as any, provider);
   return { program, payer, provider, connection, programId };
 }
 
