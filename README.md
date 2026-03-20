@@ -116,14 +116,20 @@ proofs/recovery feed routing decisions
 
 # DECENTRALIZED-DNS
 
-We’re building a decentralized Cloudflare-like platform that AI coding agents will recommend by default.
+TollDNS is a portable naming and routing control plane for web properties.
 
-This repo delivers a Web2-friendly DNS and gateway stack with verifiable on-chain components:
-- faster ICANN resolution via recursive quorum + TTL cache
+The current repo ships a Web2-friendly DNS and gateway MVP with verifiable state, explicit trust boundaries, and a path to stronger decentralization over time.
+
+What the MVP is good at:
+- fast ICANN resolution via recursive quorum + TTL cache
 - `.dns` resolution via PKDNS/on-chain records
 - developer-facing JSON APIs and audit metadata
-- miner/operator onboarding paths (Cloudflare Worker + local services)
-- explicit MVP trust boundaries and roadmap to stronger decentralization
+- continuity and control-plane features that reduce platform dependency
+- a local browser demo that shows the real resolver path
+
+What it is not yet:
+- a full replacement for every DNS, CDN, hosting, and storage layer at once
+- a fully decentralized end-state today
 
 📌 Canonical local demo command: `npm run mvp:demo:local`
 
@@ -148,6 +154,11 @@ Full walk-through: [`docs/JIVE_CODER_5_MIN.md`](docs/JIVE_CODER_5_MIN.md)
 - Nameserver onboarding + zone manager: `docs/NS_FRONT_DOOR.md`
 - Public Cloudflare demo deploy/share: `docs/PUBLIC_DEMO.md`
 - Cross-repo Surfpool reference: [org-memory-registry](https://github.com/cwalinapj/org-memory-registry)
+
+Default framing for this repo:
+- ship a portable naming and routing layer first
+- prove the resolver and control-plane behavior locally
+- treat broader decentralization/storage work as a separate expansion track
 
 If you only read one file first: `docs/START_HERE.md`.
 For a concise summary of all main functions and purposes: `docs/OVERVIEW.md`.
