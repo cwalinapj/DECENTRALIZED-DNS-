@@ -2,6 +2,14 @@
 
 If you only read one file, read this one.
 
+TollDNS should be read as:
+
+- a portable naming and routing control plane first
+- a resolver/gateway MVP today
+- a broader decentralization roadmap later
+
+Do not start from the operator or protocol paths unless you specifically need them.
+
 Canonical path:
 
 ```bash
@@ -43,6 +51,12 @@ Read first:
 - `docs/DOMAIN_CONTINUITY.md`
 - `docs/NS_FRONT_DOOR.md`
 
+The core promise at this stage is:
+
+- keep control over naming and routing
+- reduce platform dependency
+- keep the local demo and onboarding path simple
+
 ## Quickstart (user-facing)
 
 1. Start the gateway locally:
@@ -81,7 +95,7 @@ npm run mvp:validate:local
 npm run mvp:demo:devnet
 ```
 
-This is internal proof for operators/developers (strict on-chain path), not end-user onboarding.
+This is internal proof for operators/developers. It is not the default way to understand or evaluate the product.
 
 Latest proof snapshot:
 - `docs/PROOF.md`

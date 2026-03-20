@@ -1,8 +1,18 @@
 # GET_STARTED
 
-Web2-first onboarding. Pick one track.
+Web2-first onboarding for the current MVP.
+
+Default framing:
+
+- TollDNS is a portable naming and routing layer for web properties
+- the shipped path today is the resolver/gateway demo
+- broader miner/operator infrastructure is advanced and optional
+
+Pick one track.
 
 ## Track 1: Just browse (Firefox TRR)
+
+This is the clearest way to see the product: your browser uses the local TollDNS resolver path directly.
 
 1. Start gateway:
 ```bash
@@ -29,6 +39,8 @@ Then open `https://netflix.com` in Firefox.
 Detailed guide: `docs/FIREFOX_TRR.md`.
 
 ## Track 2: Run locally (gateway + DoH verify)
+
+Use this if you want the local runtime and API behavior, not just the browser demo.
 
 ```bash
 npm -C gateway ci
@@ -57,7 +69,7 @@ bash scripts/firefox_doh_verify.sh --url https://127.0.0.1:8443 --name netflix.c
 - If upstreams fail after a good answer was cached, stale answers can be served briefly (`stale-if-error`) instead of hard-failing every lookup.
 - Use `GET /v1/status` for live upstream/cache health and `GET /v1/attack-mode` for degradation policy state.
 
-## Track 3: Become a miner (Cloudflare Worker)
+## Track 3: Become a miner (advanced)
 
 ```bash
 npm run miner:cf:deploy
@@ -72,6 +84,6 @@ Miner docs:
 
 ## Operator / Treasury (advanced only)
 
-Not required for users:
+Not required for the default product path:
 - strict devnet proof: `npm run mvp:demo:devnet`
 - reserve/deploy inventory: `docs/RENT_BOND.md`, `docs/DEVNET_STATUS.md`, `VERIFIED.md`
