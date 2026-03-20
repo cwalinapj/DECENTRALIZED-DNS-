@@ -1,12 +1,16 @@
 # Why Devs Use This Instead Of Raw DNS
 
+- predictable resolver/control-plane behavior
 - consistent JSON response
 - cache confidence and upstream audit
 - adapter proofs (.dns / IPFS / ENS / SNS)
 - privacy-safe observations that strengthen network reliability
-- dev monetization hooks (toll share / discounts / credits), policy controlled
+- optional monetization hooks (toll share / discounts / credits), policy controlled
 
-MVP note: monetization and incentive distribution are policy-scoped and may be partially implemented per service/program path.
+MVP note:
+
+- the strongest current reason to use TollDNS is predictable naming and routing behavior
+- monetization and incentive distribution are policy-scoped and may be partially implemented per service/program path
 
 ## Copy/Paste Examples
 
