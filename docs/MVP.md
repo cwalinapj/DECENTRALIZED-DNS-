@@ -5,13 +5,20 @@
 > - MVP ✅: what is shippable today (centralized bootstrap allowed)
 > - End-State 🔮: noted only as “future” and not implemented yet
 
-This MVP ships a working `.dns` flow on Solana devnet while explicitly allowing centralized bootstrap components. The system is structured so clients can verify what matters and later migrate to full decentralization.
+This MVP ships a working resolver and control-plane path for TollDNS while explicitly allowing centralized bootstrap components. The current product should be understood first as:
+
+- a portable naming and routing layer
+- a resolver/gateway MVP with verifiable state
+- a staged path to stronger decentralization later
+
+This MVP includes a real `.dns` flow on Solana devnet, but the main thing being shipped today is the resolver/gateway behavior and the control-plane model around it.
 
 **MVP callout**: centralized pieces still exist (gateway availability, allowlisted miners).  
 **End state**: fully decentralized quorum + stake-weighted witnesses + optional public receipt batches.
 
 ## 1) What MVP Delivers
 
+- A local/browser-resolvable TollDNS path that can be demoed and validated now.
 - `.dns` resolution through a gateway/tollbooth (fast path).
 - Local cache on the user machine (cache-first).
 - Solana programs as source of truth for:
@@ -31,6 +38,8 @@ Canonical local/operator command map:
 - `docs/CANONICAL_DEMO_PATH.md`
 
 ## Run The MVP (Devnet)
+
+This is the strict operator/developer proof path. It is not the default first-run experience for most readers of the repo.
 
 Prereqs:
 
@@ -79,6 +88,8 @@ Proof pointers (what to look for on-chain):
 - Policy hint proof (optional): `NamePolicyState` PDA in `ddns_watchdog_policy` (OK/WARN/QUARANTINE + TTL cap + penalty).
 
 ## 2) Roles
+
+For the current product framing, the most important role is still the user/developer consuming the resolver/control plane. Miner and verifier roles are advanced bootstrap infrastructure.
 
 Everyday user (MVP: CLI/scripts; later: browser extension):
 
@@ -135,6 +146,8 @@ Call-out:
   - store new answers as pending until a canonical on-chain version is observed.
 
 ## 5) What Is Centralized in MVP
+
+This section matters because the current ship target is a usable control plane with explicit trust boundaries, not a claim that every component is already decentralized.
 
 - Allowlisted miners/verifiers (aggregation admission is centralized).
 - Tollbooth service (centralized submitter/fee-payer).

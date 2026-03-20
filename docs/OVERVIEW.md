@@ -1,8 +1,8 @@
 # TollDNS — Main Functions & Purpose
 
-TollDNS is a **decentralized DNS and gateway platform** that combines standard Web2 DNS resolution
-with verifiable on-chain components running on Solana. It is designed for developers who want
-consistent, auditable, privacy-safe DNS with a clear migration path toward full decentralization.
+TollDNS is a naming and routing control plane with a resolver/gateway MVP today.
+
+The current repository combines standard Web2 DNS resolution with verifiable state and a documented migration path toward stronger decentralization. The repo should not be read first as a replacement for every DNS, CDN, hosting, and storage layer at once.
 
 ---
 
@@ -15,6 +15,12 @@ expiration, and operators have no stake in accurate responses. TollDNS addresses
 - rewarding miners that serve verified answers and operators that keep domains live
 - giving developers a drop-in JSON API that is a strict superset of normal DNS responses
 - protecting domain owners from expiration-loss through a continuity / anti-expiration layer
+
+The most important current promise is narrower than the end-state roadmap:
+
+- give users and developers a portable naming and routing layer they can verify
+- keep the local and browser-facing demo path simple
+- expose broader infrastructure as explicit later expansion
 
 ---
 
@@ -74,7 +80,7 @@ Sixteen on-chain programs (all prefixed `ddns_`):
 | `ddns_ns_incentives` | Usage-based rewards for ICANN DNS queries |
 | `ddns_anchor` | Anchor PDA registry and settlement anchoring |
 
-### 4. Cloudflare Worker Miner (`services/cf-worker-miner/`)
+### 4. Cloudflare Worker Miner (`services/cf-worker-miner/`) (advanced)
 
 An edge resolver deployed as a Cloudflare Worker. It:
 
@@ -85,7 +91,7 @@ An edge resolver deployed as a Cloudflare Worker. It:
 
 Deploy in ~3 minutes with `npm run miner:cf:deploy`.
 
-### 5. Tollbooth / Witness Services (`services/tollbooth/`, `services/miner-witness/`)
+### 5. Tollbooth / Witness Services (`services/tollbooth/`, `services/miner-witness/`) (advanced)
 
 Off-chain aggregation layer between miners and the Solana chain:
 
@@ -93,7 +99,7 @@ Off-chain aggregation layer between miners and the Solana chain:
 - **miner-witness** — collects client receipts, verifies them, aggregates by epoch/name/dest,
   then submits commitment transactions to Solana
 
-### 6. Cache Rollup (`services/cache-rollup/`)
+### 6. Cache Rollup (`services/cache-rollup/`) (advanced / premium path)
 
 For premium `.dns` parent names, builds chronological cache roots, publishes them to IPFS, and
 updates the on-chain `ddns_cache_head` PDA. This allows clients to verify cached answers
@@ -148,10 +154,11 @@ Gateway  ──ICANN──►  Multi-upstream DoH quorum  ──►  cached answ
 ## Quick Start
 
 ```bash
-# Run the canonical MVP demo against Solana devnet
-npm run mvp:demo:devnet
+# Run the canonical local MVP path
+npm run mvp:validate:local
+npm run mvp:demo:local
 
-# Start the gateway locally
+# Start the gateway locally (manual path)
 npm -C gateway ci && npm -C gateway run build
 PORT=8054 npm -C gateway run start
 
@@ -160,4 +167,10 @@ curl 'http://localhost:8054/v1/resolve?name=netflix.com&type=A'
 curl 'http://localhost:8054/v1/resolve?name=example.dns&type=A'
 ```
 
-See `docs/START_HERE.md` for the full onboarding path.
+Strict operator proof remains available with:
+
+```bash
+npm run mvp:demo:devnet
+```
+
+See `docs/START_HERE.md` for the default onboarding path.
