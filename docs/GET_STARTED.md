@@ -8,6 +8,12 @@ Read TollDNS as:
 - the shipped path today is the resolver/gateway demo
 - broader miner/operator infrastructure is advanced and optional
 
+If you are evaluating the product from a domain-owner perspective first, start here before the protocol/runtime paths:
+
+- hosted landing page: `docs/domain-owner/index.html`
+- hosted flow: `docs/DOMAIN_OWNER_FLOW.md`
+- nameserver switch instructions: `docs/DOMAIN_OWNER_SWITCH.md`
+
 ## Recommended First Run
 
 Do this first. It is the shortest path to understanding the product.

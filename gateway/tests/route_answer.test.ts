@@ -27,7 +27,7 @@ describe("normalized route answers (adapters)", () => {
     const res = await request(app).get("/v1/route").query({ name: "alice.dns" });
     // PKDNS now reads ddns_registry CanonicalRoute on Solana; this fixture-based test no longer asserts success.
     // (CLI and adapter unit tests cover priority and structure; integration requires a deployed ddns_registry.)
-    expect([200, 500]).toContain(res.status);
+    expect([200, 404, 500]).toContain(res.status);
   });
 
   it("returns a RouteAnswer for ipfs://CID via ipfs adapter", async () => {

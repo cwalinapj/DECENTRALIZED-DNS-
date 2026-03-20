@@ -37,6 +37,7 @@ Open Firefox → browse `https://netflix.com`. Full guide: [`docs/JIVE_CODER_5_M
 
 Quick onboarding funnel:
 - `docs/GET_STARTED.md`
+- `docs/domain-owner/index.html`
 
 ## User Onboarding (Web2-first)
 
@@ -46,6 +47,8 @@ Quick onboarding funnel:
 - User-facing checkout stays USD-first with stable pricing; crypto is optional and abstracted behind treasury settlement.
 
 Read first:
+- `docs/DOMAIN_OWNER_FLOW.md`
+- `docs/DOMAIN_OWNER_SWITCH.md`
 - `docs/WEB2_PRICING_MODEL.md`
 - `docs/PAYMENTS_AND_TREASURY.md`
 - `docs/DOMAIN_CONTINUITY.md`
