@@ -190,6 +190,9 @@ See:
 - MVP scope and current behavior: `docs/MVP.md`
 - Definition-of-done checklist: `docs/MVP_DOD.md`
 - Production hardening backlog: `docs/PRODUCTION_BACKLOG.md`
+- Audit preparation checklist: `docs/AUDIT_PREPARATION.md`
+- Roadmap track split (staking MVP vs optimization network): `docs/ROADMAP_TRACKS.md`
+- Token utility model: `docs/TOKEN_UTILITY_MODEL.md`
 - Current verified status: `docs/STATUS.md`
 - Devnet audit snapshot: `docs/DEVNET_STATUS.md`
 - Mass adoption roadmap: `docs/MASS_ADOPTION_ROADMAP.md`
@@ -229,6 +232,8 @@ Optional direct checks:
 bash scripts/devnet_inventory.sh
 npm run prod:baseline:check
 npm run prod:release:verify
+npm run prod:invariants:check
+npm run mvp:usage:devnet
 ```
 
 ## Quickstart (Local)

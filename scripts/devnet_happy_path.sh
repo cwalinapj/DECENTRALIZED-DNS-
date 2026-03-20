@@ -15,6 +15,9 @@ ENABLE_WITNESS_REWARDS="${ENABLE_WITNESS_REWARDS:-0}"
 ALLOW_LOCAL_FALLBACK="${ALLOW_LOCAL_FALLBACK:-0}"
 DEMO_JSON="${DEMO_JSON:-0}"
 DDNS_SKIP_DEPLOY_VERIFY="${DDNS_SKIP_DEPLOY_VERIFY:-0}"
+DEMO_WALLET_MODE="${DEMO_WALLET_MODE:-authority}"
+DEMO_INTERACTIONS="${DEMO_INTERACTIONS:-3}"
+DEMO_CLIENT_WALLET_PATH="${DEMO_CLIENT_WALLET_PATH:-$HOME/.config/solana/ddns_demo_client.json}"
 DEFAULT_DDNS_PROGRAM_ID_PRIMARY="HM1AZFHisxDartjDJj5pTviqyUjDno9zfUHasE8c1TXu"
 
 LOG_DIR="${TMPDIR:-/tmp}/ddns-devnet-demo"
@@ -36,6 +39,8 @@ DEST_OUT=""
 CONFIDENCE_OUT=""
 RRSET_HASH_OUT=""
 TTL_OUT=""
+TX_HISTORY_JSON=""
+WALLET_LIFECYCLE_JSON=""
 
 if [[ "$DEMO_JSON" == "1" ]] && ! command -v jq >/dev/null 2>&1; then
   echo "error: DEMO_JSON=1 requires jq" >&2
@@ -66,15 +71,24 @@ emit_demo_json() {
   fi
 
   names_program_id="$(get_anchor_program_id ddns_names)"
-  tx_links_json="$(
-    {
-      [[ -n "$CLAIM_TX" ]] && printf '%s\n' "https://explorer.solana.com/tx/${CLAIM_TX}?cluster=devnet"
-      [[ -n "$ASSIGN_TX" ]] && printf '%s\n' "https://explorer.solana.com/tx/${ASSIGN_TX}?cluster=devnet"
-      if [[ -n "$ROUTE_PROOF_SIG" && "$ROUTE_PROOF_SIG" != "$ASSIGN_TX" && "$ROUTE_PROOF_SIG" != "$CLAIM_TX" ]]; then
-        printf '%s\n' "https://explorer.solana.com/tx/${ROUTE_PROOF_SIG}?cluster=devnet"
-      fi
-    } | jq -Rsc 'split("\n") | map(select(length>0))'
-  )"
+  if [[ -n "$TX_HISTORY_JSON" ]] && jq -e . >/dev/null 2>&1 <<<"$TX_HISTORY_JSON"; then
+    tx_links_json="$(
+      jq -r '
+        map(.tx) | map(select(. != null and . != "")) | unique | .[] |
+        "https://explorer.solana.com/tx/\(.)?cluster=devnet"
+      ' <<<"$TX_HISTORY_JSON" | jq -Rsc 'split("\n") | map(select(length>0))'
+    )"
+  else
+    tx_links_json="$(
+      {
+        [[ -n "$CLAIM_TX" ]] && printf '%s\n' "https://explorer.solana.com/tx/${CLAIM_TX}?cluster=devnet"
+        [[ -n "$ASSIGN_TX" ]] && printf '%s\n' "https://explorer.solana.com/tx/${ASSIGN_TX}?cluster=devnet"
+        if [[ -n "$ROUTE_PROOF_SIG" && "$ROUTE_PROOF_SIG" != "$ASSIGN_TX" && "$ROUTE_PROOF_SIG" != "$CLAIM_TX" ]]; then
+          printf '%s\n' "https://explorer.solana.com/tx/${ROUTE_PROOF_SIG}?cluster=devnet"
+        fi
+      } | jq -Rsc 'split("\n") | map(select(length>0))'
+    )"
+  fi
 
   program_ids_json="$(
     jq -cn \
@@ -132,10 +146,25 @@ if [[ ! -f "$WALLET_PATH" ]]; then
 fi
 
 if [[ -z "$CLIENT_WALLET_PATH" ]]; then
-  # Default demo client to authority wallet for legacy signer-constrained deployments.
-  CLIENT_WALLET_PATH="$WALLET_PATH"
+  case "$DEMO_WALLET_MODE" in
+    authority)
+      CLIENT_WALLET_PATH="$WALLET_PATH"
+      ;;
+    persistent_client)
+      CLIENT_WALLET_PATH="$DEMO_CLIENT_WALLET_PATH"
+      ;;
+    ephemeral_client)
+      CLIENT_WALLET_PATH="$LOG_DIR/client_ephemeral_$(date -u +"%Y%m%dT%H%M%SZ").json"
+      ;;
+    *)
+      DEMO_ERROR="invalid_demo_wallet_mode"
+      echo "invalid_demo_wallet_mode: $DEMO_WALLET_MODE (expected authority|persistent_client|ephemeral_client)"
+      exit 1
+      ;;
+  esac
 fi
 if [[ ! -f "$CLIENT_WALLET_PATH" ]]; then
+  mkdir -p "$(dirname "$CLIENT_WALLET_PATH")"
   solana-keygen new --no-bip39-passphrase -o "$CLIENT_WALLET_PATH" -f >/dev/null
 fi
 
@@ -215,6 +244,8 @@ DEMO_NAME="${DEMO_NAME:-${DEMO_LABEL}.dns}"
 
 echo "wallet: $WALLET_PUBKEY"
 echo "client_wallet: $CLIENT_WALLET_PUBKEY"
+echo "demo_wallet_mode: $DEMO_WALLET_MODE"
+echo "demo_interactions: $DEMO_INTERACTIONS"
 echo "rpc: $RPC_URL"
 echo "demo_name: $DEMO_NAME"
 if [[ "$ALLOW_LOCAL_FALLBACK" == "1" ]]; then
@@ -295,6 +326,8 @@ for CANDIDATE in "${PROGRAM_CANDIDATES[@]}"; do
     NAME="$DEMO_NAME" \
     DEST="$DEMO_DEST" \
     TTL="$DEMO_TTL" \
+    INTERACTIONS="$DEMO_INTERACTIONS" \
+    LIFECYCLE_MODE="$DEMO_WALLET_MODE" \
     npm -C services/tollbooth run flow:devnet 2>&1
   )"
   CANDIDATE_FLOW_RC=$?
@@ -334,6 +367,14 @@ fi
 EFFECTIVE_NAME="$(echo "$FLOW_OUT" | sed -n 's/^resolved_name:[[:space:]]*//p' | tail -n 1)"
 if [[ -z "$EFFECTIVE_NAME" ]]; then
   EFFECTIVE_NAME="$DEMO_NAME"
+fi
+TX_HISTORY_JSON="$(echo "$FLOW_OUT" | sed -n 's/^demo_tx_history:[[:space:]]*//p' | tail -n1)"
+WALLET_LIFECYCLE_JSON="$(echo "$FLOW_OUT" | sed -n 's/^wallet_lifecycle:[[:space:]]*//p' | tail -n1)"
+if command -v jq >/dev/null 2>&1 && [[ -n "$TX_HISTORY_JSON" ]] && jq -e . >/dev/null 2>&1 <<<"$TX_HISTORY_JSON"; then
+  LAST_ASSIGN_TX="$(jq -r '[.[] | select(.step=="assign_route")][-1].tx // empty' <<<"$TX_HISTORY_JSON")"
+  if [[ -n "$LAST_ASSIGN_TX" ]]; then
+    ASSIGN_TX="$LAST_ASSIGN_TX"
+  fi
 fi
 FLOW_OK=1
 if [[ $FLOW_CMD_RC -ne 0 ]] || ! echo "$FLOW_OUT" | rg -q "assign_route:\\s+200"; then
@@ -431,6 +472,25 @@ fi
 if [[ -n "${SELECTED_DDNS_PROGRAM_ID:-}" ]]; then
   echo "ddns_program_id_used: ${SELECTED_DDNS_PROGRAM_ID}"
 fi
+if command -v jq >/dev/null 2>&1 && [[ -n "$TX_HISTORY_JSON" ]] && jq -e . >/dev/null 2>&1 <<<"$TX_HISTORY_JSON"; then
+  HISTORY_PATH="$LOG_DIR/tx_history.json"
+  LIFECYCLE_PATH="$LOG_DIR/wallet_lifecycle.json"
+  printf '%s\n' "$TX_HISTORY_JSON" > "$HISTORY_PATH"
+  if [[ -n "$WALLET_LIFECYCLE_JSON" ]] && jq -e . >/dev/null 2>&1 <<<"$WALLET_LIFECYCLE_JSON"; then
+    printf '%s\n' "$WALLET_LIFECYCLE_JSON" > "$LIFECYCLE_PATH"
+  fi
+  echo "tx_history_path: $HISTORY_PATH"
+  if [[ -f "$LIFECYCLE_PATH" ]]; then
+    echo "wallet_lifecycle_path: $LIFECYCLE_PATH"
+  fi
+  echo "tx_history_summary:"
+  jq -r '
+    if (length == 0) then "- no tx events"
+    else
+      group_by(.step) | .[] | "- \(. [0].step): \((map(select(.tx != null)) | length)) tx"
+    end
+  ' "$HISTORY_PATH"
+fi
 if [[ $FLOW_OK -eq 0 ]]; then
   DEMO_ERROR="route_not_written"
   echo "blocker: tollbooth flow returned non-200; inspect $LOG_DIR/tollbooth.log and flow output above"
@@ -467,14 +527,21 @@ if [[ -z "$DEST_OUT" && $DNS_RC -eq 0 ]] && command -v jq >/dev/null 2>&1 && jq 
   RRSET_HASH_OUT="$(jq -r '.rrset_hash // empty' <<<"$DNS_JSON")"
 fi
 echo "tx_links:"
-if [[ -n "$CLAIM_TX" ]]; then
-  echo "- https://explorer.solana.com/tx/${CLAIM_TX}?cluster=devnet"
-fi
-if [[ -n "$ASSIGN_TX" ]]; then
-  echo "- https://explorer.solana.com/tx/${ASSIGN_TX}?cluster=devnet"
-fi
-if [[ -n "$ROUTE_PROOF_SIG" && "$ROUTE_PROOF_SIG" != "$ASSIGN_TX" && "$ROUTE_PROOF_SIG" != "$CLAIM_TX" ]]; then
-  echo "- https://explorer.solana.com/tx/${ROUTE_PROOF_SIG}?cluster=devnet"
+if command -v jq >/dev/null 2>&1 && [[ -n "$TX_HISTORY_JSON" ]] && jq -e . >/dev/null 2>&1 <<<"$TX_HISTORY_JSON"; then
+  jq -r '
+    map(.tx) | map(select(. != null and . != "")) | unique | .[] |
+    "- https://explorer.solana.com/tx/\(.)?cluster=devnet"
+  ' <<<"$TX_HISTORY_JSON"
+else
+  if [[ -n "$CLAIM_TX" ]]; then
+    echo "- https://explorer.solana.com/tx/${CLAIM_TX}?cluster=devnet"
+  fi
+  if [[ -n "$ASSIGN_TX" ]]; then
+    echo "- https://explorer.solana.com/tx/${ASSIGN_TX}?cluster=devnet"
+  fi
+  if [[ -n "$ROUTE_PROOF_SIG" && "$ROUTE_PROOF_SIG" != "$ASSIGN_TX" && "$ROUTE_PROOF_SIG" != "$CLAIM_TX" ]]; then
+    echo "- https://explorer.solana.com/tx/${ROUTE_PROOF_SIG}?cluster=devnet"
+  fi
 fi
 echo "=================================="
 if [[ $FLOW_OK -eq 1 && $TOLL_OK -eq 1 ]]; then

@@ -161,6 +161,10 @@ mapfile -t program_id_lines < <(
 mapfile -t tx_links_array < <(printf '%s\n' "$TX_LINKS" | sed '/^$/d')
 proof_name="$(sed -n 's/^name:[[:space:]]*//p' "$run_log" | tail -n 1)"
 proof_dest="$(sed -n 's/^resolved_dest:[[:space:]]*//p' "$run_log" | tail -n 1)"
+proof_wallet_mode="$(sed -n 's/^demo_wallet_mode:[[:space:]]*//p' "$run_log" | tail -n 1)"
+proof_interactions="$(sed -n 's/^demo_interactions:[[:space:]]*//p' "$run_log" | tail -n 1)"
+proof_tx_history_path="$(sed -n 's/^tx_history_path:[[:space:]]*//p' "$run_log" | tail -n 1)"
+proof_wallet_lifecycle_path="$(sed -n 's/^wallet_lifecycle_path:[[:space:]]*//p' "$run_log" | tail -n 1)"
 proof_confidence="$(sed -n 's/^confidence:[[:space:]]*//p' "$run_log" | tail -n 1)"
 proof_rrset_hash="$(sed -n 's/^rrset_hash:[[:space:]]*//p' "$run_log" | tail -n 1)"
 if [[ -z "$proof_confidence" ]]; then
@@ -182,8 +186,16 @@ fi
   echo
   echo "- name: \`${proof_name:-unknown}\`"
   echo "- dest: \`${proof_dest:-unknown}\`"
+  echo "- wallet_mode: \`${proof_wallet_mode:-authority}\`"
+  echo "- interactions: \`${proof_interactions:-1}\`"
   echo "- confidence: \`${proof_confidence:-unknown}\`"
   echo "- rrset_hash: \`${proof_rrset_hash:-unknown}\`"
+  if [[ -n "$proof_tx_history_path" ]]; then
+    echo "- tx_history_path: \`${proof_tx_history_path}\`"
+  fi
+  if [[ -n "$proof_wallet_lifecycle_path" ]]; then
+    echo "- wallet_lifecycle_path: \`${proof_wallet_lifecycle_path}\`"
+  fi
   echo
   echo "## Latest Tx Links"
   echo

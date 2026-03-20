@@ -25,3 +25,6 @@ jobs:
 
       - name: Verify signed release manifests
         run: npm run prod:release:verify
+
+      - name: Check Anchor program invariants
+        run: npm run prod:invariants:check

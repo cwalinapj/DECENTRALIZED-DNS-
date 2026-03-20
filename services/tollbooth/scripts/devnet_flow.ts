@@ -22,6 +22,19 @@ const DDNS_IDL_PATH =
   process.env.DDNS_IDL_PATH || path.resolve("..", "..", "solana", "target", "idl", "ddns_anchor.json");
 const TOLLBOOTH_KEYPAIR =
   process.env.TOLLBOOTH_KEYPAIR || (process.env.HOME ? `${process.env.HOME}/.config/solana/id.json` : "");
+const INTERACTIONS = Math.max(1, Number(process.env.INTERACTIONS || 1));
+const LIFECYCLE_MODE = process.env.LIFECYCLE_MODE || "single";
+
+type TxEvent = {
+  step: "claim_passport" | "assign_route";
+  interaction: number;
+  wallet: string;
+  tx: string | null;
+  mode: string;
+  status: number;
+  name: string;
+  dest?: string;
+};
 
 function loadKeypair(path: string): { pubkey58: string; secretKey: Uint8Array; keypair: Keypair } {
   const raw = JSON.parse(fs.readFileSync(path, "utf8"));
@@ -56,6 +69,12 @@ async function postJson(url: string, body: any) {
   }
 }
 
+function destForInteraction(baseDest: string, interaction: number): string {
+  if (INTERACTIONS <= 1) return baseDest;
+  const sep = baseDest.includes("?") ? "&" : "?";
+  return `${baseDest}${sep}i=${interaction}`;
+}
+
 function signChallenge(wallet: string, nonce: string, secretKey: Uint8Array): string {
   const msg = new TextEncoder().encode(`DDNS_CHALLENGE:${wallet}:${nonce}`);
   const sig = nacl.sign.detached(msg, secretKey);
@@ -71,7 +90,8 @@ async function directClaimAndAssign(
   desired: string,
   resolvedName: string,
   dest: string,
-  ttl: number
+  ttl: number,
+  txEvents: TxEvent[]
 ): Promise<void> {
   const ddns = createClient({
     rpcUrl: SOLANA_RPC_URL,
@@ -98,22 +118,46 @@ async function directClaimAndAssign(
     tx: claim.tx || null,
     mode: "direct_fallback",
   });
-
-  const assign = await setRoute(ddns, {
-    ownerWallet,
-    ownerSigner: owner,
-    fullNameLower: resolvedName,
-    dest,
-    ttl,
-  });
-  console.log("assign_route:", 200, {
-    ok: true,
-    tx: assign.tx,
-    slot: assign.slot,
-    route_record_pda: assign.routeRecordPda.toBase58(),
-    name_record_pda: assign.nameRecordPda.toBase58(),
+  txEvents.push({
+    step: "claim_passport",
+    interaction: 0,
+    wallet: ownerWallet.toBase58(),
+    tx: claim.tx || null,
     mode: "direct_fallback",
+    status: 200,
+    name: resolvedName,
   });
+
+  for (let i = 1; i <= INTERACTIONS; i += 1) {
+    const interactionDest = destForInteraction(dest, i);
+    const assign = await setRoute(ddns, {
+      ownerWallet,
+      ownerSigner: owner,
+      fullNameLower: resolvedName,
+      dest: interactionDest,
+      ttl,
+    });
+    console.log("assign_route:", 200, {
+      ok: true,
+      tx: assign.tx,
+      slot: assign.slot,
+      route_record_pda: assign.routeRecordPda.toBase58(),
+      name_record_pda: assign.nameRecordPda.toBase58(),
+      mode: "direct_fallback",
+      interaction: i,
+      dest: interactionDest,
+    });
+    txEvents.push({
+      step: "assign_route",
+      interaction: i,
+      wallet: ownerWallet.toBase58(),
+      tx: assign.tx || null,
+      mode: "direct_fallback",
+      status: 200,
+      name: resolvedName,
+      dest: interactionDest,
+    });
+  }
 }
 
 async function main() {
@@ -129,6 +173,7 @@ async function main() {
   const dest = process.env.DEST || "https://example.com";
   const ttl = Number(process.env.TTL || 300);
   let resolvedName = name.toLowerCase().replace(/\.+$/, "");
+  const txEvents: TxEvent[] = [];
 
   const before = await getJson(`${BASE}/v1/names?wallet=${client.pubkey58}`);
   const beforeNames = Array.isArray(before?.names) ? before.names : [];
@@ -152,7 +197,7 @@ async function main() {
     });
     if (claim.status !== 200 && accountNotSigner(JSON.stringify(claim.json))) {
       console.log("claim_passport_fallback:", "direct_onchain_signer");
-      await directClaimAndAssign(client.keypair, desired, resolvedName, dest, ttl);
+      await directClaimAndAssign(client.keypair, desired, resolvedName, dest, ttl, txEvents);
       const resolved = await getJson(
         `${BASE}/v1/resolve?wallet=${client.pubkey58}&name=${encodeURIComponent(resolvedName)}`
       );
@@ -162,12 +207,28 @@ async function main() {
       console.log("resolve:", JSON.stringify(resolved, null, 2));
       console.log("resolved_name:", resolvedName);
       console.log("resolved_dest:", resolved?.dest ?? null);
+      console.log("wallet_lifecycle:", JSON.stringify({
+        lifecycle_mode: LIFECYCLE_MODE,
+        interactions: INTERACTIONS,
+        wallet: client.pubkey58,
+        name: resolvedName,
+      }));
+      console.log("demo_tx_history:", JSON.stringify(txEvents));
       return;
     }
     console.log("claim_passport:", claim.status, claim.json);
     if (claim.status !== 200) {
       throw new Error(`claim_failed:${claim.status}:${JSON.stringify(claim.json)}`);
     }
+    txEvents.push({
+      step: "claim_passport",
+      interaction: 0,
+      wallet: client.pubkey58,
+      tx: (claim.json?.tx as string | null) ?? null,
+      mode: String(claim.json?.mode || "onchain"),
+      status: claim.status,
+      name: resolvedName,
+    });
     claimedNow = true;
     const label = String(claim.json?.label || desired).toLowerCase();
     resolvedName = label.endsWith(".dns") ? label : `${label}.dns`;
@@ -188,19 +249,36 @@ async function main() {
     }
   }
 
-  const ch2 = await getJson(`${BASE}/v1/challenge?wallet=${client.pubkey58}`);
-  const sig2 = signChallenge(client.pubkey58, ch2.nonce, client.secretKey);
-  const assign = await postJson(`${BASE}/v1/assign-route`, {
-    wallet_pubkey: client.pubkey58,
-    name: resolvedName,
-    dest,
-    ttl,
-    nonce: ch2.nonce,
-    signature: sig2,
-  });
-  console.log("assign_route:", assign.status, assign.json);
-  if (assign.status !== 200) {
-    throw new Error(`assign_failed:${assign.status}:${JSON.stringify(assign.json)}`);
+  for (let i = 1; i <= INTERACTIONS; i += 1) {
+    const interactionDest = destForInteraction(dest, i);
+    const ch2 = await getJson(`${BASE}/v1/challenge?wallet=${client.pubkey58}`);
+    const sig2 = signChallenge(client.pubkey58, ch2.nonce, client.secretKey);
+    const assign = await postJson(`${BASE}/v1/assign-route`, {
+      wallet_pubkey: client.pubkey58,
+      name: resolvedName,
+      dest: interactionDest,
+      ttl,
+      nonce: ch2.nonce,
+      signature: sig2,
+    });
+    console.log("assign_route:", assign.status, {
+      ...assign.json,
+      interaction: i,
+      dest: interactionDest,
+    });
+    txEvents.push({
+      step: "assign_route",
+      interaction: i,
+      wallet: client.pubkey58,
+      tx: (assign.json?.tx as string | null) ?? null,
+      mode: String(assign.json?.mode || "onchain"),
+      status: assign.status,
+      name: resolvedName,
+      dest: interactionDest,
+    });
+    if (assign.status !== 200) {
+      throw new Error(`assign_failed:${assign.status}:${JSON.stringify(assign.json)}`);
+    }
   }
 
   const resolved = await getJson(
@@ -212,6 +290,13 @@ async function main() {
   console.log("resolve:", JSON.stringify(resolved, null, 2));
   console.log("resolved_name:", resolvedName);
   console.log("resolved_dest:", resolved?.dest ?? null);
+  console.log("wallet_lifecycle:", JSON.stringify({
+    lifecycle_mode: LIFECYCLE_MODE,
+    interactions: INTERACTIONS,
+    wallet: client.pubkey58,
+    name: resolvedName,
+  }));
+  console.log("demo_tx_history:", JSON.stringify(txEvents));
 }
 
 main().catch((e) => {

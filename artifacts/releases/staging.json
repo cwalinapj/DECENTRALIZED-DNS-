@@ -2,8 +2,8 @@
   "manifest_version": "1",
   "environment": "staging",
   "status": "draft",
-  "generated_at_utc": "2026-03-20T11:02:28Z",
-  "git_commit": "081ed90615ce22d3d96bc8a1b1c7b6039bb0e8ea",
+  "generated_at_utc": "2026-03-20T11:11:43Z",
+  "git_commit": "485589d50ebfe686a2d63488b1bc8e83de314cbe",
   "programs": {
     "ddns_anchor": "REPLACE_ME_DDNS_ANCHOR",
     "ddns_registry": "REPLACE_ME_DDNS_REGISTRY",
@@ -18,17 +18,17 @@
     },
     {
       "path": "scripts/devnet_when_funded.sh",
-      "sha256": "6cc34436d740e8569ee23765b0fb5fc62fabb2ac9e82451726bcfcce37895d5c"
+      "sha256": "66c370f66ad46675880660baab53af4b3ab76edffcea2a93dccdf8b952600f5c"
     },
     {
       "path": "scripts/devnet_happy_path.sh",
-      "sha256": "879a4e9d74dd8a59f891095c78f8e9c6889a7b8155670f144276f27fa0c1eda9"
+      "sha256": "36db6898aa19897f7ccca097697f91ab0737305bc5f09aad817f0dcc6b24d5d1"
     }
   ],
   "signature": {
     "algorithm": "ed25519",
     "public_key_pem_path": "config/release_signing/release_manifest_ed25519_pub.pem",
-    "payload_sha256": "f8297af57ea264d5edc2ebc9a34559ad93cd86302f60abd11ce5e8bacd25fe24",
-    "signature_base64": "01KtP+Fw+X27KGQiUivZknELfWxh9N/+2nBhhLT/JNt7fDUKSAKGsXvEq3ozACnq/NkNer0ZsWDiHCN0lEYWBw=="
+    "payload_sha256": "5501a380d8afe4c446693ddaef5943863605070ee6c587aeed5f0ef92c57a5bc",
+    "signature_base64": "myNVZeh6ymYDnitJmT1ETa4oI6cpSe3YwGgbka/aiS6sdMarZ0Sh+KDLM1vRtjQat2ieccSzO2vykP1Fv0KmCg=="
   }
 }

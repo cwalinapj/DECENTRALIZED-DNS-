@@ -32,12 +32,14 @@ Acceptance criteria:
 
 - [x] Add sealed release manifests for each environment (`artifacts/releases/<env>.json`)
 - [x] Add artifact checksum + signature verification gate in CI
+- [x] Add repeated-wallet usage instrumentation command (`npm run mvp:usage:devnet`)
 - [ ] Add signed changelog verification in CI
 - [ ] Add branch/tag release policy doc with rollback checklist
 
 ## Phase 2: security + correctness hardening
 
 - [ ] External audit for Anchor programs and tollbooth/gateway critical paths
+- [x] Add pre-audit checklist and preflight command (`docs/AUDIT_PREPARATION.md`, `npm run prod:audit:preflight`)
 - [ ] Threat model document with abuse scenarios and mitigations
 - [ ] On-chain invariant suite for route ownership and passport constraints
 - [ ] Differential/chaos tests for gateway resolver behavior under upstream failures

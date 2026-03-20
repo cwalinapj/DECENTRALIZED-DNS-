@@ -41,8 +41,25 @@ What it runs:
 Expected final markers:
 - `✅ demo complete`
 - `✅ STRICT DEMO COMPLETE (ON-CHAIN)`
+- explorer tx links printed in run output
+- tx history artifact path printed (`tx_history_path:`)
 
 If underfunded, it exits with a shortfall report and `proof_bundle:` path.
+
+### Wallet lifecycle modes
+
+Default uses authority wallet as client signer. For production-style demo lifecycle coverage:
+
+```bash
+DEMO_WALLET_MODE=persistent_client DEMO_INTERACTIONS=3 npm run mvp:demo:devnet
+```
+
+Supported `DEMO_WALLET_MODE` values:
+- `authority`
+- `persistent_client`
+- `ephemeral_client`
+
+`DEMO_INTERACTIONS` controls repeated route-write interactions per run.
 
 ## 4) Inventory proof
 
@@ -62,3 +79,14 @@ PORT=8054 npm -C gateway run start
 curl 'http://localhost:8054/v1/resolve?name=netflix.com&type=A'
 curl 'http://localhost:8054/v1/resolve?name=example.dns&type=A'
 ```
+
+## 6) Repeated usage instrumentation
+
+```bash
+RUNS=3 DEMO_WALLET_MODE=persistent_client DEMO_INTERACTIONS=3 npm run mvp:usage:devnet
+```
+
+Expected:
+- writes `artifacts/devnet_usage_metrics_<timestamp>.json`
+- writes `artifacts/devnet_usage_metrics_<timestamp>.md`
+- shows repeated wallet interactions and explorer-linked tx history coverage
