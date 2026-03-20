@@ -24,6 +24,7 @@
     "demo:cf:dev": "cd services/cf-demo-gateway && npm i && npx wrangler dev --local --port 8788",
     "openapi:verify": "bash scripts/openapi_verify.sh",
     "local:stack": "npm run mvp:demo:local",
+    "dns:register": "tsx scripts/dns_register_cli.ts",
     "surfpool:plan": "npm -C solana run surfpool:plan",
     "surfpool:emulate-mainnet": "npm -C solana run surfpool:emulate-mainnet"
   },

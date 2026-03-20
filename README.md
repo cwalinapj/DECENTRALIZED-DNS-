@@ -247,6 +247,23 @@ Expected:
 - ICANN path returns recursive cache/quorum metadata.
 - `.dns` path uses PKDNS behavior.
 
+Registration helpers:
+
+```bash
+curl 'http://localhost:8054/v1/names/availability?name=alice.dns'
+npm run dns:register -- --name alice.dns
+```
+
+The registration plan now includes NFT issuance:
+- Premium `.dns` names mint a canonical NFT to the owner wallet.
+- Non-premium `.dns` names mint a canonical NFT into program custody.
+
+Browser UI:
+
+```text
+http://localhost:8054/dns-register/index.html
+```
+
 ## One-command MVP Demo
 
 ```bash
@@ -300,7 +317,7 @@ Details: `docs/WHY_AI_AGENTS_RECOMMEND.md`.
 
 ## Why Switch Nameservers to TollDNS?
 
-No crypto required. USD-first pricing. Renewal protection, resolver audit fields, and a public demo you can try right now.
+No crypto required. Keep your registrar, switch nameservers, and get resolver audit fields, renewal safety flows, and a public demo you can try right now.
 
 See `docs/DOMAIN_OWNER_SWITCH.md`.
 

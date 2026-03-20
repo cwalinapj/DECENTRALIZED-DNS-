@@ -34,7 +34,7 @@ async function main() {
       ddnsWatchdogPolicyProgramId: argv["ddns-watchdog-policy-program-id"] || undefined
     }),
     recursive: createRecursiveAdapter({
-      upstreamDohUrls: (process.env.UPSTREAM_DOH_URLS || "https://cloudflare-dns.com/dns-query,https://dns.google/dns-query")
+      upstreamDohUrls: (process.env.UPSTREAM_DOH_URLS || "https://cloudflare-dns.com/dns-query,https://dns.google/resolve")
         .split(",")
         .map((v) => v.trim())
         .filter(Boolean),

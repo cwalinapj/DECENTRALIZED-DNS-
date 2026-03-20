@@ -6,6 +6,7 @@ import { hideBin } from "yargs/helpers";
 import * as anchor from "@coral-xyz/anchor";
 import { Connection, Keypair, PublicKey, SystemProgram } from "@solana/web3.js";
 import BN from "bn.js";
+import { getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from "./lib/token.js";
 
 const DEFAULT_RPC =
   process.env.SOLANA_RPC_URL || process.env.ANCHOR_PROVIDER_URL || "https://api.devnet.solana.com";
@@ -258,6 +259,165 @@ async function main() {
           .rpc();
 
         console.log(JSON.stringify({ tx: sig, premiumPda: premiumPda.toBase58(), policyPda: policyPda.toBase58(), primaryPda: primaryPda.toBase58(), name }, null, 2));
+      }
+    )
+    .command(
+      "bind-premium-nft",
+      "Bind a premium .dns name to an NFT mint held by the current owner wallet",
+      (y) =>
+        y
+          .option("name", { type: "string", demandOption: true })
+          .option("mint", { type: "string", demandOption: true })
+          .option("token-account", { type: "string", demandOption: true })
+          .option("token-program", { type: "string", default: TOKEN_PROGRAM_ID.toBase58() }),
+      async (args) => {
+        const { program, payer, programId } = await loadProgram(args.rpc as string, args.wallet as string, args["program-id"] as string | undefined);
+        const name = normalizeFullName(String(args.name));
+        const nameHash = hashName(name);
+        const [premiumPda] = PublicKey.findProgramAddressSync([Buffer.from("premium"), Buffer.from(nameHash)], programId);
+        const [policyPda] = PublicKey.findProgramAddressSync([Buffer.from("parent_policy"), Buffer.from(nameHash)], programId);
+        const nftMint = new PublicKey(String(args.mint));
+        const ownerNftAccount = new PublicKey(String(args["token-account"]));
+        const tokenProgram = new PublicKey(String(args["token-program"]));
+
+        const sig = await program.methods
+          .bindPremiumNft()
+          .accounts({
+            premiumName: premiumPda,
+            parentPolicy: policyPda,
+            nftMint,
+            ownerNftAccount,
+            currentOwner: payer.publicKey,
+            tokenProgram,
+          })
+          .rpc();
+
+        console.log(
+          JSON.stringify(
+            {
+              tx: sig,
+              name,
+              premiumPda: premiumPda.toBase58(),
+              policyPda: policyPda.toBase58(),
+              nftMint: nftMint.toBase58(),
+              ownerNftAccount: ownerNftAccount.toBase58(),
+              tokenProgram: tokenProgram.toBase58(),
+            },
+            null,
+            2
+          )
+        );
+      }
+    )
+    .command(
+      "issue-premium-nft",
+      "Mint the canonical premium-name NFT to the current premium owner wallet",
+      (y) => y.option("name", { type: "string", demandOption: true }),
+      async (args) => {
+        const { program, payer, programId } = await loadProgram(args.rpc as string, args.wallet as string, args["program-id"] as string | undefined);
+        const name = normalizeFullName(String(args.name));
+        const nameHash = hashName(name);
+        const [premiumPda] = PublicKey.findProgramAddressSync([Buffer.from("premium"), Buffer.from(nameHash)], programId);
+        const [nftMintPda] = PublicKey.findProgramAddressSync([Buffer.from("premium_nft_mint"), Buffer.from(nameHash)], programId);
+        const [nftAuthorityPda] = PublicKey.findProgramAddressSync([Buffer.from("nft_authority")], programId);
+        const ownerNftAccount = getAssociatedTokenAddressSync(nftMintPda, payer.publicKey);
+
+        const sig = await program.methods
+          .issuePremiumNft(Array.from(nameHash))
+          .accounts({
+            premiumName: premiumPda,
+            nftMint: nftMintPda,
+            ownerNftAccount,
+            nftAuthority: nftAuthorityPda,
+            owner: payer.publicKey,
+            tokenProgram: TOKEN_PROGRAM_ID,
+            associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
+            systemProgram: SystemProgram.programId,
+          })
+          .rpc();
+
+        console.log(JSON.stringify({ tx: sig, name, premiumPda: premiumPda.toBase58(), nftMint: nftMintPda.toBase58(), ownerNftAccount: ownerNftAccount.toBase58() }, null, 2));
+      }
+    )
+    .command(
+      "sync-premium-owner",
+      "Sync premium .dns ownership from the current holder of the bound NFT",
+      (y) =>
+        y
+          .option("name", { type: "string", demandOption: true })
+          .option("mint", { type: "string", demandOption: true })
+          .option("token-account", { type: "string", demandOption: true })
+          .option("token-program", { type: "string", default: TOKEN_PROGRAM_ID.toBase58() }),
+      async (args) => {
+        const { program, programId } = await loadProgram(args.rpc as string, args.wallet as string, args["program-id"] as string | undefined);
+        const name = normalizeFullName(String(args.name));
+        const nameHash = hashName(name);
+        const [premiumPda] = PublicKey.findProgramAddressSync([Buffer.from("premium"), Buffer.from(nameHash)], programId);
+        const [policyPda] = PublicKey.findProgramAddressSync([Buffer.from("parent_policy"), Buffer.from(nameHash)], programId);
+        const nftMint = new PublicKey(String(args.mint));
+        const holderNftAccount = new PublicKey(String(args["token-account"]));
+        const tokenProgram = new PublicKey(String(args["token-program"]));
+
+        const sig = await program.methods
+          .syncPremiumOwnerFromNft()
+          .accounts({
+            premiumName: premiumPda,
+            parentPolicy: policyPda,
+            nftMint,
+            holderNftAccount,
+            tokenProgram,
+          })
+          .rpc();
+
+        console.log(
+          JSON.stringify(
+            {
+              tx: sig,
+              name,
+              premiumPda: premiumPda.toBase58(),
+              policyPda: policyPda.toBase58(),
+              nftMint: nftMint.toBase58(),
+              holderNftAccount: holderNftAccount.toBase58(),
+              tokenProgram: tokenProgram.toBase58(),
+            },
+            null,
+            2
+          )
+        );
+      }
+    )
+    .command(
+      "issue-sub-nft",
+      "Mint the canonical non-premium .dns NFT into program custody for a subdomain owner",
+      (y) => y.option("label", { type: "string", demandOption: true }).option("parent", { type: "string", default: "user.dns" }),
+      async (args) => {
+        const { program, payer, programId } = await loadProgram(args.rpc as string, args.wallet as string, args["program-id"] as string | undefined);
+        const parent = normalizeFullName(String(args.parent));
+        const label = normalizeLabel(String(args.label));
+        const parentHash = hashName(parent);
+        const labelHash = hashLabel(label);
+        const [subPda] = PublicKey.findProgramAddressSync([Buffer.from("sub"), Buffer.from(parentHash), Buffer.from(labelHash)], programId);
+        const [nftMintPda] = PublicKey.findProgramAddressSync([Buffer.from("sub_nft_mint"), Buffer.from(parentHash), Buffer.from(labelHash)], programId);
+        const [nftAuthorityPda] = PublicKey.findProgramAddressSync([Buffer.from("nft_authority")], programId);
+        const [nftCustodyAuthorityPda] = PublicKey.findProgramAddressSync([Buffer.from("nft_custody_authority")], programId);
+        const custodyNftAccount = getAssociatedTokenAddressSync(nftMintPda, nftCustodyAuthorityPda, true);
+
+        const sig = await program.methods
+          .issueSubdomainNft(Array.from(parentHash), Array.from(labelHash))
+          .accounts({
+            subName: subPda,
+            nftMint: nftMintPda,
+            nftAuthority: nftAuthorityPda,
+            nftCustodyAuthority: nftCustodyAuthorityPda,
+            custodyNftAccount,
+            owner: payer.publicKey,
+            tokenProgram: TOKEN_PROGRAM_ID,
+            associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
+            systemProgram: SystemProgram.programId,
+          })
+          .rpc();
+
+        console.log(JSON.stringify({ tx: sig, parent, label, subPda: subPda.toBase58(), nftMint: nftMintPda.toBase58(), custodyNftAccount: custodyNftAccount.toBase58(), custodyAuthority: nftCustodyAuthorityPda.toBase58() }, null, 2));
       }
     )
     .command(

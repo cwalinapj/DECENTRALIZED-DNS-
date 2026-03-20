@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TollDNS .dns Registration</title>
+    <style>
+      :root {
+        --bg: #f4efe7;
+        --card: #fffdf8;
+        --ink: #1d2b26;
+        --muted: #5f6f67;
+        --accent: #136f63;
+        --accent-2: #c84c09;
+        --border: #d9d0c3;
+        --ok: #1d7a46;
+        --warn: #a2560a;
+        --bad: #a12b2b;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: Georgia, "Times New Roman", serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at top left, rgba(19, 111, 99, 0.12), transparent 30%),
+          radial-gradient(circle at top right, rgba(200, 76, 9, 0.12), transparent 28%),
+          linear-gradient(180deg, #fbf7f1 0%, var(--bg) 100%);
+      }
+      .wrap {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 28px 18px 48px;
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 2.4rem;
+        line-height: 1.05;
+      }
+      .sub {
+        max-width: 760px;
+        margin: 0 0 18px;
+        color: var(--muted);
+        font-size: 1rem;
+      }
+      .banner {
+        margin: 0 0 18px;
+        padding: 12px 14px;
+        border-radius: 14px;
+        border: 1px solid rgba(200, 76, 9, 0.2);
+        background: rgba(200, 76, 9, 0.08);
+        color: #783606;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1.3fr 1fr;
+        gap: 16px;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 16px;
+        box-shadow: 0 10px 30px rgba(29, 43, 38, 0.06);
+      }
+      .card h2 {
+        margin: 0 0 10px;
+        font-size: 1.15rem;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .row.single {
+        grid-template-columns: 1fr;
+      }
+      label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+      input, textarea, button {
+        width: 100%;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        padding: 11px 12px;
+        font: inherit;
+      }
+      textarea {
+        min-height: 76px;
+        resize: vertical;
+      }
+      button {
+        cursor: pointer;
+        background: var(--accent);
+        color: #fff;
+        border-color: var(--accent);
+      }
+      button.secondary {
+        background: transparent;
+        color: var(--ink);
+      }
+      .actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 12px;
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+      .stat {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 12px;
+        background: rgba(255,255,255,0.6);
+      }
+      .k {
+        font-size: 0.78rem;
+        color: var(--muted);
+        margin-bottom: 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+      .v {
+        font-size: 1rem;
+        font-weight: 700;
+        word-break: break-word;
+      }
+      .ok { color: var(--ok); }
+      .warn { color: var(--warn); }
+      .bad { color: var(--bad); }
+      pre {
+        margin: 0;
+        overflow: auto;
+        padding: 12px;
+        border-radius: 14px;
+        background: #19231f;
+        color: #ecf6f2;
+        font-size: 12px;
+      }
+      .stack {
+        display: grid;
+        gap: 12px;
+      }
+      @media (max-width: 860px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+        .row, .actions, .stats {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Register a .dns name</h1>
+      <p class="sub">
+        This UI uses the repo's current `ddns_names` flow. It can check whether the names program is deployed and configured on the selected RPC,
+        preview the exact wallet-backed commands, and optionally execute registration if the gateway is explicitly configured for writes.
+        Premium names mint a canonical NFT to the owner wallet; non-premium names mint a canonical NFT into program custody.
+      </p>
+      <div class="banner">
+        Current framework rule: browser preview is always safe. Server-side execution only works when `DDNS_NAMES_WRITE_ENABLED=1` and an admin token is supplied.
+      </div>
+
+      <div class="grid">
+        <section class="card">
+          <h2>Registration</h2>
+          <div class="row">
+            <div>
+              <label for="name">Name</label>
+              <input id="name" value="alice.dns" placeholder="alice.dns or alice.user.dns" />
+            </div>
+            <div>
+              <label for="apiBase">API Base</label>
+              <input id="apiBase" value="http://localhost:8054" placeholder="http://localhost:8054" />
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label for="setPrimary">Set as primary after registration</label>
+              <input id="setPrimary" value="true" placeholder="true or false" />
+            </div>
+            <div>
+              <label for="adminToken">Admin token for execute</label>
+              <input id="adminToken" value="" placeholder="optional; required only for execute" />
+            </div>
+          </div>
+          <div class="actions">
+            <button id="checkBtn">Check availability</button>
+            <button class="secondary" id="previewBtn">Preview registration</button>
+            <button class="secondary" id="executeBtn">Execute registration</button>
+            <button class="secondary" id="copyCmdBtn">Copy commands</button>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Runtime</h2>
+          <div class="stats">
+            <div class="stat"><div class="k">Program ID</div><div class="v" id="programId">-</div></div>
+            <div class="stat"><div class="k">Wallet</div><div class="v" id="walletPubkey">-</div></div>
+            <div class="stat"><div class="k">Program Deployed</div><div class="v" id="programDeployed">-</div></div>
+            <div class="stat"><div class="k">Names Config</div><div class="v" id="configReady">-</div></div>
+            <div class="stat"><div class="k">IDL Present</div><div class="v" id="idlPresent">-</div></div>
+            <div class="stat"><div class="k">Server Write Mode</div><div class="v" id="writeEnabled">-</div></div>
+          </div>
+        </section>
+      </div>
+
+      <div class="grid" style="margin-top: 16px;">
+        <section class="card stack">
+          <div>
+            <h2>Availability</h2>
+            <div class="stats">
+              <div class="stat"><div class="k">Mode</div><div class="v" id="mode">-</div></div>
+              <div class="stat"><div class="k">Available</div><div class="v" id="available">-</div></div>
+              <div class="stat"><div class="k">Reason</div><div class="v" id="reason">-</div></div>
+              <div class="stat"><div class="k">NFT Custody</div><div class="v" id="nftMode">-</div></div>
+              <div class="stat"><div class="k">PDA Summary</div><div class="v" id="pdaSummary">-</div></div>
+            </div>
+          </div>
+          <div>
+            <h2>Command Preview</h2>
+            <textarea id="commands" readonly placeholder="No preview yet."></textarea>
+          </div>
+        </section>
+
+        <section class="card stack">
+          <div>
+            <h2>Raw Response</h2>
+            <pre id="raw">No request yet.</pre>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+
+      function parseBool(value) {
+        return String(value || "").trim().toLowerCase() !== "false";
+      }
+
+      function setValue(id, value, cls = "") {
+        const node = $(id);
+        node.className = `v ${cls}`.trim();
+        node.textContent = value == null || value === "" ? "-" : String(value);
+      }
+
+      function renderAvailability(payload) {
+        const availability = payload.availability || payload;
+        setValue("programId", availability.names_program_id || "-");
+        setValue("walletPubkey", availability.wallet_pubkey || "-");
+        setValue("programDeployed", availability.names_program_deployed ? "yes" : "no", availability.names_program_deployed ? "ok" : "warn");
+        setValue("configReady", availability.names_config_initialized ? "yes" : "no", availability.names_config_initialized ? "ok" : "warn");
+        setValue("idlPresent", availability.idl_present ? "yes" : "no", availability.idl_present ? "ok" : "warn");
+        setValue("writeEnabled", availability.write_enabled ? "enabled" : "preview only", availability.write_enabled ? "ok" : "warn");
+        setValue("mode", availability.mode || "-");
+        setValue("available", availability.available ? "yes" : "no", availability.available ? "ok" : "warn");
+        setValue("reason", availability.reason || "-", availability.available ? "ok" : "warn");
+        setValue("nftMode", availability.nft_mode === "wallet" ? "owner wallet" : availability.nft_mode === "program_custody" ? "program custody" : "-");
+        const pdaKeys = Object.keys(availability.pdas || {});
+        setValue("pdaSummary", pdaKeys.length ? pdaKeys.join(", ") : "-");
+      }
+
+      async function requestJson(url, options = {}) {
+        const res = await fetch(url, options);
+        const body = await res.json().catch(() => ({}));
+        $("raw").textContent = JSON.stringify(body, null, 2);
+        if (!res.ok) throw body;
+        return body;
+      }
+
+      async function checkAvailability() {
+        const apiBase = $("apiBase").value.trim();
+        const name = $("name").value.trim();
+        const body = await requestJson(`${apiBase}/v1/names/availability?name=${encodeURIComponent(name)}`);
+        renderAvailability(body);
+        $("commands").value = (body.command_preview || []).join("\n");
+        return body;
+      }
+
+      async function previewRegistration() {
+        const apiBase = $("apiBase").value.trim();
+        const name = $("name").value.trim();
+        const set_primary = parseBool($("setPrimary").value);
+        const body = await requestJson(`${apiBase}/v1/names/register`, {
+          method: "POST",
+          headers: { "content-type": "application/json", accept: "application/json" },
+          body: JSON.stringify({ name, set_primary, execute: false })
+        });
+        if (body.availability) renderAvailability(body);
+        $("commands").value = (body.plan?.command_preview || []).join("\n");
+      }
+
+      async function executeRegistration() {
+        const apiBase = $("apiBase").value.trim();
+        const name = $("name").value.trim();
+        const set_primary = parseBool($("setPrimary").value);
+        const token = $("adminToken").value.trim();
+        const headers = {
+          "content-type": "application/json",
+          accept: "application/json"
+        };
+        if (token) headers["x-admin-token"] = token;
+        const body = await requestJson(`${apiBase}/v1/names/register`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ name, set_primary, execute: true })
+        });
+        if (body.availability) renderAvailability(body);
+        $("commands").value = (body.command_preview || body.plan?.command_preview || []).join("\n");
+      }
+
+      $("checkBtn").addEventListener("click", () => checkAvailability().catch((err) => console.error(err)));
+      $("previewBtn").addEventListener("click", () => previewRegistration().catch((err) => console.error(err)));
+      $("executeBtn").addEventListener("click", () => executeRegistration().catch((err) => console.error(err)));
+      $("copyCmdBtn").addEventListener("click", async () => {
+        await navigator.clipboard.writeText($("commands").value || "");
+      });
+
+      checkAvailability().catch(() => {});
+    </script>
+  </body>
+</html>

@@ -36,7 +36,7 @@ export function buildDefaultAdapters(cfg: AdapterRegistryConfig): Adapter[] {
       ddnsWatchdogPolicyProgramId: cfg.policyProgramId
     }),
     createRecursiveAdapter({
-      upstreamDohUrls: (process.env.UPSTREAM_DOH_URLS || "https://cloudflare-dns.com/dns-query,https://dns.google/dns-query")
+      upstreamDohUrls: (process.env.UPSTREAM_DOH_URLS || "https://cloudflare-dns.com/dns-query,https://dns.google/resolve")
         .split(",")
         .map((v) => v.trim())
         .filter(Boolean),

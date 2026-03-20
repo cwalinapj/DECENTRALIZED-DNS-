@@ -1,9 +1,10 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import { Keypair, PublicKey } from "@solana/web3.js";
+import { Keypair, PublicKey, Transaction, TransactionInstruction } from "@solana/web3.js";
 import { expect } from "chai";
 import BN from "bn.js";
 import crypto from "node:crypto";
+import { createMint, getOrCreateAssociatedTokenAccount, mintTo, TOKEN_PROGRAM_ID } from "../scripts/lib/token.js";
 
 function normalize(name: string): string {
   return name.trim().toLowerCase().replace(/\.+$/, "");
@@ -15,6 +16,21 @@ function hashName(name: string): Buffer {
 
 async function sleep(ms: number) {
   await new Promise((r) => setTimeout(r, ms));
+}
+
+function createSplTransferInstruction(source: PublicKey, destination: PublicKey, authority: PublicKey, amount: bigint) {
+  const data = Buffer.alloc(9);
+  data.writeUInt8(3, 0);
+  data.writeBigUInt64LE(amount, 1);
+  return new TransactionInstruction({
+    programId: TOKEN_PROGRAM_ID,
+    keys: [
+      { pubkey: source, isSigner: false, isWritable: true },
+      { pubkey: destination, isSigner: false, isWritable: true },
+      { pubkey: authority, isSigner: true, isWritable: false },
+    ],
+    data,
+  });
 }
 
 describe("ddns_names premium auctions", () => {
@@ -225,5 +241,124 @@ describe("ddns_names premium auctions", () => {
 
     const threePremiumAcct: any = await names.account.premiumName.fetch(threePremium);
     expect(new PublicKey(threePremiumAcct.owner).equals(bidder2.publicKey)).to.equal(true);
+  });
+
+  it("binds premium ownership to an NFT holder wallet", async () => {
+    const authority = provider.wallet.publicKey;
+    const payer = (provider.wallet as any).payer;
+    const owner = Keypair.generate();
+    const newOwner = Keypair.generate();
+    await provider.connection.requestAirdrop(owner.publicKey, 3e9);
+    await provider.connection.requestAirdrop(newOwner.publicKey, 3e9);
+    await sleep(1500);
+
+    const [namesConfig] = PublicKey.findProgramAddressSync([Buffer.from("names_config")], names.programId);
+    const [premiumConfig] = PublicKey.findProgramAddressSync([Buffer.from("premium_config")], names.programId);
+
+    if (!(await names.account.namesConfig.fetchNullable(namesConfig))) {
+      await names.methods
+        .initNamesConfig(authority, "user.dns", new BN(100_000_000), new BN(0), true, true)
+        .accounts({
+          config: namesConfig,
+          authority,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .rpc();
+    }
+
+    if (!(await names.account.premiumConfig.fetchNullable(premiumConfig))) {
+      await names.methods
+        .initPremiumConfig(authority, authority, new BN(50_000_000), new BN(2), new BN(0), true)
+        .accounts({
+          premiumConfig,
+          authority,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .rpc();
+    }
+
+    const token = owner.publicKey
+      .toBase58()
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "")
+      .slice(0, 6);
+    const name = `${token.slice(0, 5)}.dns`;
+    const nameHash = hashName(name);
+    const [premiumPda] = PublicKey.findProgramAddressSync([Buffer.from("premium"), nameHash], names.programId);
+    const [policyPda] = PublicKey.findProgramAddressSync([Buffer.from("parent_policy"), nameHash], names.programId);
+    const [ownerPrimary] = PublicKey.findProgramAddressSync([Buffer.from("primary"), owner.publicKey.toBuffer()], names.programId);
+
+    await names.methods
+      .purchasePremium(name, [...nameHash])
+      .accounts({
+        config: namesConfig,
+        premiumConfig,
+        treasury: authority,
+        premiumName: premiumPda,
+        parentPolicy: policyPda,
+        primary: ownerPrimary,
+        owner: owner.publicKey,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([owner])
+      .rpc();
+
+    const nftMint = await createMint(provider.connection, payer, authority, null, 0);
+    const ownerAta = await getOrCreateAssociatedTokenAccount(provider.connection, payer, nftMint, owner.publicKey);
+    const newOwnerAta = await getOrCreateAssociatedTokenAccount(provider.connection, payer, nftMint, newOwner.publicKey);
+    await mintTo(provider.connection, payer, nftMint, ownerAta.address, payer, 1n);
+
+    await names.methods
+      .bindPremiumNft()
+      .accounts({
+        premiumName: premiumPda,
+        parentPolicy: policyPda,
+        nftMint,
+        ownerNftAccount: ownerAta.address,
+        currentOwner: owner.publicKey,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .signers([owner])
+      .rpc();
+
+    let transferBlocked = false;
+    try {
+      await names.methods
+        .transferPremium()
+        .accounts({
+          premiumName: premiumPda,
+          parentPolicy: policyPda,
+          currentOwner: owner.publicKey,
+          newOwner: newOwner.publicKey,
+        })
+        .signers([owner])
+        .rpc();
+    } catch {
+      transferBlocked = true;
+    }
+    expect(transferBlocked).to.equal(true);
+
+    await provider.sendAndConfirm(
+      new Transaction().add(createSplTransferInstruction(ownerAta.address, newOwnerAta.address, owner.publicKey, 1n)),
+      [owner]
+    );
+
+    await names.methods
+      .syncPremiumOwnerFromNft()
+      .accounts({
+        premiumName: premiumPda,
+        parentPolicy: policyPda,
+        nftMint,
+        holderNftAccount: newOwnerAta.address,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .rpc();
+
+    const premiumAcct: any = await names.account.premiumName.fetch(premiumPda);
+    const policyAcct: any = await names.account.parentPolicy.fetch(policyPda);
+    expect(new PublicKey(premiumAcct.owner).equals(newOwner.publicKey)).to.equal(true);
+    expect(new PublicKey(policyAcct.parentOwner).equals(newOwner.publicKey)).to.equal(true);
+    expect(new PublicKey(premiumAcct.nftMint).equals(nftMint)).to.equal(true);
+    expect(premiumAcct.nftBound).to.equal(true);
   });
 });

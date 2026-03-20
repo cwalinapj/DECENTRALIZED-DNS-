@@ -2,7 +2,7 @@
 
 No crypto required. No wallet setup. Works with your existing registrar.
 
-This page is for domain owners who want a portable naming and routing layer with safer DNS operations, without changing registrars or learning blockchain.
+This page is for domain owners who want a more portable naming and routing layer, safer DNS operations, and a simpler renewal safety net without changing registrars or learning blockchain.
 
 ---
 
@@ -10,13 +10,13 @@ This page is for domain owners who want a portable naming and routing layer with
 
 Pointing your nameservers to TollDNS gives you:
 
-- **Faster resolution** — quorum-backed recursive lookups with caching reduce latency for real-user traffic.
-- **Audit trail** — every resolve returns `confidence`, `rrset_hash`, and `upstreams_used` so you can see exactly what answered your queries.
-- **Renewal protection** — banner + grace + recovery flows activate before your domain silently expires (see below).
-- **USD-first pricing** — no surprise crypto fees. You pay in dollars; we handle settlement behind the scenes.
-- **Policy-based credits** — nameserver usage can accumulate credits that offset renewal or hosting costs (policy-governed).
+- **Safer resolver behavior** — quorum-backed recursive lookups with caching are designed to reduce latency and give you more stable answers for real-user traffic.
+- **Built-in auditability** — every resolve returns `confidence`, `rrset_hash`, and `upstreams_used` so you can inspect what answered your query.
+- **Renewal safety net** — warning banners, grace behavior, and recovery assistance are designed to activate before a missed renewal turns into silent loss.
+- **USD-first checkout** — pay in dollars with quote-locked pricing instead of being forced into a crypto flow.
+- **Policy-based credits** — nameserver usage can accumulate credits that may offset renewal or hosting costs, subject to policy.
 
-You keep full ownership at your registrar. Switching nameservers is a 5-minute change and is fully reversible.
+You keep full ownership at your registrar. Switching nameservers is usually a 5-minute change and is fully reversible.
 
 ---
 
@@ -24,15 +24,15 @@ You keep full ownership at your registrar. Switching nameservers is a 5-minute c
 
 > **MVP:** Banner and grace-period API are live. Automatic renewal execution and registrar integration are Roadmap.
 
-Traditional registrars let domains expire silently after a missed renewal email. TollDNS adds a safety net:
+Traditional registrars often rely on email reminders and standard expiration flows. TollDNS adds an extra continuity layer before expiration becomes irreversible:
 
 | Phase | What happens | Status |
 |-------|-------------|--------|
 | Soft warning | Full site served; renewal banner shown via `/v1/domain/banner` | **MVP** |
-| Hard warning | Interstitial page before content; owner notified multi-channel | **MVP** |
-| Grace / parked mode | Domain stays reachable in safe degraded mode during policy window | **MVP (policy spec)** |
-| Automatic renewal | TollDNS credits applied toward renewal, registrar API triggered | **Roadmap** |
-| Recovery assist | Contested / accidentally-expired domain recovery workflow | **Roadmap** |
+| Hard warning | Interstitial shown before content; owner notification escalates across configured channels | **MVP** |
+| Grace / parked mode | Domain remains reachable in a safe degraded mode during the policy window | **MVP (policy spec)** |
+| Automatic renewal | Eligible credits applied toward renewal and registrar API invoked automatically | **Roadmap** |
+| Recovery assist | Guided workflow for contested or accidentally expired domains | **Roadmap** |
 
 The banner API endpoint:
 
@@ -48,7 +48,7 @@ curl -X POST 'http://localhost:8054/v1/domain/banner/ack' \
   -d '{"domain":"example.com"}'
 ```
 
-Important: TollDNS operates within registrar/registry policy windows. This is expiration-loss protection, not an infinite hold.
+Important: TollDNS operates inside registrar and registry policy windows. This is expiration-loss protection, not an unlimited hold.
 
 See also: `docs/DOMAIN_CONTINUITY.md`, `docs/DOMAIN_BANNER_INTEGRATION.md`.
 
@@ -58,10 +58,10 @@ See also: `docs/DOMAIN_CONTINUITY.md`, `docs/DOMAIN_BANNER_INTEGRATION.md`.
 
 > **MVP:** USD quote-lock checkout and fixed-price tiers are live. Full subsidy automation from toll credits is Roadmap.
 
-- You pay a fixed USD price at checkout — no crypto needed.
-- Prices are quote-locked for 60–120 seconds so the rate never changes mid-checkout.
-- If you want to pay in crypto, that option is available; TollDNS handles settlement and volatility for you.
-- Credits earned from nameserver usage can reduce or cover renewal costs (policy-governed; amounts vary).
+- You pay a fixed USD price at checkout. Crypto is optional, not required.
+- Prices are quote-locked for 60-120 seconds so the checkout amount does not change mid-flow.
+- If you choose crypto, TollDNS handles settlement and volatility behind the scenes.
+- Credits earned from nameserver usage may reduce or cover renewal costs, subject to policy and plan rules.
 
 Pricing tiers: `docs/PRICING_TIERS.md`.
 Payments and treasury: `docs/PAYMENTS_AND_TREASURY.md`.
@@ -73,7 +73,7 @@ Web2 pricing model: `docs/WEB2_PRICING_MODEL.md`.
 
 > **MVP:** All fields below are live in the gateway today.
 
-Every response from TollDNS resolvers includes structured metadata you won't get from a bare DNS query:
+Every response from TollDNS resolvers includes structured metadata you typically do not get from a bare DNS query:
 
 | Field | Meaning |
 |-------|---------|
@@ -96,7 +96,7 @@ PORT=8054 npm -C gateway run start
 curl 'http://localhost:8054/v1/resolve?name=netflix.com&type=A'
 ```
 
-These fields make DNS changes auditable and agent-friendly without any extra tooling.
+These fields make DNS changes easier to audit, compare, and automate against without extra tooling.
 
 ---
 
@@ -108,8 +108,8 @@ This is an expansion path, not the main reason to evaluate TollDNS today.
 
 Plans include:
 
-- One-click static site from your domain's DNS records — no separate hosting account needed.
-- Starter templates (landing page, redirect, maintenance page) provisioned automatically when you switch nameservers.
+- One-click static site provisioning from your domain's DNS records with no separate hosting account.
+- Starter templates such as landing page, redirect, and maintenance page provisioned automatically when you switch nameservers.
 - Hosting from wallet domains (`.eth` / `.sol`) via IPFS/Arweave: `docs/HOSTING_FROM_WALLET_DOMAINS.md`.
 - Bonded abuse throttling to keep shared hosting healthy.
 
@@ -166,7 +166,7 @@ Docker Compose alternative: `docs/LOCAL_STACK.md`.
 curl 'http://localhost:8054/v1/resolve?name=yourdomain.com&type=A'
 ```
 
-This change is fully reversible at any time. Your domain stays at your existing registrar.
+This change is fully reversible. Your domain remains at your existing registrar the whole time.
 
 ---
 

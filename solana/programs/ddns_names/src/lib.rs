@@ -2,6 +2,9 @@
 
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::system_instruction;
+use anchor_spl::associated_token::AssociatedToken;
+use anchor_spl::token::{self, Mint as SplMint, MintTo, Token, TokenAccount as SplTokenAccount};
+use anchor_spl::token_interface::{Mint, TokenAccount, TokenInterface};
 use sha2::{Digest, Sha256};
 
 const MAX_PARENT_ZONE: usize = 64;
@@ -21,9 +24,13 @@ const SEED_ESCROW_VAULT: &[u8] = b"escrow_vault";
 const SEED_SUB: &[u8] = b"sub";
 const SEED_PRIMARY: &[u8] = b"primary";
 const SEED_POLICY: &[u8] = b"parent_policy";
+const SEED_NFT_AUTHORITY: &[u8] = b"nft_authority";
+const SEED_NFT_CUSTODY_AUTHORITY: &[u8] = b"nft_custody_authority";
+const SEED_PREMIUM_NFT_MINT: &[u8] = b"premium_nft_mint";
+const SEED_SUB_NFT_MINT: &[u8] = b"sub_nft_mint";
 
 // `solana-keygen pubkey solana/target/deploy/ddns_names-keypair.json`
-declare_id!("BYQ68JftwZD2JEMXLAiZYYGMr6AD9cD9XznntA4v6Mjj");
+declare_id!("4V5WcPvxJTkRQv2ps8ueBkqPiNcy8HUMz4FS9i4hePA8");
 
 #[program]
 pub mod ddns_names {
@@ -100,6 +107,8 @@ pub mod ddns_names {
         sub.parent_owner = Pubkey::default();
         sub.transfers_enabled = false;
         sub.created_at = Clock::get()?.unix_timestamp;
+        sub.nft_mint = Pubkey::default();
+        sub.nft_custody_account = Pubkey::default();
         sub.bump = ctx.bumps.sub_name;
 
         upsert_primary_if_empty(
@@ -148,9 +157,11 @@ pub mod ddns_names {
         let premium = &mut ctx.accounts.premium_name;
         premium.name_hash = name_hash;
         premium.owner = ctx.accounts.owner.key();
+        premium.nft_mint = Pubkey::default();
         premium.purchase_lamports = cfg.premium_price_lamports;
         premium.created_at = Clock::get()?.unix_timestamp;
         premium.transferable = true;
+        premium.nft_bound = false;
         premium.bump = ctx.bumps.premium_name;
 
         let policy = &mut ctx.accounts.parent_policy;
@@ -347,9 +358,11 @@ pub mod ddns_names {
         let premium = &mut ctx.accounts.premium_name;
         premium.name_hash = name_hash;
         premium.owner = ctx.accounts.winner.key();
+        premium.nft_mint = Pubkey::default();
         premium.purchase_lamports = auction.highest_bid_lamports;
         premium.created_at = Clock::get()?.unix_timestamp;
         premium.transferable = true;
+        premium.nft_bound = false;
         premium.bump = ctx.bumps.premium_name;
 
         let policy = &mut ctx.accounts.parent_policy;
@@ -373,11 +386,113 @@ pub mod ddns_names {
     pub fn transfer_premium(ctx: Context<TransferPremium>) -> Result<()> {
         let premium = &mut ctx.accounts.premium_name;
         require_keys_eq!(premium.owner, ctx.accounts.current_owner.key(), NamesError::Unauthorized);
+        require!(!premium.nft_bound, NamesError::NftBoundTransferRequiresSync);
         premium.owner = ctx.accounts.new_owner.key();
 
         if ctx.accounts.parent_policy.parent_owner == ctx.accounts.current_owner.key() {
             ctx.accounts.parent_policy.parent_owner = ctx.accounts.new_owner.key();
         }
+        Ok(())
+    }
+
+    pub fn bind_premium_nft(ctx: Context<BindPremiumNft>) -> Result<()> {
+        let premium = &mut ctx.accounts.premium_name;
+        require_keys_eq!(premium.owner, ctx.accounts.current_owner.key(), NamesError::Unauthorized);
+        require!(premium.transferable, NamesError::NonTransferable);
+        require!(
+            ctx.accounts.owner_nft_account.amount == 1,
+            NamesError::InvalidNftTokenAccount
+        );
+        require_keys_eq!(
+            ctx.accounts.owner_nft_account.owner,
+            ctx.accounts.current_owner.key(),
+            NamesError::InvalidNftTokenAccount
+        );
+        premium.nft_mint = ctx.accounts.nft_mint.key();
+        premium.nft_bound = true;
+        premium.owner = ctx.accounts.current_owner.key();
+
+        if ctx.accounts.parent_policy.parent_owner == Pubkey::default()
+            || ctx.accounts.parent_policy.parent_owner == ctx.accounts.current_owner.key()
+        {
+            ctx.accounts.parent_policy.parent_owner = ctx.accounts.current_owner.key();
+        }
+        Ok(())
+    }
+
+    pub fn issue_premium_nft(ctx: Context<IssuePremiumNft>, name_hash: [u8; 32]) -> Result<()> {
+        let premium = &mut ctx.accounts.premium_name;
+        require!(premium.name_hash == name_hash, NamesError::InvalidHash);
+        require_keys_eq!(premium.owner, ctx.accounts.owner.key(), NamesError::Unauthorized);
+        require!(premium.transferable, NamesError::NonTransferable);
+        require!(premium.nft_mint == Pubkey::default(), NamesError::NftAlreadyIssued);
+
+        let signer_seeds: &[&[u8]] = &[SEED_NFT_AUTHORITY, &[ctx.bumps.nft_authority]];
+        token::mint_to(
+            CpiContext::new_with_signer(
+                ctx.accounts.token_program.to_account_info(),
+                MintTo {
+                    mint: ctx.accounts.nft_mint.to_account_info(),
+                    to: ctx.accounts.owner_nft_account.to_account_info(),
+                    authority: ctx.accounts.nft_authority.to_account_info(),
+                },
+                &[signer_seeds],
+            ),
+            1,
+        )?;
+
+        premium.nft_mint = ctx.accounts.nft_mint.key();
+        premium.nft_bound = true;
+        Ok(())
+    }
+
+    pub fn sync_premium_owner_from_nft(ctx: Context<SyncPremiumOwnerFromNft>) -> Result<()> {
+        let premium = &mut ctx.accounts.premium_name;
+        require!(premium.nft_bound, NamesError::NftBindingRequired);
+        require_keys_eq!(premium.nft_mint, ctx.accounts.nft_mint.key(), NamesError::InvalidNftMint);
+        require!(
+            ctx.accounts.holder_nft_account.amount == 1,
+            NamesError::InvalidNftTokenAccount
+        );
+        let previous_owner = premium.owner;
+        let new_owner = ctx.accounts.holder_nft_account.owner;
+        premium.owner = new_owner;
+
+        if ctx.accounts.parent_policy.parent_owner == Pubkey::default()
+            || ctx.accounts.parent_policy.parent_owner == previous_owner
+            || ctx.accounts.parent_policy.parent_owner != new_owner
+        {
+            ctx.accounts.parent_policy.parent_owner = new_owner;
+        }
+        Ok(())
+    }
+
+    pub fn issue_subdomain_nft(
+        ctx: Context<IssueSubdomainNft>,
+        parent_hash: [u8; 32],
+        label_hash: [u8; 32],
+    ) -> Result<()> {
+        let sub = &mut ctx.accounts.sub_name;
+        require!(sub.parent_hash == parent_hash && sub.label_hash == label_hash, NamesError::InvalidHash);
+        require_keys_eq!(sub.owner, ctx.accounts.owner.key(), NamesError::Unauthorized);
+        require!(sub.nft_mint == Pubkey::default(), NamesError::NftAlreadyIssued);
+
+        let signer_seeds: &[&[u8]] = &[SEED_NFT_AUTHORITY, &[ctx.bumps.nft_authority]];
+        token::mint_to(
+            CpiContext::new_with_signer(
+                ctx.accounts.token_program.to_account_info(),
+                MintTo {
+                    mint: ctx.accounts.nft_mint.to_account_info(),
+                    to: ctx.accounts.custody_nft_account.to_account_info(),
+                    authority: ctx.accounts.nft_authority.to_account_info(),
+                },
+                &[signer_seeds],
+            ),
+            1,
+        )?;
+
+        sub.nft_mint = ctx.accounts.nft_mint.key();
+        sub.nft_custody_account = ctx.accounts.custody_nft_account.key();
         Ok(())
     }
 
@@ -419,6 +534,8 @@ pub mod ddns_names {
         sub.parent_owner = ctx.accounts.parent_owner.key();
         sub.transfers_enabled = policy.transfers_enabled;
         sub.created_at = Clock::get()?.unix_timestamp;
+        sub.nft_mint = Pubkey::default();
+        sub.nft_custody_account = Pubkey::default();
         sub.bump = ctx.bumps.sub_name;
 
         Ok(())
@@ -638,6 +755,142 @@ pub struct TransferPremium<'info> {
 
     /// CHECK: new owner pubkey only.
     pub new_owner: UncheckedAccount<'info>,
+}
+
+#[derive(Accounts)]
+pub struct BindPremiumNft<'info> {
+    #[account(mut)]
+    pub premium_name: Account<'info, PremiumName>,
+
+    #[account(
+        mut,
+        seeds = [SEED_POLICY, premium_name.name_hash.as_ref()],
+        bump = parent_policy.bump,
+        constraint = parent_policy.parent_hash == premium_name.name_hash @ NamesError::InvalidParent
+    )]
+    pub parent_policy: Account<'info, ParentPolicy>,
+
+    pub nft_mint: InterfaceAccount<'info, Mint>,
+
+    #[account(
+        constraint = owner_nft_account.mint == nft_mint.key() @ NamesError::InvalidNftTokenAccount
+    )]
+    pub owner_nft_account: InterfaceAccount<'info, TokenAccount>,
+
+    #[account(mut)]
+    pub current_owner: Signer<'info>,
+
+    pub token_program: Interface<'info, TokenInterface>,
+}
+
+#[derive(Accounts)]
+pub struct SyncPremiumOwnerFromNft<'info> {
+    #[account(mut)]
+    pub premium_name: Account<'info, PremiumName>,
+
+    #[account(
+        mut,
+        seeds = [SEED_POLICY, premium_name.name_hash.as_ref()],
+        bump = parent_policy.bump,
+        constraint = parent_policy.parent_hash == premium_name.name_hash @ NamesError::InvalidParent
+    )]
+    pub parent_policy: Account<'info, ParentPolicy>,
+
+    pub nft_mint: InterfaceAccount<'info, Mint>,
+
+    #[account(
+        constraint = holder_nft_account.mint == nft_mint.key() @ NamesError::InvalidNftTokenAccount
+    )]
+    pub holder_nft_account: InterfaceAccount<'info, TokenAccount>,
+
+    pub token_program: Interface<'info, TokenInterface>,
+}
+
+#[derive(Accounts)]
+#[instruction(name_hash: [u8; 32])]
+pub struct IssuePremiumNft<'info> {
+    #[account(
+        mut,
+        seeds = [SEED_PREMIUM, name_hash.as_ref()],
+        bump = premium_name.bump,
+        constraint = premium_name.name_hash == name_hash @ NamesError::InvalidHash
+    )]
+    pub premium_name: Account<'info, PremiumName>,
+
+    #[account(
+        init,
+        payer = owner,
+        seeds = [SEED_PREMIUM_NFT_MINT, name_hash.as_ref()],
+        bump,
+        mint::decimals = 0,
+        mint::authority = nft_authority,
+        mint::freeze_authority = nft_authority
+    )]
+    pub nft_mint: Account<'info, SplMint>,
+
+    #[account(
+        init_if_needed,
+        payer = owner,
+        associated_token::mint = nft_mint,
+        associated_token::authority = owner
+    )]
+    pub owner_nft_account: Account<'info, SplTokenAccount>,
+
+    /// CHECK: PDA signer authority for minting name NFTs.
+    #[account(seeds = [SEED_NFT_AUTHORITY], bump)]
+    pub nft_authority: UncheckedAccount<'info>,
+
+    #[account(mut)]
+    pub owner: Signer<'info>,
+
+    pub token_program: Program<'info, Token>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction(parent_hash: [u8; 32], label_hash: [u8; 32])]
+pub struct IssueSubdomainNft<'info> {
+    #[account(
+        mut,
+        seeds = [SEED_SUB, parent_hash.as_ref(), label_hash.as_ref()],
+        bump = sub_name.bump
+    )]
+    pub sub_name: Account<'info, SubName>,
+
+    #[account(
+        init,
+        payer = owner,
+        seeds = [SEED_SUB_NFT_MINT, parent_hash.as_ref(), label_hash.as_ref()],
+        bump,
+        mint::decimals = 0,
+        mint::authority = nft_authority,
+        mint::freeze_authority = nft_authority
+    )]
+    pub nft_mint: Account<'info, SplMint>,
+
+    /// CHECK: PDA signer authority for minting name NFTs.
+    #[account(seeds = [SEED_NFT_AUTHORITY], bump)]
+    pub nft_authority: UncheckedAccount<'info>,
+
+    /// CHECK: PDA authority that keeps non-premium NFT custody in-program.
+    #[account(seeds = [SEED_NFT_CUSTODY_AUTHORITY], bump)]
+    pub nft_custody_authority: UncheckedAccount<'info>,
+
+    #[account(
+        init_if_needed,
+        payer = owner,
+        associated_token::mint = nft_mint,
+        associated_token::authority = nft_custody_authority
+    )]
+    pub custody_nft_account: Account<'info, SplTokenAccount>,
+
+    #[account(mut)]
+    pub owner: Signer<'info>,
+
+    pub token_program: Program<'info, Token>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
@@ -911,14 +1164,16 @@ impl NamesConfig {
 pub struct PremiumName {
     pub name_hash: [u8; 32],
     pub owner: Pubkey,
+    pub nft_mint: Pubkey,
     pub purchase_lamports: u64,
     pub created_at: i64,
     pub transferable: bool,
+    pub nft_bound: bool,
     pub bump: u8,
 }
 
 impl PremiumName {
-    pub const SIZE: usize = 32 + 32 + 8 + 8 + 1 + 1;
+    pub const SIZE: usize = 32 + 32 + 32 + 8 + 8 + 1 + 1 + 1;
 }
 
 #[account]
@@ -942,11 +1197,13 @@ pub struct SubName {
     pub parent_owner: Pubkey,
     pub transfers_enabled: bool,
     pub created_at: i64,
+    pub nft_mint: Pubkey,
+    pub nft_custody_account: Pubkey,
     pub bump: u8,
 }
 
 impl SubName {
-    pub const SIZE: usize = 32 + 32 + 32 + 1 + 32 + 1 + 8 + 1;
+    pub const SIZE: usize = 32 + 32 + 32 + 1 + 32 + 1 + 8 + 32 + 32 + 1;
 }
 
 #[account]
@@ -1119,6 +1376,16 @@ pub enum NamesError {
     BidTooLow,
     #[msg("Invalid bid amount")]
     InvalidBid,
+    #[msg("Invalid NFT mint")]
+    InvalidNftMint,
+    #[msg("Invalid NFT token account")]
+    InvalidNftTokenAccount,
+    #[msg("NFT already issued for this name")]
+    NftAlreadyIssued,
+    #[msg("Premium name must be synced from bound NFT owner")]
+    NftBoundTransferRequiresSync,
+    #[msg("Premium name does not have an NFT binding")]
+    NftBindingRequired,
     #[msg("Bid escrow is inactive")]
     EscrowInactive,
     #[msg("Winning bidder cannot withdraw during active winner state")]

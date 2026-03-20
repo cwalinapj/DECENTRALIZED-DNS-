@@ -41,17 +41,31 @@ import {
   evaluateDomainContinuityPolicy,
   type DomainTrafficSignal
 } from "./lib/domain_continuity_policy.js";
+import {
+  buildRegistrationPlan,
+  executeRegistrationPlan,
+  getNamesAvailability,
+  readNamesRuntimeConfig
+} from "./lib/names_registration.js";
 import { createDomainStatusStore } from "./lib/domain_status_store.js";
 import { createCreditsLedger } from "./lib/credits_ledger.js";
 import { createRegistrarProvider, parseRegistrarProvider } from "./lib/registrar_provider.js";
 import { createMockPaymentsProvider, type PaymentRail } from "@ddns/payments";
 
+function resolveRepoRoot(): string {
+  const cwd = process.cwd();
+  return path.basename(cwd) === "gateway" ? path.resolve(cwd, "..") : cwd;
+}
+
+const REPO_ROOT = resolveRepoRoot();
+const GATEWAY_ROOT = path.join(REPO_ROOT, "gateway");
 const PORT = Number(process.env.PORT || "8054");
 const HOST = process.env.HOST || "0.0.0.0";
+const DEFAULT_RECURSIVE_UPSTREAMS = "https://cloudflare-dns.com/dns-query,https://dns.google/resolve";
 const RECURSIVE_UPSTREAMS = (
   process.env.RECURSIVE_UPSTREAMS ||
   process.env.UPSTREAM_DOH_URLS ||
-  "https://cloudflare-dns.com/dns-query,https://dns.google/dns-query"
+  DEFAULT_RECURSIVE_UPSTREAMS
 )
   .split(",")
   .map((v) => v.trim())
@@ -85,13 +99,14 @@ const ENS_NETWORK = process.env.ENS_NETWORK || "mainnet";
 const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com";
 const SNS_CLUSTER = process.env.SNS_CLUSTER || "devnet";
 const ANCHOR_STORE_PATH = process.env.ANCHOR_STORE_PATH || "settlement/anchors/anchors.json";
-const WATCHDOG_POLICY_PROGRAM_ID = process.env.DDNS_WATCHDOG_POLICY_PROGRAM_ID || "";
+const WATCHDOG_POLICY_PROGRAM_ID =
+  process.env.DDNS_WATCHDOG_POLICY_PROGRAM_ID || readAnchorProgramId("ddns_watchdog_policy") || "";
 const IPFS_HTTP_GATEWAY_BASE_URL = process.env.IPFS_HTTP_GATEWAY_BASE_URL || "https://ipfs.io/ipfs";
 const IPFS_GATEWAY_BASE = process.env.IPFS_GATEWAY_BASE || IPFS_HTTP_GATEWAY_BASE_URL;
 const ARWEAVE_GATEWAY_BASE = process.env.ARWEAVE_GATEWAY_BASE || "https://arweave.net";
 const SITE_FETCH_TIMEOUT_MS = Number(process.env.SITE_FETCH_TIMEOUT_MS || "5000");
 const SITE_MAX_BYTES = Number(process.env.SITE_MAX_BYTES || String(5 * 1024 * 1024));
-const DDNS_REGISTRY_PROGRAM_ID = process.env.DDNS_REGISTRY_PROGRAM_ID || "";
+const DDNS_REGISTRY_PROGRAM_ID = process.env.DDNS_REGISTRY_PROGRAM_ID || readAnchorProgramId("ddns_registry") || "";
 const DDNS_WITNESS_URL = process.env.DDNS_WITNESS_URL || "";
 const REGISTRY_ADMIN_TOKEN = process.env.REGISTRY_ADMIN_TOKEN || "";
 const NODE_AGGREGATOR_ENABLED = process.env.NODE_AGGREGATOR_ENABLED === "1";
@@ -123,10 +138,10 @@ const REGISTRAR_DRY_RUN =
     ? process.env.REGISTRAR_DRY_RUN === "1"
     : REGISTRAR_ENABLED && (!PORKBUN_API_KEY || !PORKBUN_SECRET_API_KEY);
 const BANNER_TEMPLATE_PATH =
-  process.env.DOMAIN_BANNER_TEMPLATE_PATH || path.resolve(process.cwd(), "gateway/public/domain-continuity/banner.html");
+  process.env.DOMAIN_BANNER_TEMPLATE_PATH || path.join(GATEWAY_ROOT, "public", "domain-continuity", "banner.html");
 const INTERSTITIAL_TEMPLATE_PATH =
   process.env.DOMAIN_INTERSTITIAL_TEMPLATE_PATH ||
-  path.resolve(process.cwd(), "gateway/public/domain-continuity/interstitial.html");
+  path.join(GATEWAY_ROOT, "public", "domain-continuity", "interstitial.html");
 const RATE_LIMIT_WINDOW_S = Number(process.env.RATE_LIMIT_WINDOW_S || "60");
 const RATE_LIMIT_MAX_REQUESTS = Number(process.env.RATE_LIMIT_MAX_REQUESTS || "20");
 const AUDIT_LOG_PATH = process.env.AUDIT_LOG_PATH || "gateway/.cache/audit.log.jsonl";
@@ -140,6 +155,22 @@ function logInfo(message: string) {
   if (LOG_LEVEL !== "quiet") {
     console.log(message);
   }
+}
+
+function readAnchorProgramId(programKey: string): string {
+  const candidatePaths = [
+    path.resolve(process.cwd(), "solana/Anchor.toml"),
+    path.resolve(process.cwd(), "../solana/Anchor.toml")
+  ];
+  for (const candidatePath of candidatePaths) {
+    try {
+      if (!fs.existsSync(candidatePath)) continue;
+      const text = fs.readFileSync(candidatePath, "utf8");
+      const match = text.match(new RegExp(`^${programKey}\\s*=\\s*"([^"]+)"\\s*$`, "m"));
+      if (match?.[1]) return match[1];
+    } catch {}
+  }
+  return "";
 }
 
 type AttackCounters = {
@@ -953,8 +984,10 @@ function serverTimingHeader(metrics: DnsTimingMetric[]): string {
 export function createApp(overrides?: { adapterRegistry?: { resolveAuto: typeof adapterRegistry.resolveAuto } }) {
   const app = express();
   const activeAdapterRegistry = overrides?.adapterRegistry || adapterRegistry;
+  const namesRuntime = readNamesRuntimeConfig(REPO_ROOT, process.env);
 
   app.use("/dns-query", express.raw({ type: ["application/dns-message"], limit: "512kb" }));
+  app.use(express.static(path.join(GATEWAY_ROOT, "public")));
 
   app.get("/healthz", (_req, res) => res.json({ status: "ok" }));
 
@@ -1667,6 +1700,86 @@ export function createApp(overrides?: { adapterRegistry?: { resolveAuto: typeof 
     });
     res.setHeader("content-type", "text/html; charset=utf-8");
     return res.status(200).send(html);
+  });
+
+  app.get("/v1/names/config", async (_req, res) => {
+    return res.json({
+      rpc_url: namesRuntime.rpcUrl,
+      names_program_id: namesRuntime.namesProgramId || null,
+      wallet_path: namesRuntime.walletPath,
+      wallet_pubkey: namesRuntime.walletPubkey,
+      idl_present: namesRuntime.idlPresent,
+      write_enabled: namesRuntime.writeEnabled
+    });
+  });
+
+  app.get("/v1/names/availability", async (req, res) => {
+    const name = typeof req.query.name === "string" ? req.query.name : "";
+    if (!name) return res.status(400).json({ error: "missing_name" });
+    try {
+      const result = await getNamesAvailability(namesRuntime, name);
+      return res.json(result);
+    } catch (err: any) {
+      return res.status(400).json({ error: String(err?.message || err) });
+    }
+  });
+
+  app.post("/v1/names/register", express.json(), async (req, res) => {
+    const name = typeof req.body?.name === "string" ? req.body.name : "";
+    if (!name) return res.status(400).json({ error: "missing_name" });
+    const setPrimary = req.body?.set_primary !== false;
+    const execute = req.body?.execute === true;
+
+    try {
+      const availability = await getNamesAvailability(namesRuntime, name);
+      const plan = buildRegistrationPlan(namesRuntime, { name, setPrimary });
+      if (!availability.names_program_deployed || !availability.names_config_initialized || !availability.available) {
+        const statusCode = execute ? 409 : 200;
+        return res.status(statusCode).json({
+          ok: false,
+          executed: false,
+          execute_requested: execute,
+          reason: availability.reason,
+          availability,
+          plan
+        });
+      }
+      if (!execute) {
+        return res.json({
+          ok: true,
+          executed: false,
+          availability,
+          plan
+        });
+      }
+      if (!namesRuntime.writeEnabled) {
+        return res.status(403).json({
+          ok: false,
+          executed: false,
+          error: "names_write_disabled",
+          availability,
+          plan
+        });
+      }
+      if (!isAdminStubAuthorized(req)) {
+        return res.status(403).json({
+          ok: false,
+          executed: false,
+          error: "admin_token_required",
+          availability,
+          plan
+        });
+      }
+      const result = await executeRegistrationPlan(namesRuntime, { name, setPrimary, execute: true });
+      return res.json({
+        ...result,
+        availability,
+        rpc_url: namesRuntime.rpcUrl,
+        names_program_id: namesRuntime.namesProgramId
+      });
+    } catch (err: any) {
+      return res.status(400).json({ ok: false, error: String(err?.message || err) });
+    }
   });
 
   app.get("/v1/attack-mode", (_req, res) => {
