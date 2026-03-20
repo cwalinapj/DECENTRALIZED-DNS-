@@ -144,6 +144,7 @@ Full walk-through: [`docs/JIVE_CODER_5_MIN.md`](docs/JIVE_CODER_5_MIN.md)
 - One command (full local validation): `npm run mvp:validate:local`
 - One command (strict devnet proof, advanced): `npm run mvp:demo:devnet`
 - One link (Web2-first funnel): `docs/GET_STARTED.md`
+- One blunt product read: `docs/PROS_CONS_AND_FIXES.md`
 - Nameserver onboarding + zone manager: `docs/NS_FRONT_DOOR.md`
 - Public Cloudflare demo deploy/share: `docs/PUBLIC_DEMO.md`
 - Cross-repo Surfpool reference: [org-memory-registry](https://github.com/cwalinapj/org-memory-registry)

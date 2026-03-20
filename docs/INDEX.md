@@ -29,6 +29,7 @@ This index is intentionally short and categorized.
 - `docs/MASS_ADOPTION_ROADMAP.md`
 
 ## Product / Developer Positioning
+- `docs/PROS_CONS_AND_FIXES.md` — blunt product assessment and the highest-value fixes
 - `docs/DOMAIN_OWNER_SWITCH.md` — why switch nameservers (Web2 pitch, MVP vs Roadmap)
 - `docs/NS_FRONT_DOOR.md` — nameserver switch + zone manager commands (A/CNAME/TXT)
 - `docs/TRAFFIC_ORACLE_MVP.md` — traffic oracle eligibility/scoring plan
